@@ -1,0 +1,769 @@
+:root {
+  /* Colors - Mapped to Webflow variables with fallback values */
+  --color-neutral-800: var(--_nav-theme-tokens---neutral-800, #201D1D);
+  --color-neutral-700: var(--_nav-theme-tokens---neutral-700, #2A2727);
+  --color-neutral-600: var(--_nav-theme-tokens---neutral-600, #312E2E);
+  --color-neutral-500: var(--_nav-theme-tokens---neutral-500, #817F7F);
+  --color-neutral-900: var(--_nav-theme-tokens---neutral-900, #131212);
+  --color-neutral-200: var(--_nav-theme-tokens---neutral-200, #E4E3E3);
+  --color-electric: var(--_nav-theme-tokens---electric, #a1ff62);
+  --color-dark: var(--_nav-theme-tokens---neutral-900, #131212);
+  --color-light: #F5F5F5;
+  --color-purple: var(--_nav-theme-tokens---purple, #A58BFF);
+
+  --color-rgb-light: 245, 245, 245;
+  --color-rgb-tint: 161, 255, 98;
+
+  /* Layout Sizing & Typography */
+  --size-unit: 16;
+  --size-container-ideal: 1440;
+  --size-container-min: 992px;
+  --size-container-max: 1920px;
+  --size-container: clamp(var(--size-container-min), 100vw, var(--size-container-max));
+  --size-font: calc(var(--size-container) / (var(--size-container-ideal) / var(--size-unit)));
+
+  --nav-bar-height: var(--_nav-theme-tokens---nav-bar-height, 4.625em);
+  --nav-bar-max-width-small: 38em;
+  --gap-l: var(--_nav-theme-tokens---gap-l, 1.875em);
+  --stroke-weight: 1px;
+
+  /* Transitions */
+  --cubic-default: cubic-bezier(0.625, 0.05, 0, 1);
+  --animation-ease: 0.25s ease;
+  --animation-default: 0.6s var(--cubic-default);
+  --animation-default-onehalf: 0.9s var(--cubic-default);
+  --animation-default-half: 0.3s var(--cubic-default);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: var(--size-font);
+  background-color: #dfe2e5;
+  /* color intentionally omitted — let Webflow's global.css tokens control body text color */
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Lenis Scroll Tweaks */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  scroll-behavior: contain;
+}
+
+/* Global wrapper — persistent elements (nav, transition overlay) */
+.global {
+  position: relative;
+  z-index: 100;
+}
+
+/* Barba container (the <main> element that gets swapped) */
+.main {
+  position: relative;
+  z-index: 2;
+}
+
+/* Persistent Navigation Wrapper */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Background Dim Overlay */
+.nav__bg {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(19, 18, 18, 0.6);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--animation-default), visibility var(--animation-default);
+  pointer-events: auto;
+  z-index: 1;
+}
+
+[data-nav-status="active"] .nav__bg {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Capsule Positioning and Outline Wrapper */
+.nav-bar__wrap {
+  width: 100%;
+  height: var(--nav-bar-height);
+  justify-content: center;
+  display: flex;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  z-index: 2;
+}
+
+.nav-bar__width {
+  width: 100%;
+  max-width: var(--size-container);
+  flex-flow: column;
+  align-items: center;
+  display: flex;
+}
+
+.nav-bar {
+  width: 100%;
+  max-width: var(--nav-bar-max-width-small);
+  pointer-events: auto;
+  position: relative;
+  transition: max-width var(--animation-default-onehalf) 0.2s;
+}
+
+[data-nav-status="active"] .nav-bar {
+  transition: max-width var(--animation-default) 0s;
+  max-width: 100%;
+}
+
+/* Background Canvas Sizing (Corner Radius Inset Mechanics) */
+.nav-bar__back {
+  position: absolute;
+  inset: 0em;
+  transition: all var(--animation-default);
+}
+
+[data-scrolling-started="true"] .nav-bar__back {
+  inset: 0.1875em;
+}
+
+@media screen and (max-width: 767px) {
+  .nav-bar__back,
+  [data-scrolling-started][data-nav-status] .nav-bar__back {
+    inset: 0.5em;
+  }
+
+  [data-scrolling-started][data-nav-status="active"] .nav-bar__back {
+    inset: -0.25em 0em;
+  }
+}
+
+/* ── Navbar Background Styling on Scroll ── */
+.nav-bar__bg {
+  transition: background-color var(--animation-default);
+}
+
+[data-scrolling-started="true"] .nav-bar__bg {
+  background-color: var(--_dev---white-translucid);
+}
+
+[data-nav-status="active"] .nav-bar__bg {
+  background-color: hsla(227, 91.49%, 3.13%, 0.88);
+}
+
+/* ── Navbar Outline Styling on Scroll ── */
+.nav-bar__outline {
+  transition: background-color var(--animation-default);
+}
+
+[data-scrolling-started="true"] .nav-bar__outline {
+  background-color: var(--_dev---white-translucid);
+}
+
+[data-nav-status="active"] .nav-bar__outline {
+  background-color: var(--_dev---black);
+}
+
+/* ── Navbar Menu Text and Hamburger Styling on Scroll ── */
+.nav-menu {
+  transition: color var(--animation-default);
+}
+
+[data-scrolling-started="true"] .nav-menu {
+  color: var(--_dev---black);
+}
+
+[data-nav-status="active"] .nav-menu {
+  color: var(--_dev---white);
+}
+
+/* Hamburger active animation */
+.nav-menu__hamburger-bar {
+  transition: transform var(--animation-default);
+  transform: none;
+  transform-origin: center;
+}
+
+[data-nav-status="active"] .nav-menu__hamburger-bar:nth-child(1) {
+  transform: translateY(0.15em) rotate(-45deg) scaleX(0.75);
+}
+
+[data-nav-status="active"] .nav-menu__hamburger-bar:nth-child(2) {
+  transform: translateY(-0.15em) rotate(45deg) scaleX(0.75);
+}
+
+/* Logo slides and collapses */
+.nav-logo__wordmark-svg {
+  transition: transform var(--animation-default), opacity var(--animation-default-half) 0.15s;
+  transform: translateY(0em) rotate(0.001deg);
+  opacity: 1;
+}
+
+[data-scrolling-started="true"] .nav-logo__wordmark-svg {
+  transform: translateY(0.75em) rotate(0.001deg);
+  opacity: 0;
+}
+
+[data-scrolling-started][data-nav-status="active"] .nav-logo__wordmark-svg {
+  transform: translateY(0em) rotate(0.001deg);
+  opacity: 1;
+}
+
+.nav-logo__icon-svg {
+  position: absolute;
+  transition: transform var(--animation-default), opacity var(--animation-default-half) 0.15s;
+  transform: translateY(-0.75em) rotate(0.001deg);
+  opacity: 0;
+}
+
+[data-scrolling-started="true"] .nav-logo__icon-svg {
+  transform: translateY(0em) rotate(0.001deg);
+  opacity: 1;
+}
+
+[data-scrolling-started][data-nav-status="active"] .nav-logo__icon-svg {
+  transform: translateY(-0.75em) rotate(0.001deg);
+  opacity: 0;
+}
+
+/* ── Button Swap on Scroll (mirrors logo wordmark ↔ icon pattern) ── */
+
+/* Container: relative so the absolute-positioned scrolled state anchors correctly */
+.nav-bar__buttons {
+  position: relative;
+}
+
+/* Default buttons: visible at top, slides down + fades out on scroll */
+.nav-buttons__default {
+  display: flex;
+  gap: 0.5em;
+  transition: transform var(--animation-default),
+              opacity var(--animation-default-half) 0.15s;
+  transform: translateY(0em) rotate(0.001deg);
+  opacity: 1;
+}
+
+[data-scrolling-started="true"] .nav-buttons__default {
+  transform: translateY(0.75em) rotate(0.001deg);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* When menu is open, always restore default buttons (matches wordmark logo logic) */
+[data-scrolling-started][data-nav-status="active"] .nav-buttons__default {
+  transform: translateY(0em) rotate(0.001deg);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* WhatsApp button: hidden above at top, slides down into place + fades in on scroll */
+.nav-buttons__scrolled {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(calc(-50% - 0.75em)) rotate(0.001deg);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform var(--animation-default),
+              opacity var(--animation-default-half) 0.15s;
+  white-space: nowrap;
+}
+
+[data-scrolling-started="true"] .nav-buttons__scrolled {
+  transform: translateY(-50%) rotate(0.001deg);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* When menu is open, hide the WhatsApp button again */
+[data-scrolling-started][data-nav-status="active"] .nav-buttons__scrolled {
+  transform: translateY(calc(-50% - 0.75em)) rotate(0.001deg);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Ensure the WhatsApp pill renders correctly in plain HTML (overrides devlink inline display) */
+.nav-buttons__scrolled .whatsapp_menu {
+  display: flex;
+}
+
+/* Mega Menu Dropdown Height Animation (CSS Grid transition) */
+.nav-bar__bottom {
+  display: grid;
+  grid-template-rows: 0fr;
+  position: relative;
+  overflow: hidden;
+  transition: grid-template-rows var(--animation-default) 0s;
+  z-index: 5;
+}
+
+[data-nav-status="active"] .nav-bar__bottom {
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--animation-default-onehalf) 0.3s;
+}
+
+@media screen and (max-width: 767px) {
+  .nav-bar__bottom {
+    transform: translateY(-0.625em) rotate(0.001deg);
+    transition: grid-template-rows var(--animation-default) 0s, transform var(--animation-default) 0s;
+  }
+
+  [data-nav-status="active"] .nav-bar__bottom {
+    transform: translateY(0em) rotate(0.001deg);
+    transition: grid-template-rows var(--animation-default-onehalf) 0.3s, transform var(--animation-default) 0.3s;
+  }
+}
+
+/* Column Entrance Stagger (Slide up with staggered delay) */
+.nav-bar__bottom-row>* {
+  transition: transform var(--animation-default) 0s;
+  transform: translateY(2em) rotate(0.001deg);
+}
+
+.nav-bar__bottom-row>*:nth-child(2) {
+  transition: transform var(--animation-default) 0.075s;
+}
+
+.nav-bar__bottom-row>*:nth-child(3) {
+  transition: transform var(--animation-default) 0.15s;
+}
+
+[data-nav-status="active"] .nav-bar__bottom-row>* {
+  transition: transform var(--animation-default-onehalf) 0.3s;
+  transform: translateY(0em) rotate(0.001deg);
+}
+
+[data-nav-status="active"] .nav-bar__bottom-row>*:nth-child(2) {
+  transition: transform var(--animation-default-onehalf) 0.375s;
+  transform: translateY(0em) rotate(0.001deg);
+}
+
+[data-nav-status="active"] .nav-bar__bottom-row>*:nth-child(3) {
+  transition: transform var(--animation-default-onehalf) 0.45s;
+  transform: translateY(0em) rotate(0.001deg);
+}
+
+/* Under Navbar Marquee Positioning & Animation */
+.under-nav-bar {
+  z-index: 50;
+  width: 100%;
+  pointer-events: none;
+  opacity: 1;
+  visibility: visible;
+  flex-flow: column;
+  align-items: center;
+  display: flex;
+  position: fixed;
+  top: 0;
+  transition: all var(--animation-default);
+  transform: translateY(0em) scale(1) rotate(0.001deg);
+}
+
+/* Marquee hides under capsule when scrolled or open */
+body:has([data-nav-status="active"]) .under-nav-bar,
+body:has([data-scrolling-started="true"]) .under-nav-bar {
+  transform: translateY(-2em) scale(0.975) rotate(0.001deg);
+}
+
+.marquee-css__list {
+  animation: translateX 30s linear infinite;
+  animation-duration: inherit;
+}
+
+/* Pause scroll when hidden */
+body:has([data-scrolling-started="true"]) .marquee-css__list,
+body:has([data-nav-status="active"]) .marquee-css__list {
+  animation-play-state: paused;
+}
+
+@keyframes translateX {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* Text links underlines */
+[data-underline-link] {
+  position: relative;
+  cursor: pointer;
+}
+
+[data-underline-link]::before {
+  content: "";
+  position: absolute;
+  bottom: -0.175em;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--_dev---blue-1, #2051ff);
+  transition: transform 0.6s var(--cubic-default);
+  transform-origin: right;
+  transform: scaleX(0) rotate(0.001deg);
+}
+
+[data-hover]:hover [data-underline-link]::before {
+  transform-origin: left;
+  transform: scaleX(1) rotate(0.001deg);
+}
+
+/* Barba SPA Transition Screen Overlay */
+.transition {
+  position: fixed;
+  inset: 0;
+  background-color: var(--color-neutral-800);
+  z-index: 999;
+  opacity: 0;
+  visibility: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.transition[data-transition-theme="dark"] {
+  background-color: var(--color-dark);
+}
+
+.transition[data-transition-theme="light"] {
+  background-color: var(--color-neutral-200);
+}
+
+.loading-icon {
+  width: 3em;
+  height: 3em;
+  border-radius: 50%;
+  background-color: rgba(var(--color-rgb-tint), 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--animation-ease);
+}
+
+.loading-icon__inner {
+  width: 1.5em;
+  height: 1.5em;
+  border: 2px solid var(--color-electric);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: loadingRotate 0.5s linear infinite;
+}
+
+@keyframes loadingRotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Tablet breakpoint (max-width: 991px) */
+@media screen and (max-width: 991px) {
+  :root {
+    --size-container-ideal: 850;
+    --size-container-min: 768px;
+    --size-container-max: 991px;
+  }
+}
+
+/* Mobile Breakpoints (max-width: 767px) */
+@media screen and (max-width: 767px) {
+  :root {
+    --size-container-ideal: 390;
+    --size-container-min: 480px;
+    --size-container-max: 767px;
+  }
+
+  .nav-bar__bottom-inner {
+    width: 100vw;
+    max-height: calc(100dvh - var(--nav-bar-height));
+    padding: 1.0em 1.0em 1.25em 1.0em;
+    overflow: scroll;
+  }
+
+  .nav-bar__bottom-row {
+    gap: 0em;
+    flex-flow: column;
+  }
+}
+
+/* Mobile Portrait Breakpoint (max-width: 479px) */
+@media screen and (max-width: 479px) {
+  :root {
+    --size-container-ideal: 390;
+    --size-container-min: 320px;
+    --size-container-max: 479px;
+  }
+}
+
+/* --- 3D Rotating Hero --- */
+.hero-3d-scene {
+  position: relative;
+  width: 100%;
+  min-height: 600px; /* Fallback height so it doesn't collapse */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  /* Removed strict height bounds so Webflow can fully control responsiveness */
+}
+
+.scene-3d {
+  width: 100%;
+  perspective: 2000px;
+  position: relative;
+  margin-top: var(--nav-bar-height);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; /* This might be set in Webflow now, but leaving just in case */
+  transform-style: preserve-3d;
+  /* Removed width, max-width, and height so Webflow can fully control responsiveness */
+}
+
+.rotor-3d {
+  position: relative;
+  transform-style: preserve-3d;
+}
+
+.face {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+.front-face {
+  transform: rotateY(0deg);
+}
+
+.back-face {
+  transform: rotateY(180deg);
+}
+
+.face-center-bounds {
+  z-index: 1;
+}
+
+/* 
+  The mask allows the image to overflow the top (up to -150%), 
+  but strictly clips the bottom at 0, matching the bg-card's bottom border-radius.
+*/
+.image-mask {
+  clip-path: inset(-150% 0 0 0 round 0 0 32px 32px);
+  z-index: 2;
+  transform: translateZ(1px); /* Fix clipping bugs in Safari/Chrome 3D */
+}
+
+/* Float cards layout inside the face */
+.float-cards-layout {
+  pointer-events: none;
+  z-index: 3;
+  transform-style: preserve-3d;
+}
+
+.float-layout-left {
+  transform-style: preserve-3d;
+}
+
+.float-layout-right {
+  transform-style: preserve-3d;
+}
+
+.float-section {
+  transform-style: preserve-3d;
+}
+
+/* 3D Perspective transforms removed - Please use Webflow's Transform panel to set Z-axis depth! */
+
+.float-section.is--half {
+  flex: 2;
+}
+
+.float-section.is--quarter {
+  flex: 1;
+}
+
+/* Float section alignment utilities */
+.is--align-top-right { align-items: flex-start; justify-content: flex-end; }
+.is--align-center { align-items: center; justify-content: center; }
+.is--align-center-top { align-items: flex-start; justify-content: center; }
+.is--align-bottom-right { align-items: flex-end; justify-content: flex-end; }
+.is--align-center-bottom { align-items: flex-end; justify-content: center; }
+
+.main-image {
+  transform-origin: bottom center;
+}
+
+/* --- Dynamic Branch Menu --- */
+.nav-bar__bottom-overflow {
+  grid-row: 1;
+  grid-column: 1;
+  min-height: 0;
+}
+
+
+
+
+/* --- Menu Spacing Optimizations (Local Overrides) --- */
+.nav-bar__bottom-col {
+  padding: 1.5em !important;
+}
+.nav-bar__bottom-col.is--ad {
+  padding: 0 !important;
+}
+.nav-bar__bottom-inner {
+  padding: 1em !important;
+}
+.nav-banner {
+  min-height: 14em !important;
+}
+
+.branch-btn {
+  position: relative;
+  display: flex;
+  height: 2.25em;
+  padding: 0 1.25em;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid var(--_nav-theme-tokens---neutral-600);
+  border-radius: 100em;
+  background-color: transparent;
+  color: var(--_nav-theme-tokens---neutral-500);
+  font-size: 0.75em;
+  font-weight: 500;
+  text-decoration: none;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  pointer-events: auto;
+}
+
+.branch-btn.is-active {
+  display: none !important;
+}
+
+.branch-btn:hover {
+  border-color: var(--_nav-theme-tokens---neutral-200);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+}
+
+.branch-btn__arrow {
+  position: absolute;
+  top: -2em; /* sits above the button */
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  width: 1.5em;
+  height: 1.5em;
+  background-color: white;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.branch-btn__arrow svg {
+  width: 0.8em;
+  height: 0.8em;
+  fill: black;
+}
+
+.branch-btn:hover .branch-btn__arrow {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Branch Buttons */
+.nav-branch-buttons {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.nav-branch-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.3s, color 0.3s;
+  color: #666;
+}
+
+.nav-branch-btn.is--active {
+  background: #000;
+  color: #fff;
+}
+
+/* Branch Container Stacking */
+.nav-branch-container {
+  position: relative;
+  width: 100%;
+}
+
+.nav-branch-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: auto;
+  visibility: hidden;
+}
+
+.nav-branch-wrapper.is--active {
+  position: relative;
+  visibility: visible;
+  z-index: 2;
+}
+
+/* Ensure overflow container is relative */
+.nav-bar__bottom-overflow {
+  position: relative;
+  overflow: hidden;
+}
+
+/* WebGL active state overrides to hide duplicate HTML elements */
+.webgl-active #home-reel-thumb,
+.webgl-active .home-reel-thumb {
+  opacity: 0.001 !important;
+  pointer-events: none !important;
+}
+
+.webgl-active #home-reel-video-placeholder,
+.webgl-active .home-reel-video-placeholder {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Stacking context isolation to ensure watch button and text are in front of fixed canvas */
+#home-reel-container {
+  position: relative;
+  z-index: 2;
+}
+

@@ -1,0 +1,51 @@
+<h2>Menu Branch Structure</h2>
+<p class="subtitle">Here is a visual representation of how the new structure could work.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Navigation Structure</div>
+  <div class="mockup-body">
+    <div style="border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 10px; display: flex; justify-content: space-between;">
+      <div style="font-weight: bold;">[LOGO]</div>
+      <div>[Login] [Join]</div>
+    </div>
+    <div style="display: flex; gap: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 20px;">
+      <button class="mock-button" style="background: #e0e0e0; border: none; padding: 5px 10px;">Branch 1 (Active)</button>
+      <button class="mock-button" style="background: transparent; border: none; padding: 5px 10px;">Branch 2</button>
+      <button class="mock-button" style="background: transparent; border: none; padding: 5px 10px;">Branch 3</button>
+    </div>
+    
+    <div style="overflow: hidden; width: 100%; position: relative; height: 150px; background: #f9f9f9; border: 1px dashed #ccc;">
+      <div style="width: 300%; display: flex; transform: translateX(0%); transition: transform 0.3s ease;">
+        <div style="width: 33.33%; padding: 20px;">
+          <h3>Branch 1 Content</h3>
+          <p>Links for Branch 1 (Inicio, Plataforma, etc.)</p>
+        </div>
+        <div style="width: 33.33%; padding: 20px; opacity: 0.5;">
+          <h3>Branch 2 Content</h3>
+          <p>Links for Branch 2...</p>
+        </div>
+        <div style="width: 33.33%; padding: 20px; opacity: 0.5;">
+          <h3>Branch 3 Content</h3>
+          <p>Links for Branch 3...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Slider Track Approach (Recommended)</h3>
+      <p>All branches are in a single horizontal row. We move the track left/right. To prevent seeing Branch 2 when going from 1 to 3, we temporarily hide or shrink Branch 2 during the animation. This matches your idea of a sliding track.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Absolute Stack Approach</h3>
+      <p>Each branch is stacked on top of each other. When animating from 1 to 3, Branch 3 slides in from the right, and Branch 1 slides out to the left. Branch 2 is simply not involved at all, ensuring you never see it mid-transition.</p>
+    </div>
+  </div>
+</div>

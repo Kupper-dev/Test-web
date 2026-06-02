@@ -1,0 +1,39 @@
+<h2>WebGL + DOM Layer Structure for `/lusion`</h2>
+<p class="subtitle">Here is how the page layers stack and communicate locally and in Webflow.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Browser Viewport (Layer Stack)</div>
+  <div class="mockup-body" style="padding: 24px; background: #111; color: #fff; font-family: sans-serif;">
+    <div style="border: 2px dashed #00fc66; padding: 12px; margin-bottom: 12px; background: rgba(0, 252, 102, 0.05);">
+      <h4 style="margin: 0; color: #00fc66;">1. DOM Layer (Visible Text & Layout)</h4>
+      <p style="margin: 4px 0; font-size: 0.85em; opacity: 0.8;">Standard HTML tags for SEO and structured flow. Contains invisible anchor boxes (e.g. <code>#home-reel-thumb</code>) that specify coordinates for the WebGL graphics.</p>
+    </div>
+    
+    <div style="border: 2px dashed #5a90ff; padding: 12px; margin-bottom: 12px; background: rgba(90, 144, 255, 0.05);">
+      <h4 style="margin: 0; color: #5a90ff;">2. Fixed WebGL Canvas Layer (Three.js Render)</h4>
+      <p style="margin: 4px 0; font-size: 0.85em; opacity: 0.8;">Covers 100% of the viewport behind or above the text. Renders the 3D drawing line spline and the morphing thumbnail video player.</p>
+    </div>
+
+    <div style="border: 2px dashed #94fffb; padding: 12px; background: rgba(148, 255, 251, 0.05);">
+      <h4 style="margin: 0; color: #94fffb;">3. Lenis Scroll Controller</h4>
+      <p style="margin: 4px 0; font-size: 0.85em; opacity: 0.8;">Monitors scroll event details. Feeds scroll coordinates into the JS loops to sync the drawing progress of the line and the video morph ratio.</p>
+    </div>
+  </div>
+</div>
+
+<div class="options" data-multiselect style="margin-top: 24px;">
+  <div class="option" data-choice="create_page" onclick="toggleSelect(this)">
+    <div class="letter">1</div>
+    <div class="content">
+      <h3>Create Local Page & Install Packages</h3>
+      <p>I will install <code>three</code> and <code>split-type</code> via npm, create <code>lusion.html</code>, and wire it up to our existing Vite dev server and smooth scrolling.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="implement_dom" onclick="toggleSelect(this)">
+    <div class="letter">2</div>
+    <div class="content">
+      <h3>Build HTML Structure & CSS Styles</h3>
+      <p>Implement the layout elements, title splitting layout, and video placeholder containers inside the page stylesheet.</p>
+    </div>
+  </div>
+</div>

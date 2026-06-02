@@ -1,0 +1,85 @@
+<h2>Menu Branch Interactive Mockup</h2>
+<p class="subtitle">Click the branch buttons to see the animation behavior (Absolute Stack approach).</p>
+
+<div class="mockup">
+  <div class="mockup-header">Navigation Structure</div>
+  <div class="mockup-body" style="padding: 20px;">
+    <!-- Buttons -->
+    <div id="btn-container" style="display: flex; gap: 10px; margin-bottom: 20px;">
+      <button class="mock-button" style="background: #000; color: white;" onclick="switchBranch(0)">Branch 1</button>
+      <button class="mock-button" style="background: #e0e0e0; color: black;" onclick="switchBranch(1)">Branch 2</button>
+      <button class="mock-button" style="background: #e0e0e0; color: black;" onclick="switchBranch(2)">Branch 3</button>
+    </div>
+    
+    <!-- Content Area -->
+    <div style="overflow: hidden; width: 100%; position: relative; height: 150px; background: #f9f9f9; border: 1px solid #ccc; border-radius: 8px;">
+      <div id="branch-0" style="position: absolute; width: 100%; height: 100%; padding: 20px; transition: transform 0.4s ease, opacity 0.4s ease; transform: translateX(0%); opacity: 1; background: #fff;">
+        <h3>Branch 1 Content</h3>
+        <p>This is the first branch.</p>
+      </div>
+      <div id="branch-1" style="position: absolute; width: 100%; height: 100%; padding: 20px; transition: transform 0.4s ease, opacity 0.4s ease; transform: translateX(100%); opacity: 0; background: #fff;">
+        <h3>Branch 2 Content</h3>
+        <p>This is the second branch.</p>
+      </div>
+      <div id="branch-2" style="position: absolute; width: 100%; height: 100%; padding: 20px; transition: transform 0.4s ease, opacity 0.4s ease; transform: translateX(100%); opacity: 0; background: #fff;">
+        <h3>Branch 3 Content</h3>
+        <p>This is the third branch.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentBranch = 0;
+  function switchBranch(index) {
+    if (index === currentBranch) return;
+    const isForward = index > currentBranch;
+    
+    // Update buttons
+    const btns = document.getElementById('btn-container').children;
+    for(let i=0; i<btns.length; i++) {
+      btns[i].style.background = (i === index) ? '#000' : '#e0e0e0';
+      btns[i].style.color = (i === index) ? 'white' : 'black';
+    }
+
+    // Animate out current
+    const outgoing = document.getElementById('branch-' + currentBranch);
+    outgoing.style.transform = isForward ? 'translateX(-100%)' : 'translateX(100%)';
+    outgoing.style.opacity = '0';
+    outgoing.style.pointerEvents = 'none';
+
+    // Prepare incoming (set its starting position instantly)
+    const incoming = document.getElementById('branch-' + index);
+    incoming.style.transition = 'none'; // disable transition briefly to snap to start
+    incoming.style.transform = isForward ? 'translateX(100%)' : 'translateX(-100%)';
+    incoming.style.opacity = '0';
+    
+    // Trigger reflow to apply the start position
+    void incoming.offsetWidth;
+    
+    // Animate in incoming
+    incoming.style.transition = 'transform 0.4s ease, opacity 0.4s ease';
+    incoming.style.transform = 'translateX(0%)';
+    incoming.style.opacity = '1';
+    incoming.style.pointerEvents = 'auto';
+
+    currentBranch = index;
+  }
+</script>
+
+<div class="options">
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">1</div>
+    <div class="content">
+      <h3>I like this Absolute Stack Approach (Recommended)</h3>
+      <p>This handles jumping from 1 to 3 perfectly without showing 2. Each slide is independent.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">2</div>
+    <div class="content">
+      <h3>I'd rather use a single Slider Track</h3>
+      <p>I really want all of them in one contiguous horizontal strip, even if we have to do complex logic to hide the middle slides when skipping.</p>
+    </div>
+  </div>
+</div>

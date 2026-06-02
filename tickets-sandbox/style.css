@@ -1,0 +1,259 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --color-black: #231E25;
+  --color-brand-11: #ABF139; /* Neon lime green */
+  --color-white: #FFF;
+  --grid-offset: 20px;
+  --grid-container-max-width-rem: 106.6667rem;
+  --grid-width: min(calc(100vw - (var(--grid-offset) * 2)), calc(var(--grid-container-max-width-rem) - (var(--grid-offset) * 2)));
+  --grid-column-width: calc(var(--grid-width) * 0.08085);
+  --grid-gutter-width: calc(var(--grid-width) * 0.02127);
+  --content-diag: 1000px;
+  --content-height: 500px;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  background-color: #0e0e11;
+  color: var(--color-black);
+  overflow-x: hidden;
+}
+
+.spacer {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #110c1d;
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 300;
+}
+
+.s-tickets-home {
+  position: relative;
+  height: 200vh;
+  background: var(--color-brand-11);
+  clip-path: inset(0);
+}
+
+.s-tickets-home .s__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.s-tickets-home .s__content {
+  position: relative;
+  z-index: 2;
+  margin: 0 auto;
+  padding: 2rem 0;
+  width: calc(4 * var(--grid-column-width) + 3 * var(--grid-gutter-width));
+  text-align: center;
+}
+
+@media only screen and (max-width: 987px) {
+  .s-tickets-home .s__content {
+    width: 90%;
+    max-width: 22.5rem;
+  }
+}
+
+.s-tickets-home .s__content .s__background {
+  position: absolute;
+  top: calc(50% - var(--content-diag) * 2 / 2);
+  left: calc(50% - var(--content-diag) * 1.75 / 2);
+  z-index: -1;
+  width: calc(var(--content-diag) * 1.75);
+  height: calc(var(--content-diag) * 2);
+  background: radial-gradient(closest-side, rgba(171, 241, 57, 0.9) 25%, rgba(171, 241, 57, 0));
+  border-radius: 999rem;
+  will-change: transform;
+}
+
+.s-tickets-home .s__content:before,
+.s-tickets-home .s__content:after {
+  position: absolute;
+  left: 50%;
+  z-index: 1;
+  width: 1px;
+  height: 200vh;
+  background: var(--color-black);
+  content: "";
+}
+.s-tickets-home .s__content:before {
+  bottom: 100%;
+}
+.s-tickets-home .s__content:after {
+  top: 100%;
+}
+
+.s-tickets-home .s__suptitle {
+  display: inline-block;
+  margin: 0 0 .4em;
+  padding: .05em .35em;
+  border-radius: 999rem;
+  box-shadow: 0 0 0 .09rem currentcolor;
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.06em;
+  line-height: 1;
+  background: var(--color-brand-11);
+}
+
+.s-tickets-home .s__title {
+  font-size: clamp(3rem, 6vw, 5rem);
+  font-weight: 600;
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+  margin: 0;
+}
+
+.s-tickets-home .s__text {
+  margin: 1.5em auto 0;
+  max-width: 24.875em;
+  font-size: clamp(1rem, 1.25vw, 1.3333rem);
+  font-weight: 500;
+  line-height: 1.13;
+}
+
+.s-tickets-home .s__text a {
+  position: relative;
+  font-weight: 700;
+  color: var(--color-black);
+  text-decoration: underline;
+}
+
+.s-tickets-home .s__tickets {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  
+  /* CSS Gradient Mask - Fades out elements near top/bottom edges */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
+}
+
+.s-tickets-home .s__tickets__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Base Card Styling - Transformed to support shape overlays */
+.s-tickets-home .sb-ticket {
+  --fz: 1.6667rem;
+  position: absolute;
+  top: calc(var(--radius) * -1);
+  left: calc(var(--radius) * -0.5);
+  z-index: 2;
+  margin: 0;
+  padding: 0;
+  background: none !important;
+  border: none !important;
+  overflow: visible !important;
+  font-size: var(--fz);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: .9;
+  box-sizing: border-box;
+  will-change: transform;
+}
+
+@media only screen and (max-width: 1536px){
+  .s-tickets-home .sb-ticket{--fz: 1.3333rem}
+}
+@media only screen and (max-width: 1280px){
+  .s-tickets-home .sb-ticket{--fz: 1.111rem}
+}
+
+/* Dimensions for Ticket vs Message shapes */
+.s-tickets-home .sb-ticket--ticket {
+  --width: 8.5em;
+  --height: 5.5em;
+  width: var(--width);
+  height: var(--height);
+  color: var(--color-black) !important;
+}
+
+.s-tickets-home .sb-ticket--message {
+  --width: 8.0em;
+  --height: 7.2em;
+  width: var(--width);
+  height: var(--height);
+  color: var(--color-brand-11) !important;
+}
+
+/* Background SVGs shape styling */
+.s-tickets-home .sb-ticket__shape {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.s-tickets-home .sb-ticket--ticket .sb-ticket__shape {
+  color: var(--color-brand-11);
+  filter: drop-shadow(0 4px 8px rgba(171, 241, 57, 0.25));
+}
+
+.s-tickets-home .sb-ticket--message .sb-ticket__shape {
+  color: var(--color-black);
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4));
+}
+
+/* Style the inner content to sit in the center of the shape */
+.s-tickets-home .sb-ticket .sb__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  line-height: 1.05;
+  font-size: 0.8em;
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+.s-tickets-home .sb-ticket--ticket .sb__inner {
+  padding: 1.2rem 1.4rem;
+}
+
+.s-tickets-home .sb-ticket--message .sb__inner {
+  padding: 1.2rem 1.4rem 2.2rem 1.4rem; /* Larger bottom padding shifts text up into the visual center of the speech bubble */
+}
+
+/* Title Card Specific Styling */
+.s-tickets-home .sb-ticket--title {
+  --width: 5.5em;
+  --height: 5.0em;
+  width: var(--width);
+  height: var(--height);
+  z-index: 3;
+  font-size: calc(var(--fz) * 1.4);
+}
+
+.s-tickets-home .sb-ticket--title .sb__inner {
+  padding: 0.4rem 0.6rem 1.4rem 0.6rem;
+  font-weight: 700;
+  letter-spacing: -0.06em;
+}

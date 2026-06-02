@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lusion Reel Sandbox</title>
+  <link rel="stylesheet" href="/src/devlink/css/global.css">
+  <link rel="stylesheet" href="/src/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Scope body overrides to the lusion page namespace */
+    body {
+      background-color: #f2f3f8 !important;
+      color: #0e0e11 !important;
+    }
+
+    /* Hide standard nav system to focus on reel experiment */
+    .global, .under-nav-bar {
+      display: none !important;
+    }
+
+    /* Reels Section Styling */
+    #home-reel {
+      position: relative;
+      background-color: transparent !important;
+      color: #0e0e11 !important;
+      padding: 48px 0 48px 0;
+      overflow: visible;
+      min-height: 140vh;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .container-lusion {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 60px;
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      column-gap: 24px;
+    }
+
+    /* Title Layout with massive font sizes */
+    #home-reel-title {
+      font-size: clamp(48px, 8.5vw, 130px);
+      line-height: 1.0;
+      font-weight: 300;
+      letter-spacing: -0.04em;
+      margin: 0 0 60px 0;
+      color: #0e0e11;
+      position: relative;
+      overflow: visible;
+      grid-column: 1 / span 12;
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    #home-reel-title-inner {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    #home-reel-title-line-1 {
+      white-space: nowrap;
+      position: relative;
+      text-align: right;
+      overflow: hidden;
+    }
+
+    #home-reel-title-line-2 {
+      white-space: nowrap;
+      position: relative;
+      text-align: left;
+      overflow: hidden;
+    }
+
+    #home-reel-thumb-wrapper {
+      grid-column: 1 / span 5;
+      grid-row: 3;
+      width: calc(100% + 48px); /* span + 2 gaps */
+      height: 0px;
+      position: relative;
+      top: -140px;
+    }
+
+    #home-reel-thumb {
+      width: 100%;
+      height: 0px;
+      padding-top: 56.25%; /* 16:9 ratio */
+      background: #2a38ee !important; /* solid blue box */
+      border-radius: 12px; /* smaller border-radius matches lusion */
+      box-shadow: 0 15px 35px rgba(42, 56, 238, 0.15);
+      transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s ease;
+    }
+
+    #home-reel-thumb:hover {
+      transform: perspective(1000px) rotateX(4deg) rotateY(-10deg) rotateZ(-3deg);
+      box-shadow: 0 25px 45px rgba(42, 56, 238, 0.25);
+    }
+
+    #home-reel-content {
+      grid-column: 7 / span 6;
+      grid-row: 2;
+      position: relative;
+      text-align: left;
+      align-self: start;
+    }
+
+    #home-reel-desc {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(16px, 1.8vw, 22px);
+      line-height: 1.5;
+      font-weight: 400;
+      color: #0e0e11;
+      margin-bottom: 28px;
+    }
+
+    #home-reel-cta {
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      color: #0e0e11;
+      background-color: #ffffff;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 500;
+      font-size: 14px;
+      text-transform: uppercase;
+      padding: 12px 28px;
+      border-radius: 100px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s ease;
+    }
+
+    #home-reel-cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    }
+
+    #home-reel-cta-dot {
+      width: 6px;
+      height: 6px;
+      background-color: #0e0e11;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+
+    #home-reel-cta-text {
+      margin-right: 0;
+      border-bottom: none;
+    }
+
+    #home-reel-cta-arrow {
+      display: none;
+    }
+
+    #home-reel-container {
+      grid-column: 1 / 13;
+      grid-row: 4;
+      width: 100%;
+      height: 608px; /* matches 16:9 height of 1080px width */
+      position: relative;
+      margin-top: 60px;
+      border-radius: 12px;
+      overflow: hidden;
+      z-index: 2; /* Ensures HTML overlays stack above WebGL canvas (z-index: 1) */
+    }
+
+    #home-reel-container-inner {
+      width: 100%;
+      height: 100%;
+    }
+
+    #home-reel-video-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    #home-reel-video-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(14, 14, 17, 0.15);
+      transition: background 0.3s ease;
+      z-index: 3;
+    }
+
+    #home-reel-video-title-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(16px, 3.5vw, 40px);
+      z-index: 5;
+      width: auto;
+      pointer-events: auto;
+    }
+
+    .home-reel-video-title-word {
+      font-size: clamp(32px, 6vw, 90px);
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #ffffff;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin: 0;
+      white-space: nowrap;
+    }
+
+    #home-reel-video-watch-btn {
+      cursor: pointer;
+      position: relative;
+      width: clamp(90px, 10vw, 150px);
+      height: clamp(58px, 6.4vw, 96px);
+      border-radius: clamp(29px, 3.2vw, 48px);
+      border: none;
+      background: #ffffff;
+      color: #0e0e11;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      transition: opacity 0.3s ease, box-shadow 0.3s ease, transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+      flex-shrink: 0;
+    }
+
+    #home-reel-video-watch-btn:hover {
+      transform: scale(1.06);
+      box-shadow: 0 15px 35px rgba(255, 255, 255, 0.25);
+    }
+
+    #home-reel-video-watch-btn svg {
+      width: clamp(20px, 2.2vw, 32px);
+      height: clamp(20px, 2.2vw, 32px);
+      color: #0e0e11;
+    }
+
+    /* WebGL active state overlays to hide HTML duplicates */
+    .webgl-active #home-reel-thumb {
+      opacity: 0 !important;
+      pointer-events: none;
+    }
+
+    .webgl-active #home-reel-video-placeholder {
+      background: transparent !important;
+    }
+  </style>
+</head>
+
+<body data-barba="wrapper" data-scrolling-started="false">
+
+  <!-- Global persistent elements (outside Barba container — never swapped) -->
+  <div class="global">
+    <!-- SPA Transition Wipe Screen Overlay -->
+    <div data-transition-theme="light" class="transition">
+      <div class="loading-icon">
+        <div class="loading-icon__inner"></div>
+      </div>
+    </div>
+
+    <!-- Persistent Capsule Navbar (matches about.html) -->
+    <nav data-marketing-theme="dark" data-nav-theme="light" data-nav-status="not-active"
+      data-scrolling-started="false" data-scrolling-direction="up" class="nav">
+      <div data-nav-toggle="close" class="nav__bg"></div>
+      <div class="nav-bar__wrap">
+        <div class="nav-bar__width">
+          <div class="nav-bar">
+            <div class="nav-bar__back">
+              <div class="nav-bar__outline"></div>
+              <div class="nav-bar__bg"></div>
+            </div>
+            <div data-nav-bar-height="" class="nav-bar__top">
+              <div class="nav-bar__menu">
+                <div data-nav-toggle="toggle" class="nav-menu">
+                  <div class="nav-menu__hamburger">
+                    <div class="nav-menu__hamburger-bar"></div>
+                    <div class="nav-menu__hamburger-bar"></div>
+                  </div>
+                  <span class="nav-menu__label">Menu</span>
+                </div>
+              </div>
+              <div class="nav-bar__logo">
+                <a aria-label="go to homepage" href="/index.html" class="nav-logo" data-barba-update="">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 187 187" fill="none" class="nav-logo__icon-svg">
+                    <path d="M126.049 76.7471L167.276 35.5197L150.805 19.0486L109.577 60.276C107.82 62.0398 104.808 60.7915 104.808 58.3009V0H81.517V70.3375C81.517 76.511 76.511 81.517 70.3375 81.517H0V104.808H58.3009C60.7915 104.808 62.0398 107.82 60.276 109.577L19.0548 150.805L35.5259 167.276L76.7533 126.049C78.5109 124.291 81.5232 125.533 81.5232 128.024V186.324H104.814V115.987C104.814 109.813 109.82 104.808 115.993 104.808H186.331V81.517H128.03C125.539 81.517 124.291 78.5047 126.055 76.7471H126.049Z" fill="currentColor" />
+                  </svg>
+                </a>
+              </div>
+              <div class="nav-bar__buttons">
+                <a href="#login" class="nav-button is--login">Login</a>
+                <a href="#join" class="nav-button is--join">Join</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+  <!-- Barba Page Container -->
+  <main data-barba="container" data-barba-namespace="lusion" data-page-theme="dark" class="main">
+
+    <!-- Scrolling Green Infinite Marquee -->
+    <div data-wf--under-nav-bar--variant="lightning" class="under-nav-bar">
+      <div class="under-nav-bar__inner">
+        <a href="#marquee-click" class="nav-marquee w-inline-block">
+          <div data-css-marquee="" style="animation-duration: 30s" class="marquee-css">
+            <div data-css-marquee-list="nav" class="marquee-css__list">
+              <div class="marquee-css__item">
+                <p class="eyebrow is--nav-marquee">Lusion WebGL Section Experiment</p>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Hero and Page Content -->
+    <div class="main-content">
+      
+      <!-- Spacer to allow scrolling -->
+      <section style="height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f2f3f8; color: #0e0e11;">
+        <h1 style="font-size: 3rem; font-weight: 300; letter-spacing: -0.03em;">Lusion Section</h1>
+        <p style="opacity: 0.6; margin-top: 12px;">Scroll down to draw the line and morph the video player</p>
+        <div style="margin-top: 32px; font-size: 1.5rem; animation: bounce 2s infinite;">↓</div>
+      </section>
+
+      <!-- The home-reel section copied from lusion.co -->
+      <section id="home-reel" class="section">
+        
+        <div class="container-lusion">
+          
+          <!-- Title Element -->
+          <h4 id="home-reel-title">
+            <div id="home-reel-title-inner">
+              <div id="home-reel-title-line-1">Bold Ideas,</div>
+              <div id="home-reel-title-line-2">Brought to Life</div>
+            </div>
+          </h4>
+
+          <!-- Thumbnail Reference Element -->
+          <div id="home-reel-thumb-wrapper">
+            <div id="home-reel-thumb"></div>
+          </div>
+
+          <!-- Description and CTA Element -->
+          <div id="home-reel-content">
+            <div id="home-reel-content-reveal">
+              <div id="home-reel-content-inner">
+                <h2 id="home-reel-desc">
+                  We combine design, motion, 3D, and development to create digital experiences that feel visually striking and technically seamless. From campaign launches to immersive brand worlds, we build work that captures attention and invites interaction.
+                </h2>
+                <a id="home-reel-cta" href="/about" target="_blank">
+                  <span id="home-reel-cta-dot"></span>
+                  <span id="home-reel-cta-text">Our Approach</span>
+                  <span id="home-reel-cta-arrow">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16"><path stroke="#0e0e11" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.343 8h11.314m0 0L8.673 3.016M13.657 8l-4.984 4.984"></path></svg>
+                  </span>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Video Player reference bounds -->
+          <div id="home-reel-container">
+            <div id="home-reel-container-inner">
+              <div id="home-reel-video-container">
+                
+                <!-- Crosses & SVGs decoration headers (mirrors lusion.co structure) -->
+                <div id="home-reel-video-container-decoration" style="position: absolute; width: 100%; height: 100%; pointer-events: none;">
+                  <div id="home-reel-video-container-top" style="position: absolute; top: 0; width: 100%; display: flex; justify-content: space-between; padding: 20px;">
+                    <div class="home-reel-video-container-crosses" style="display: flex; gap: 10px;">
+                      <div class="home-reel-video-container-cross">+</div>
+                      <div class="home-reel-video-container-cross">+</div>
+                    </div>
+                  </div>
+                  <div id="home-reel-video-container-bottom" style="position: absolute; bottom: 0; width: 100%; display: flex; justify-content: space-between; padding: 20px;">
+                    <div class="home-reel-video-container-crosses" style="display: flex; gap: 10px;">
+                      <div class="home-reel-video-container-cross">+</div>
+                      <div class="home-reel-video-container-cross">+</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="home-reel-video-placeholder">
+                  <div id="home-reel-video-title-container">
+                    <span class="home-reel-video-title-word">Play</span>
+                    <button id="home-reel-video-watch-btn" aria-label="Watch reel button">
+                      <svg id="home-reel-video-watch-btn-svg" xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="none" viewBox="0 0 36 36"><path fill="currentColor" d="M7 7.29c0-1.5 1.59-2.466 2.92-1.776l20.656 10.71c1.439.747 1.439 2.805 0 3.552L9.92 30.486C8.589 31.176 7 30.21 7 28.71V7.29Z"></path></svg>
+                    </button>
+                    <span class="home-reel-video-title-word">Reel</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- Bottom spacer -->
+      <section style="height: 100vh; background: #f2f3f8;"></section>
+
+    </div>
+
+  </main>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>

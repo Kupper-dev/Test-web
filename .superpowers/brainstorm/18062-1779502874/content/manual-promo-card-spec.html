@@ -1,0 +1,76 @@
+<h2>Promo Card: Manual Spec Sheet</h2>
+<p class="subtitle">Use this specification sheet to build the <strong>Promo Card</strong> component manually in the Webflow Designer.</p>
+
+<div class="mockup">
+  <div class="mockup-header">1. Component Element Hierarchy</div>
+  <div class="mockup-body">
+    <pre><code>[Link Block] (Class: nav-banner, Attributes: data-hover="")
+ └── [Div Block] (Class: nav-banner__content)
+      ├── [Div Block] (Class: nav-banner__tags)
+      │    ├── [Div Block] (Class: tag)
+      │    │    ├── [Div Block] (Class: button-bg, Attributes: data-wf--button-theme--variant="neutral-800")
+      │    │    └── [Text Block] (Class: eyebrow is--relative) -> Text: "Start"
+      │    └── [Div Block] (Class: tag)
+      │         ├── [Div Block] (Class: button-bg, Attributes: data-wf--button-theme--variant="purple")
+      │         └── [Text Block] (Class: eyebrow is--relative) -> Text: "Learning"
+      ├── [Div Block] (Class: nav-banner__center-content)
+      │    ├── [Div Block] (Class: nav-banner__title)
+      │    │    └── [Heading] (Class: h2-banner-title, Tag: h2)
+      │    └── [Div Block] (Class: nav-banner__ptc-preview, Attributes: data-video-lazy-hover="")
+      │         ├── [Video Element] (Class: cover-video, Attributes: loop, muted, playsinline, data-video-src="")
+      │         └── [Div Block] (Class: ptc-card__locked)
+      │              └── [HTML Embed] (Locked SVG Icon)
+      └── [Div Block] (Class: nav-banner__btn)
+           └── [Link Block] (Class: button)
+                ├── [Div Block] (Class: button-bg, Attributes: data-wf--button-theme--variant="neutral-200")
+                └── [Text Block] (Class: nav-banner-btn-text)</code></pre>
+  </div>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">2. Style Property Definitions</div>
+  <div class="mockup-body">
+    <table style="width:100%; border-collapse:collapse; text-align:left;">
+      <thead>
+        <tr style="border-bottom:2px solid var(--accent)">
+          <th style="padding:8px">Element / Class</th>
+          <th style="padding:8px">Webflow Style Settings</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #444">
+          <td style="padding:8px"><strong>nav-banner</strong></td>
+          <td style="padding:8px">Display: <code>Flex (Column)</code>, Width/Height: <code>100%</code>, Min-height: <code>20em</code>, Padding: <code>2em</code>, Background: Variable <code>neutral-700</code>, Radius: <code>1em</code>, Position: <code>Relative</code>, Overflow: <code>Hidden</code>, Decoration: <code>None</code>. On Hover: Background Variable <code>neutral-600</code>. Transition: Background Color <code>250ms ease</code>.</td>
+        </tr>
+        <tr style="border-bottom:1px solid #444">
+          <td style="padding:8px"><strong>nav-banner__content</strong></td>
+          <td style="padding:8px">Display: <code>Flex (Column, Space Between)</code>, Height: <code>100%</code>, Flex Grow: <code>1</code>, Z-Index: <code>2</code>.</td>
+        </tr>
+        <tr style="border-bottom:1px solid #444">
+          <td style="padding:8px"><strong>nav-banner__tags</strong></td>
+          <td style="padding:8px">Display: <code>Flex</code>, Gap: <code>0.375em</code>.</td>
+        </tr>
+        <tr style="border-bottom:1px solid #444">
+          <td style="padding:8px"><strong>h2-banner-title</strong></td>
+          <td style="padding:8px">Font Size: <code>1.75em</code>, Line Height: <code>1.1</code>, Color: <code>#ffffff</code>, Weight: <code>450</code>.</td>
+        </tr>
+        <tr style="border-bottom:1px solid #444">
+          <td style="padding:8px"><strong>nav-banner__ptc-preview</strong></td>
+          <td style="padding:8px">Display: <code>Flex (Center, Center)</code>, Width/Height: <code>4.5em</code>, Background: Variable <code>neutral-800</code>, Radius: <code>50%</code>, Border: <code>1px solid</code> Variable <code>neutral-600</code>, Position: <code>Relative</code>, Overflow: <code>Hidden</code>.</td>
+        </tr>
+        <tr style="border-bottom:1px solid #444">
+          <td style="padding:8px"><strong>cover-video</strong></td>
+          <td style="padding:8px">Position: <code>Absolute</code>, Inset: <code>0px</code>, Width/Height: <code>100%</code>, Object Fit: <code>Cover</code>, Opacity: <code>0%</code>. Transition: Opacity <code>250ms ease</code>.</td>
+        </tr>
+        <tr style="border-bottom:1px solid #444">
+          <td style="padding:8px"><strong>ptc-card__locked</strong></td>
+          <td style="padding:8px">Display: <code>Flex (Center, Center)</code>, Width/Height: <code>1.25em</code>, Color: Variable <code>neutral-200</code>, Z-Index: <code>2</code>.</td>
+        </tr>
+        <tr style="border-bottom:1px solid #444">
+          <td style="padding:8px"><strong>button</strong></td>
+          <td style="padding:8px">Display: <code>Inline Flex (Center, Center)</code>, Padding: <code>0.75em</code> top/bottom, <code>1.5em</code> left/right, Radius: <code>3em</code>, Position: <code>Relative</code>, Overflow: <code>Hidden</code>, Color: Variable <code>neutral-800</code>, Font Size: <code>0.875em</code>, Case: <code>Uppercase</code>, Weight: <code>600</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -1,0 +1,61 @@
+<h2>Proposed Architectures for Webflow Porting</h2>
+<p class="subtitle">Comparing component boundary strategies to find the best compromise between Webflow usability and clean structure.</p>
+
+<div class="section">
+  <h3>Select an Approach</h3>
+  
+  <div class="options">
+    <div class="option selected" data-choice="approach_atomic" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>Approach 1: Fine-Grained Atomic Components (Recommended)</h3>
+        <p><strong>Highly Modular:</strong> We define <code>Navbar</code>, <code>Navbar Link</code>, <code>Sub-Navbar</code>, and <code>Promo Card</code> as separate, independent components.</p>
+        <div class="pros-cons">
+          <div class="pros">
+            <h4>Pros</h4>
+            <ul>
+              <li>Extremely clean structure in Webflow Navigator.</li>
+              <li>Reusing individual items (e.g. promo card, links) is trivial.</li>
+              <li>Minimal DOM overhead on pages that don't need a marquee/tags.</li>
+            </ul>
+          </div>
+          <div class="cons">
+            <h4>Cons</h4>
+            <ul>
+              <li>Needs nesting of components in Webflow, meaning some properties must be linked up.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="option" data-choice="approach_hybrid" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>Approach 2: Hybrid Shell Components</h3>
+        <p><strong>Fewer Components:</strong> Group the entire <code>Navbar Wrapper</code> (including links) into one single component, and the <code>Sub-Navbar</code> as another component.</p>
+        <div class="pros-cons">
+          <div class="pros">
+            <h4>Pros</h4>
+            <ul>
+              <li>Fewer component instances to drag into pages.</li>
+              <li>Simpler property management in Webflow settings panel.</li>
+            </ul>
+          </div>
+          <div class="cons">
+            <h4>Cons</h4>
+            <ul>
+              <li>Harder to edit individual menu link structure or promo card logic later without modifying the whole navbar.</li>
+              <li>Less clean if pages need different menu lists.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Our Recommendation</h3>
+  <p>We recommend <strong>Approach 1 (Atomic Components)</strong> because it matches how high-end development setups structure their components, making it very clean and preventing repetitive editing of elements one-by-one. The Page Layout Slot strategy also integrates perfectly with this.</p>
+</div>

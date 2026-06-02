@@ -1,0 +1,31 @@
+import * as React from "react";
+import * as Types from "./webflow_modules/types";
+
+declare function RequestForm(props: {
+  checkbox?: Types.Devlink.RuntimeProps;
+  checkboxText?: React.ReactNode;
+  checkboxVisibility?: Types.Visibility.VisibilityConditions;
+  datePickerSlot?: Types.Devlink.Slot;
+  deviceSelectorSlot?: Types.Devlink.Slot;
+  deviceSelectorVisibility?: Types.Boolean.Boolean;
+  moreDetailsInputField?: Types.Devlink.RuntimeProps;
+  postalCodeInputField?: Types.Devlink.RuntimeProps;
+  postalCodeVisibility?: Types.Visibility.VisibilityConditions;
+  requestDetails?: React.ReactNode;
+  requestDetailsDescription?: React.ReactNode;
+  requestField1?: React.ReactNode;
+  requestField2?: React.ReactNode;
+  requestField3?: React.ReactNode;
+  requestFieldDescription1?: React.ReactNode;
+  requestFieldDescription2?: React.ReactNode;
+  requestFieldDescription3?: React.ReactNode;
+  selectDevice?: React.ReactNode;
+  selectDeviceDescription?: React.ReactNode;
+  serviceModeSlot?: Types.Devlink.Slot;
+  serviceTypeSlot?: Types.Devlink.Slot;
+  submitRequestLoadingText?: string;
+  submitRequestText?: string;
+  urgencyLevelSlot?: Types.Devlink.Slot;
+  warningBoxVisibility?: Types.Visibility.VisibilityConditions;
+  warningText?: React.ReactNode;
+}): React.JSX.Element;

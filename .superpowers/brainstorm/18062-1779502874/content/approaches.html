@@ -1,0 +1,45 @@
+<h2>Migration Approaches for Navbar Link</h2>
+<p class="subtitle">Please select our construction approach for migrating the component into Webflow.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Approach A: WHTML Builder (Recommended)</h3>
+      <p>Insert the full component HTML structure and its CSS classes in one go. High-fidelity and fast.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Approach B: Element-by-Element Builder</h3>
+      <p>Build the tree manually node by node. High control but tedious and error-prone.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Approach C: Cleanup Existing Component</h3>
+      <p>Delete elements in the current "Nav bar link" component and rebuild it. Slow and carries legacy weight.</p>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons">
+  <div class="pros">
+    <h4>Pros of Approach A</h4>
+    <ul>
+      <li>Exact match to sandbox structure and layout</li>
+      <li>Instant creation of multi-level structures</li>
+      <li>Perfect CSS BEM class styling configuration</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>Cons of Approach A</h4>
+    <ul>
+      <li>Must bind properties to settings in a follow-up step</li>
+    </ul>
+  </div>
+</div>

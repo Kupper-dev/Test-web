@@ -1,0 +1,27 @@
+{
+  "name": "kupper-osmo-navbar-sandbox",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "devlink": "webflow devlink sync && node patch-devlink.js"
+  },
+  "dependencies": {
+    "@barba/core": "^2.10.3",
+    "gsap": "^3.12.5",
+    "lenis": "^1.1.18",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "split-type": "^0.3.4",
+    "three": "^0.184.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.2.0",
+    "@webflow/webflow-cli": "^1.23.0",
+    "typescript": "^5.9.3",
+    "vite": "^5.2.11"
+  }
+}

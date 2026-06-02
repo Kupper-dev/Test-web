@@ -1,0 +1,95 @@
+<h2>Navbar Link: Manual Spec Sheet</h2>
+<p class="subtitle">Use this specification sheet to build the <strong>Navbar Link</strong> component manually in the Webflow Designer.</p>
+
+<div class="mockup">
+  <div class="mockup-header">1. Component Element Hierarchy</div>
+  <div class="mockup-body">
+    <pre><code>[ListItem] (Class: nav-bar__big-li)
+ ├── [Link Block] (Class: nav-bar__big-a, Attributes: data-hover="")
+ │    ├── [Text Block] (Class: nav-bar__big-span, Attributes: data-underline-link="")
+ │    ├── [Text Block] (Class: nav-bar__big-span-number)
+ │    └── [Div Block] (Class: nav-bar__a-tag)
+ │         └── [Div Block] (Class: tag)
+ │              ├── [Div Block] (Class: button-bg)
+ │              └── [Text Block] (Class: eyebrow is--relative)
+ └── [Div Block] (Class: line is--nav-transparent)</code></pre>
+  </div>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">2. Style Property Definitions</div>
+  <div class="mockup-body">
+    <table style="width:100%; border-collapse:collapse; text-align:left;">
+      <thead>
+        <tr style="border-bottom:2px solid var(--accent)">
+          <th style="padding:8px">Element / Class</th>
+          <th style="padding:8px">Webflow Style Settings</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #444">
+          <td style="padding:8px"><strong>nav-bar__big-li</strong></td>
+          <td style="padding:8px">Width: <code>100%</code>, Position: <code>Relative</code>, Tag: <code>li</code></td>
+        </tr>
+        <tr style="border-bottom:1px solid #444">
+          <td style="padding:8px"><strong>nav-bar__big-a</strong></td>
+          <td style="padding:8px">Display: <code>Flex (Row, Center)</code>, Width: <code>100%</code>, Padding-top: <code>1.0625em</code>, Padding-bottom: <code>1.125em</code>, Color: Variable <code>neutral-200</code>. On Hover: Color <code>#ffffff</code>. Transition: Color <code>250ms ease</code>.</td>
+        </tr>
+        <tr style="border-bottom:1px solid #444">
+          <td style="padding:8px"><strong>nav-bar__big-span</strong></td>
+          <td style="padding:8px">Font Size: <code>1.5em</code>, Line Height: <code>1</code>, Weight: <code>430</code>.</td>
+        </tr>
+        <tr style="border-bottom:1px solid #444">
+          <td style="padding:8px"><strong>nav-bar__big-span-number</strong></td>
+          <td style="padding:8px">Display: <code>Block</code>, Margin-top: <code>-0.75em</code>, Margin-left: <code>0.25em</code>, Position: <code>Relative</code>, Color: Variable <code>neutral-500</code>, Font Size: <code>0.75em</code>, Line Height: <code>1</code>.</td>
+        </tr>
+        <tr style="border-bottom:1px solid #444">
+          <td style="padding:8px"><strong>nav-bar__a-tag</strong></td>
+          <td style="padding:8px">Display: <code>Flex</code>, Padding-top: <code>0.25em</code>, Padding-left: <code>0.625em</code>.</td>
+        </tr>
+        <tr style="border-bottom:1px solid #444">
+          <td style="padding:8px"><strong>tag</strong></td>
+          <td style="padding:8px">Display: <code>Inline Flex (Center)</code>, Padding: <code>0.25em</code> top/bottom, <code>0.625em</code> left/right, Position: <code>Relative</code>, Overflow: <code>Hidden</code>, Radius: <code>100em</code>, Color: <code>#ffffff</code>.</td>
+        </tr>
+        <tr style="border-bottom:1px solid #444">
+          <td style="padding:8px"><strong>button-bg</strong></td>
+          <td style="padding:8px">Position: <code>Absolute</code>, Inset: <code>0px</code>, Z-Index: <code>0</code>, Transition: Background Color <code>250ms ease</code>.</td>
+        </tr>
+        <tr style="border-bottom:1px solid #444">
+          <td style="padding:8px"><strong>eyebrow is--relative</strong></td>
+          <td style="padding:8px">Position: <code>Relative</code>, Z-Index: <code>1</code>, Font Size: <code>0.65em</code>, Weight: <code>600</code>, Case: <code>Uppercase</code>, Letter Spacing: <code>0.05em</code>.</td>
+        </tr>
+        <tr style="border-bottom:1px solid #444">
+          <td style="padding:8px"><strong>line is--nav-transparent</strong></td>
+          <td style="padding:8px">Width: <code>100%</code>, Height: <code>1px</code>, Background: Variable <code>neutral-600</code>, Opacity: <code>30%</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">3. Underline Hover Custom CSS (Add to page head)</div>
+  <div class="mockup-body">
+    <pre><code class="language-css">[data-underline-link] {
+  position: relative;
+  cursor: pointer;
+}
+[data-underline-link]::before {
+  content: "";
+  position: absolute;
+  bottom: -0.175em;
+  left: 0;
+  width: 100%;
+  height: calc(0.0625em / 3);
+  background-color: currentColor;
+  transition: transform 0.6s cubic-bezier(0.625, 0.05, 0, 1);
+  transform-origin: right;
+  transform: scaleX(0) rotate(0.001deg);
+}
+[data-hover]:hover [data-underline-link]::before {
+  transform-origin: left;
+  transform: scaleX(1) rotate(0.001deg);
+}</code></pre>
+  </div>
+</div>

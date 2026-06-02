@@ -1,0 +1,70 @@
+<h2>Navbar Link: Element Structure & CSS Rules</h2>
+<p class="subtitle">This is the detailed design spec for the <strong>Navbar Link</strong> component we will insert using WHTML Builder.</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Proposed HTML Structure</div>
+    <div class="mockup-body">
+      <pre><code class="language-html">&lt;li class="nav-bar__big-li"&gt;
+  &lt;a data-hover="" href="#" class="nav-bar__big-a"&gt;
+    &lt;span data-underline-link="" class="nav-bar__big-span"&gt;The Vault&lt;/span&gt;
+    &lt;span class="nav-bar__big-span-number"&gt;180&lt;/span&gt;
+    &lt;div class="nav-bar__a-tag"&gt;
+      &lt;div class="tag"&gt;
+        &lt;div data-wf--button-theme--variant="purple" class="button-bg"&gt;&lt;/div&gt;
+        &lt;span class="eyebrow is--relative"&gt;NEW&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/a&gt;
+  &lt;div class="line is--nav-transparent"&gt;&lt;/div&gt;
+&lt;/li&gt;</code></pre>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">Key CSS Style Rules</div>
+    <div class="mockup-body">
+      <pre><code class="language-css">.nav-bar__big-li {
+  width: 100%;
+  position: relative;
+}
+.nav-bar__big-a {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding-top: 1.0625em;
+  padding-bottom: 1.125em;
+  color: var(--color-neutral-200);
+  text-decoration: none;
+}
+.nav-bar__big-span {
+  font-size: 1.5em;
+  line-height: 1;
+}
+.nav-bar__big-span-number {
+  color: var(--color-neutral-500);
+  margin-top: -0.75em;
+  margin-left: 0.25em;
+  font-size: 0.75em;
+}
+.line {
+  width: 100%;
+  height: 1px;
+  background-color: var(--color-neutral-600);
+}
+.line.is--nav-transparent {
+  opacity: 0.3;
+}</code></pre>
+    </div>
+  </div>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="approve" onclick="toggleSelect(this)">
+    <div class="letter">✓</div>
+    <div class="content">
+      <h3>Approve Spec</h3>
+      <p>The element structure and styling rules look correct. Let's proceed to writing the design doc.</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,13 @@
+{
+  "telemetry": {
+    "global": {
+      "allowTelemetry": true,
+      "lastPrompted": 1779521805469,
+      "version": "1.23.0"
+    }
+  },
+  "siteId": "695c194c86d5e76167047ce4",
+  "devlink": {
+    "rootDir": "./src/devlink"
+  }
+}

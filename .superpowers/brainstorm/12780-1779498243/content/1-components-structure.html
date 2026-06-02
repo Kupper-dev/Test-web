@@ -1,0 +1,122 @@
+<h2>Webflow Component Architecture</h2>
+<p class="subtitle">Let's refine the component structure, properties, and slots before porting them to Webflow.</p>
+
+<div class="section">
+  <h3>1. Navbar Link Component: <code>nav-bar__big-li</code></h3>
+  <p style="margin-bottom: 1rem;">To replicate the menu links cleanly in Webflow, we can create a single <strong>Navbar Link</strong> component with these properties:</p>
+  
+  <div style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem;">
+    <h4 style="margin-bottom: 0.75rem;">Component Schema & Properties:</h4>
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+      <thead>
+        <tr style="border-bottom: 2px solid var(--border); text-align: left;">
+          <th style="padding: 0.5rem;">Property Name</th>
+          <th style="padding: 0.5rem;">Type</th>
+          <th style="padding: 0.5rem;">Description</th>
+          <th style="padding: 0.5rem;">Example</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 0.5rem; font-family: monospace;">link-text</td>
+          <td style="padding: 0.5rem; color: var(--accent);">Plain Text</td>
+          <td style="padding: 0.5rem;">Main anchor tag text label</td>
+          <td style="padding: 0.5rem;">"Button Pack"</td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 0.5rem; font-family: monospace;">link-url</td>
+          <td style="padding: 0.5rem; color: var(--accent);">Link</td>
+          <td style="padding: 0.5rem;">Destination URL/anchor</td>
+          <td style="padding: 0.5rem;">#buttons</td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 0.5rem; font-family: monospace;">show-tag</td>
+          <td style="padding: 0.5rem; color: var(--accent);">Boolean (Visibility)</td>
+          <td style="padding: 0.5rem;">Controls visibility of the "NEW" badge</td>
+          <td style="padding: 0.5rem;">true</td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 0.5rem; font-family: monospace;">tag-text</td>
+          <td style="padding: 0.5rem; color: var(--accent);">Plain Text</td>
+          <td style="padding: 0.5rem;">Customize badge text if shown</td>
+          <td style="padding: 0.5rem;">"NEW"</td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 0.5rem; font-family: monospace;">show-number</td>
+          <td style="padding: 0.5rem; color: var(--accent);">Boolean (Visibility)</td>
+          <td style="padding: 0.5rem;">Controls visibility of the numeric span (e.g. 180)</td>
+          <td style="padding: 0.5rem;">true</td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 0.5rem; font-family: monospace;">number-text</td>
+          <td style="padding: 0.5rem; color: var(--accent);">Plain Text</td>
+          <td style="padding: 0.5rem;">Count value if shown</td>
+          <td style="padding: 0.5rem;">"180"</td>
+        </tr>
+        <tr>
+          <td style="padding: 0.5rem; font-family: monospace;">has-divider</td>
+          <td style="padding: 0.5rem; color: var(--accent);">Boolean (Visibility)</td>
+          <td style="padding: 0.5rem;">Toggles the underline divider class (.line.is--nav-transparent)</td>
+          <td style="padding: 0.5rem;">true (except last item)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section">
+  <h3>2. Marquee Component Strategy (Visibility and Placement)</h3>
+  <p class="subtitle">The green infinite marquee sits below the navbar, but how should we manage its presence across pages?</p>
+
+  <div class="options" data-multiselect="false">
+    <div class="option" data-choice="marquee_slot" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>Page Layout Slot Strategy (Recommended)</h3>
+        <p>Keep the marquee outside the navbar component. Pages that need it simply place the Marquee component directly inside their page wrapper. In pages that do NOT require the marquee, it is completely omitted from the layout. This avoids loading unused DOM and simplifies page-specific styling.</p>
+      </div>
+    </div>
+    
+    <div class="option" data-choice="marquee_variant" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>Marquee Component Visibility Properties</h3>
+        <p>Make the marquee a direct child of the navbar or page template, and control its visibility using a Webflow component property (e.g. <code>show-marquee = false</code>) or custom utility classes (like a hide/show variant). Keeps the navbar + marquee packaged together, but increases component complexity.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>3. Persistent vs Non-Persistent Structure</h3>
+  <p class="subtitle">How page sections should be split for Barba PJAX swaps and Webflow template clean structure:</p>
+  
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header" style="background: #34c759; color: white;">Global / Persistent (Never Swapped)</div>
+      <div class="mockup-body" style="background: rgba(52, 199, 89, 0.05);">
+        <ul style="margin-left: 1.25rem; font-size: 0.9rem;">
+          <li><strong>Page Transitions Screen</strong> (Wipe overlays)</li>
+          <li><strong>Persistent Capsule Navbar</strong> (Stays open/closed during PJAX swaps)</li>
+          <li>Global Custom Code Embeds (Lenis init, page-swipe listeners)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="mockup">
+      <div class="mockup-header" style="background: #0071e3; color: white;">Page / Non-Persistent (Swapped by PJAX)</div>
+      <div class="mockup-body" style="background: rgba(0, 113, 227, 0.05);">
+        <ul style="margin-left: 1.25rem; font-size: 0.9rem;">
+          <li><strong>Infinite Marquee Component</strong> (Allows page-specific marquee text / color themes!)</li>
+          <li><strong>Main Page Body Container</strong> (Hero, sections, footer)</li>
+          <li>Page-specific Scripts or Custom SEO Tags</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Clarifying Question for You:</h3>
+  <p>For the Marquee, how do pages that differ handle their content? Do you want to swap the marquee content/theme dynamically per-page (e.g., green marquee with button promo on Home, but a different marquee text on others), or does the marquee simply get hidden on other pages?</p>
+</div>

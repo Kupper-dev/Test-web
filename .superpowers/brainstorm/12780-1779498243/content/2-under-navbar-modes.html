@@ -1,0 +1,109 @@
+<h2>Sub-Navbar Mode Selection (<code>under-nav-bar</code> Component)</h2>
+<p class="subtitle">Based on your choice, we will create a unified <code>under-nav-bar</code> component that supports both modes. Let's inspect how the properties map.</p>
+
+<div class="section">
+  <h3>Interactive Preview of Modes</h3>
+  <p class="subtitle">Choose between the two modes below to see how the component structure responds:</p>
+
+  <div class="options">
+    <div class="option selected" data-choice="mode_tags" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>Product Info Tags Mode (Default)</h3>
+        <p>CMS-driven layout showing static tag badges. Perfect for product details pages.</p>
+        <!-- Mockup of Tags Mode -->
+        <div style="margin-top: 1rem; background: #1a1a1a; padding: 0.75rem 1rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border);">
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: #ccc; font-size: 0.65rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: bold; letter-spacing: 0.05em; text-transform: uppercase;">Product</span>
+            <span style="background: #ffffff; color: #111; font-size: 0.65rem; padding: 0.25rem 0.6rem; border-radius: 20px; font-weight: bold; letter-spacing: 0.05em; text-transform: uppercase;">Button Pack</span>
+          </div>
+          <div>
+            <span style="background: #a3ff12; color: #111; font-size: 0.65rem; padding: 0.25rem 0.6rem; border-radius: 4px; font-weight: bold; letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 0.25rem;">✓ Included in Membership</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="option" data-choice="mode_marquee" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>Sliding Marquee Mode (Toggle Option)</h3>
+        <p>Dynamic infinite scrolling text marquee. Great for homepages, marketing promos, and announcements.</p>
+        <!-- Mockup of Marquee Mode -->
+        <div style="margin-top: 1rem; background: #a3ff12; color: #111; padding: 0.75rem 1rem; border-radius: 8px; display: flex; overflow: hidden; white-space: nowrap; border: 1px solid var(--border);">
+          <div style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; animation: mockMarquee 10s linear infinite; display: flex; gap: 2rem; width: 100%;">
+            <span>New: Osmo Button Pack ✦</span>
+            <span>New: Osmo Button Pack ✦</span>
+            <span>New: Osmo Button Pack ✦</span>
+          </div>
+        </div>
+        <style>
+          @keyframes mockMarquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+        </style>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Webflow Component Properties Mapping</h3>
+  <div style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem;">
+    <h4 style="margin-bottom: 0.75rem;">Properties Schema:</h4>
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+      <thead>
+        <tr style="border-bottom: 2px solid var(--border); text-align: left;">
+          <th style="padding: 0.5rem;">Property Name</th>
+          <th style="padding: 0.5rem;">Type</th>
+          <th style="padding: 0.5rem;">Controls</th>
+          <th style="padding: 0.5rem;">Default Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 0.5rem; font-family: monospace; font-weight: bold;">layout-mode</td>
+          <td style="padding: 0.5rem; color: var(--accent);">Dropdown / Variant</td>
+          <td style="padding: 0.5rem;">Toggles between <strong>Tags</strong> and <strong>Marquee</strong> layouts</td>
+          <td style="padding: 0.5rem;">"Tags"</td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 0.5rem; font-family: monospace;">tag-category-text</td>
+          <td style="padding: 0.5rem; color: var(--accent);">Plain Text</td>
+          <td style="padding: 0.5rem;">Category label (left, dark badge)</td>
+          <td style="padding: 0.5rem;">"Product"</td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 0.5rem; font-family: monospace;">tag-title-text</td>
+          <td style="padding: 0.5rem; color: var(--accent);">Plain Text</td>
+          <td style="padding: 0.5rem;">Specific name (left, white pill badge)</td>
+          <td style="padding: 0.5rem;">"Button Pack"</td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 0.5rem; font-family: monospace;">tag-status-text</td>
+          <td style="padding: 0.5rem; color: var(--accent);">Plain Text</td>
+          <td style="padding: 0.5rem;">Membership status (right, green badge)</td>
+          <td style="padding: 0.5rem;">"✓ Included in Membership"</td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 0.5rem; font-family: monospace;">marquee-text</td>
+          <td style="padding: 0.5rem; color: var(--accent);">Plain Text</td>
+          <td style="padding: 0.5rem;">Text content of the moving marquee marquee item</td>
+          <td style="padding: 0.5rem;">"New: Osmo Button Pack"</td>
+        </tr>
+        <tr>
+          <td style="padding: 0.5rem; font-family: monospace;">marquee-link-url</td>
+          <td style="padding: 0.5rem; color: var(--accent);">Link</td>
+          <td style="padding: 0.5rem;">URL destination when clicking the marquee</td>
+          <td style="padding: 0.5rem;">#marquee-click</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Let's Align on the Visual Styling</h3>
+  <p>Is this proposed properties schema correct for your Webflow setup? Does the static tags preview match the look you expect to build?</p>
+</div>

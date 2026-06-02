@@ -1,0 +1,160 @@
+<h2>Proposed Page & Wrapper Architecture</h2>
+<p class="subtitle">Here is the visual mapping of the Barba.js wrapper structure, capsule navbar states, and active link syncing mechanism.</p>
+
+<div class="section">
+  <h3>1. DOM Wrapper Architecture</h3>
+  <p style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-secondary);">
+    This wrapper layout is required so Barba.js can replace content inside the <code>&lt;main&gt;</code> tag, while the navigation and transition screen remain persistent and immune to reloads.
+  </p>
+  
+  <div style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; font-family: monospace; font-size: 0.85rem;">
+    <div style="border: 2px solid var(--accent); padding: 1rem; border-radius: 8px; background: rgba(0, 113, 227, 0.05); margin-bottom: 1rem;">
+      <strong>&lt;body data-barba="wrapper"&gt;</strong> (Global Wrapper / Event Hub)
+      
+      <!-- Persistent Navigation -->
+      <div style="border: 2px solid var(--success); padding: 0.75rem; border-radius: 6px; background: rgba(52, 199, 89, 0.05); margin: 0.75rem 0 0.5rem 1rem;">
+        <strong>&lt;nav class="nav"&gt;</strong> (Persistent Navbar - Sits outside the page container)
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-left: 1rem; margin-top: 0.25rem;">
+          Holds logo transition, links, dropdown menu, and marquee bar.
+        </div>
+      </div>
+      
+      <!-- Persistent Transition overlay -->
+      <div style="border: 2px dashed var(--error); padding: 0.75rem; border-radius: 6px; background: rgba(255, 59, 48, 0.05); margin: 0.5rem 0 0.5rem 1rem;">
+        <strong>&lt;div class="transition"&gt;</strong> (Persistent Fullscreen Page-Wipe Transition Screen)
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-left: 1rem; margin-top: 0.25rem;">
+          Opacity: 0, Pointer-events: none. Opacity fades in to cover the screen during page load.
+        </div>
+      </div>
+      
+      <!-- Swappable Main -->
+      <div style="border: 2px solid var(--warning); padding: 0.75rem; border-radius: 6px; background: rgba(255, 159, 10, 0.05); margin: 0.5rem 0 0.5rem 1rem;">
+        <strong>&lt;main class="main" data-barba="container" data-barba-namespace="home"&gt;</strong> (Swapped Content)
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-left: 1rem; margin-top: 0.25rem;">
+          Everything inside here is replaced by Barba on page transitions.
+        </div>
+        <div style="border: 1px solid var(--border); background: var(--bg-secondary); padding: 0.5rem; margin-top: 0.5rem; margin-left: 1rem; border-radius: 4px;">
+          &lt;div class="under-nav-bar"&gt; &lt;div class="under-nav-bar__inner"&gt; ... page content ... &lt;/div&gt; &lt;/div&gt;
+        </div>
+      </div>
+      
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>2. Capsule Navbar Inset States</h3>
+  <p style="margin-bottom: 1.5rem; font-size: 0.9rem; color: var(--text-secondary);">
+    The navbar dynamically transitions its bounding capsule container and logo scale using scroll metadata hooks.
+  </p>
+  
+  <div class="split">
+    <!-- State 1: Top of Page -->
+    <div class="mockup">
+      <div class="mockup-header">State A: Top of Page (scrollY &lt; 50px)</div>
+      <div class="mockup-body" style="background: #ffffff; min-height: 180px; display: flex; flex-direction: column; justify-content: space-between; border-radius: 0 0 12px 12px; position: relative;">
+        <!-- Navbar at top -->
+        <div style="background: #111; color: #fff; padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); width: 100%; transition: all 0.3s;">
+          <div style="font-weight: bold; letter-spacing: -0.05em; font-size: 1.1rem; display: flex; align-items: center;">
+            <span style="color: #fff;">OSMO</span>
+            <span style="display: none; font-size: 1.3rem;">✳</span>
+          </div>
+          <div style="display: flex; gap: 1rem; font-size: 0.8rem; align-items: center;">
+            <span>Vault</span>
+            <span>Course</span>
+            <span style="background: #333; padding: 0.3rem 0.6rem; border-radius: 12px;">Menu</span>
+          </div>
+        </div>
+        <div style="padding: 1rem; text-align: center; color: var(--text-secondary); font-size: 0.8rem;">
+          <code>data-scrolling-started="false"</code><br>
+          Inset: <strong>0em</strong> | Logo: <strong>Wordmark</strong>
+        </div>
+      </div>
+    </div>
+    
+    <!-- State 2: Scrolled Down -->
+    <div class="mockup">
+      <div class="mockup-header">State B: Scrolled Down (scrollY &gt; 50px)</div>
+      <div class="mockup-body" style="background: #f0f0f2; min-height: 180px; display: flex; flex-direction: column; justify-content: space-between; border-radius: 0 0 12px 12px; position: relative; padding: 0.75rem;">
+        <!-- Navbar capsule -->
+        <div style="background: #111; color: #fff; padding: 0.6rem 1rem; display: flex; justify-content: space-between; align-items: center; border-radius: 1.25rem; border: 1px solid rgba(255,255,255,0.15); width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+          <div style="font-weight: bold; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; color: #9d4edd; margin-left: 0.25rem;">
+            ✳
+          </div>
+          <div style="display: flex; gap: 1rem; font-size: 0.8rem; align-items: center;">
+            <span>Vault</span>
+            <span>Course</span>
+            <span style="background: #333; padding: 0.3rem 0.6rem; border-radius: 12px;">Menu</span>
+          </div>
+        </div>
+        <div style="padding: 1rem; text-align: center; color: var(--text-secondary); font-size: 0.8rem;">
+          <code>data-scrolling-started="true"</code><br>
+          Inset: <strong>0.1875em (floating pill)</strong> | Logo: <strong>Symbol (✳)</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>3. Dropdown Menu opening mechanism (grid-template-rows)</h3>
+  <p style="margin-bottom: 1.25rem; font-size: 0.9rem; color: var(--text-secondary);">
+    Rather than hardcoding heights in JS, we transition a grid element's rows between <code>0fr</code> and <code>1fr</code>.
+  </p>
+  
+  <div class="mockup">
+    <div class="mockup-header">Dropdown active [data-nav-status="active"]</div>
+    <div class="mockup-body" style="background: #111; color: #fff; padding: 1.5rem; border-radius: 0 0 12px 12px;">
+      <div style="display: flex; justify-content: space-between; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.15);">
+        <strong style="color: #9d4edd;">✳</strong>
+        <strong>Menu (Open)</strong>
+      </div>
+      
+      <!-- Simulated 3 columns -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; padding-top: 1.5rem; font-size: 0.85rem;">
+        <div style="border-right: 1px solid rgba(255,255,255,0.1); padding-right: 1rem;">
+          <h4 style="color: rgba(255,255,255,0.4); font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Our Products</h4>
+          <div style="margin-bottom: 0.5rem;">The Vault</div>
+          <div style="margin-bottom: 0.5rem;">Page Transition Course</div>
+          <div style="margin-bottom: 0.5rem;">Button Pack <span style="background: #7209b7; font-size: 0.6rem; padding: 0.1rem 0.3rem; border-radius: 4px;">NEW</span></div>
+        </div>
+        <div style="border-right: 1px solid rgba(255,255,255,0.1); padding-right: 1rem;">
+          <h4 style="color: rgba(255,255,255,0.4); font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Explore</h4>
+          <div style="margin-bottom: 0.5rem;">Osmo Showcase</div>
+          <div style="margin-bottom: 0.5rem;">Collection <span style="color: rgba(255,255,255,0.5);">180</span></div>
+          <div style="margin-bottom: 0.5rem;">Pricing</div>
+        </div>
+        <div>
+          <div style="background: #222; border-radius: 8px; padding: 1rem; text-align: center; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🎬</div>
+            <strong>Course Preview</strong>
+            <p style="font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-top: 0.25rem;">Learn Barba.js & GSAP page transitions step-by-step.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>4. Active Link Update Mechanism</h3>
+  <p style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-secondary);">
+    When Barba swaps the page, we parse the incoming document, extract links marked with <code>[data-barba-update]</code>, and sync their attributes:
+  </p>
+  <div style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; font-size: 0.85rem; line-height: 1.6;">
+    <span style="color: #0071e3;">// Before Sync (On "About" page, but Nav links are from "Home" state):</span><br>
+    <code>&lt;a href="/about" data-barba-update&gt;About&lt;/a&gt;</code> <span style="color: var(--text-secondary); font-size: 0.75rem;">(Normal state)</span><br><br>
+    <span style="color: #34c759;">// After Sync (Synced during Barba hooks enter):</span><br>
+    <code>&lt;a href="/about" data-barba-update <strong>class="nav-bar__link is--active" aria-current="page"</strong>&gt;About&lt;/a&gt;</code> <span style="color: var(--text-secondary); font-size: 0.75rem;">(Active state applied dynamically)</span>
+  </div>
+</div>
+
+<div class="options">
+  <div class="option selected" data-choice="approve" onclick="toggleSelect(this)">
+    <div class="letter">✓</div>
+    <div class="content">
+      <h3>Approve Design Layout</h3>
+      <p>Proceed with writing the spec document and creating the Vite sandbox with this architecture.</p>
+    </div>
+  </div>
+</div>

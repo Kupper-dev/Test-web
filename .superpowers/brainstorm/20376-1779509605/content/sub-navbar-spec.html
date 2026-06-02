@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sub-Navbar Component Spec</title>
+<style>
+  :root {
+    --color-neutral-800: #201D1D;
+    --color-neutral-700: #2A2727;
+    --color-neutral-600: #312E2E;
+    --color-neutral-500: #817F7F;
+    --color-neutral-200: #E4E3E3;
+    --color-electric: #a1ff62;
+    --color-light: #F5F5F5;
+    --color-purple: #A58BFF;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #111;
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  .page-title {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 0.4rem;
+  }
+  .page-sub {
+    font-size: 0.9rem;
+    color: #888;
+    margin-bottom: 2.5rem;
+  }
+
+  /* ─── LIVE PREVIEW ─────────────────────────── */
+  .preview-section {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+  }
+  .preview-section h2 {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #555;
+    margin-bottom: 1.5rem;
+  }
+
+  /* Capsule mock frame */
+  .capsule-mock {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-neutral-800);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px;
+    padding: 0.75rem 1.25rem;
+    max-width: 38em;
+    margin: 0 auto 0.375em;
+  }
+  .capsule-mock-label {
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-neutral-500);
+    font-weight: 500;
+  }
+
+  /* Marquee preview */
+  .nav-marquee-preview {
+    background-color: var(--color-electric);
+    color: var(--color-neutral-800);
+    width: 100%;
+    max-width: 38em;
+    height: 1.25em;
+    border-radius: 0.1875em;
+    display: flex;
+    position: relative;
+    overflow: hidden;
+    align-items: center;
+    margin: 0 auto 0.75rem;
+    font-size: 16px;
+  }
+  .marquee-inner {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    animation: slide 12s linear infinite;
+    gap: 0;
+  }
+  @keyframes slide {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  .marquee-item {
+    display: flex;
+    align-items: center;
+    gap: 1.5em;
+    padding-right: 1.5em;
+    flex-shrink: 0;
+  }
+  .marquee-text {
+    font-size: 0.65em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: inherit;
+  }
+  .marquee-icon {
+    width: 0.4375em;
+    height: 0.4375em;
+    flex-shrink: 0;
+  }
+
+  /* Tags preview */
+  .nav-tags-preview {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 38em;
+    margin: 0 auto 0.75rem;
+  }
+  .tags-left-preview { display: flex; gap: 0.375em; align-items: center; }
+  .tags-right-preview { display: flex; align-items: center; }
+  .tag-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25em 0.625em;
+    border-radius: 100em;
+    font-size: 0.65em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 1px solid var(--color-neutral-600);
+    color: var(--color-neutral-200);
+  }
+  .tag-pill.solid { background: var(--color-neutral-800); }
+  .tag-pill.outline { background: transparent; }
+
+  /* ─── SPEC SHEET ─────────────────────────── */
+  .spec-section {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+  }
+  .spec-section h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #2a2a2a;
+  }
+
+  .element-tree {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.8rem;
+    color: #ccc;
+    background: #111;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    line-height: 1.7;
+    margin-bottom: 1.5rem;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  .element-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.5fr;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #232323;
+    font-size: 0.82rem;
+    align-items: start;
+  }
+  .element-row:last-child { border-bottom: none; }
+  .element-row .el-name {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    color: #a78bfa;
+    font-size: 0.78rem;
+  }
+  .element-row .el-tag {
+    color: #888;
+    font-size: 0.78rem;
+  }
+  .element-row .el-styles {
+    color: #aaa;
+    font-size: 0.78rem;
+    line-height: 1.5;
+  }
+  .el-styles .var {
+    color: var(--color-electric);
+    font-size: 0.75em;
+  }
+  .el-styles .val {
+    color: #c9a6ff;
+  }
+  .col-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.5fr;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    margin-bottom: 0.25rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #555;
+    border-bottom: 1px solid #2a2a2a;
+  }
+
+  .props-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+  .props-table th {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #555;
+    border-bottom: 1px solid #2a2a2a;
+  }
+  .props-table td {
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid #1e1e1e;
+    color: #ccc;
+    vertical-align: top;
+  }
+  .props-table tr:last-child td { border-bottom: none; }
+  .props-table .prop-name { 
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    color: #a78bfa;
+    font-size: 0.78rem;
+  }
+  .props-table .prop-type {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    color: var(--color-electric);
+    font-size: 0.78rem;
+  }
+  .props-table .prop-default {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    color: #888;
+    font-size: 0.78rem;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.15em 0.5em;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .badge-mode { background: rgba(161,255,98,0.12); color: var(--color-electric); }
+  .badge-note { background: rgba(167,139,255,0.12); color: var(--color-purple); }
+
+  .note-box {
+    background: rgba(167,139,255,0.07);
+    border: 1px solid rgba(167,139,255,0.2);
+    border-radius: 8px;
+    padding: 0.875rem 1rem;
+    font-size: 0.82rem;
+    color: #bbb;
+    line-height: 1.6;
+    margin-top: 1rem;
+  }
+  .note-box code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    color: var(--color-electric);
+    font-size: 0.9em;
+    background: rgba(161,255,98,0.08);
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+  }
+
+  .css-block {
+    background: #0d1117;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.78rem;
+    color: #ccc;
+    line-height: 1.7;
+    margin-top: 0.75rem;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .css-block .css-selector { color: #58a6ff; }
+  .css-block .css-prop { color: #79c0ff; }
+  .css-block .css-val { color: #a5d6ff; }
+  .css-block .css-comment { color: #555; }
+
+  /* Mode toggle demo */
+  .mode-switcher {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    align-items: center;
+  }
+  .mode-btn {
+    padding: 0.35em 0.875em;
+    border-radius: 100em;
+    border: 1px solid #333;
+    background: transparent;
+    color: #888;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .mode-btn.active {
+    background: var(--color-electric);
+    color: var(--color-neutral-800);
+    border-color: var(--color-electric);
+    font-weight: 600;
+  }
+  .preview-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #555;
+    margin-right: 0.5rem;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-title">Sub-Navbar Component Spec</div>
+<div class="page-sub">Component 3 of 4 · Navigation Group · <span style="color:var(--color-electric)">OSMO</span></div>
+
+<!-- LIVE PREVIEW -->
+<div class="preview-section">
+  <h2>Live Preview</h2>
+
+  <!-- Capsule mock -->
+  <div class="capsule-mock">
+    <span class="capsule-mock-label">Nav Capsule (above)</span>
+  </div>
+
+  <div class="mode-switcher">
+    <span class="preview-label">Mode:</span>
+    <button class="mode-btn active" onclick="showMode('marquee', this)">Marquee</button>
+    <button class="mode-btn" onclick="showMode('tags', this)">Tags</button>
+  </div>
+
+  <!-- Marquee preview -->
+  <div id="preview-marquee">
+    <div class="nav-marquee-preview">
+      <div class="marquee-inner">
+        <!-- 8 items for seamless loop -->
+        <div class="marquee-item">
+          <span class="marquee-text">New: Osmo Button Pack</span>
+          <svg class="marquee-icon" viewBox="0 0 187 187" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M126.049 76.7471L167.276 35.5197L150.805 19.0486L109.577 60.276C107.82 62.0398 104.808 60.7915 104.808 58.3009V0H81.517V70.3375C81.517 76.511 76.511 81.517 70.3375 81.517H0V104.808H58.3009C60.7915 104.808 62.0398 107.82 60.276 109.577L19.0548 150.805L35.5259 167.276L76.7533 126.049C78.5109 124.291 81.5232 125.533 81.5232 128.024V186.324H104.814V115.987C104.814 109.813 109.82 104.808 115.993 104.808H186.331V81.517H128.03C125.539 81.517 124.291 78.5047 126.055 76.7471H126.049Z" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="marquee-item">
+          <span class="marquee-text">New: Osmo Button Pack</span>
+          <svg class="marquee-icon" viewBox="0 0 187 187" fill="none"><path d="M126.049 76.7471L167.276 35.5197L150.805 19.0486L109.577 60.276C107.82 62.0398 104.808 60.7915 104.808 58.3009V0H81.517V70.3375C81.517 76.511 76.511 81.517 70.3375 81.517H0V104.808H58.3009C60.7915 104.808 62.0398 107.82 60.276 109.577L19.0548 150.805L35.5259 167.276L76.7533 126.049C78.5109 124.291 81.5232 125.533 81.5232 128.024V186.324H104.814V115.987C104.814 109.813 109.82 104.808 115.993 104.808H186.331V81.517H128.03C125.539 81.517 124.291 78.5047 126.055 76.7471H126.049Z" fill="currentColor"/></svg>
+        </div>
+        <div class="marquee-item">
+          <span class="marquee-text">New: Osmo Button Pack</span>
+          <svg class="marquee-icon" viewBox="0 0 187 187" fill="none"><path d="M126.049 76.7471L167.276 35.5197L150.805 19.0486L109.577 60.276C107.82 62.0398 104.808 60.7915 104.808 58.3009V0H81.517V70.3375C81.517 76.511 76.511 81.517 70.3375 81.517H0V104.808H58.3009C60.7915 104.808 62.0398 107.82 60.276 109.577L19.0548 150.805L35.5259 167.276L76.7533 126.049C78.5109 124.291 81.5232 125.533 81.5232 128.024V186.324H104.814V115.987C104.814 109.813 109.82 104.808 115.993 104.808H186.331V81.517H128.03C125.539 81.517 124.291 78.5047 126.055 76.7471H126.049Z" fill="currentColor"/></svg>
+        </div>
+        <div class="marquee-item">
+          <span class="marquee-text">New: Osmo Button Pack</span>
+          <svg class="marquee-icon" viewBox="0 0 187 187" fill="none"><path d="M126.049 76.7471L167.276 35.5197L150.805 19.0486L109.577 60.276C107.82 62.0398 104.808 60.7915 104.808 58.3009V0H81.517V70.3375C81.517 76.511 76.511 81.517 70.3375 81.517H0V104.808H58.3009C60.7915 104.808 62.0398 107.82 60.276 109.577L19.0548 150.805L35.5259 167.276L76.7533 126.049C78.5109 124.291 81.5232 125.533 81.5232 128.024V186.324H104.814V115.987C104.814 109.813 109.82 104.808 115.993 104.808H186.331V81.517H128.03C125.539 81.517 124.291 78.5047 126.055 76.7471H126.049Z" fill="currentColor"/></svg>
+        </div>
+        <!-- Duplicate set for seamless looping -->
+        <div class="marquee-item">
+          <span class="marquee-text">New: Osmo Button Pack</span>
+          <svg class="marquee-icon" viewBox="0 0 187 187" fill="none"><path d="M126.049 76.7471L167.276 35.5197L150.805 19.0486L109.577 60.276C107.82 62.0398 104.808 60.7915 104.808 58.3009V0H81.517V70.3375C81.517 76.511 76.511 81.517 70.3375 81.517H0V104.808H58.3009C60.7915 104.808 62.0398 107.82 60.276 109.577L19.0548 150.805L35.5259 167.276L76.7533 126.049C78.5109 124.291 81.5232 125.533 81.5232 128.024V186.324H104.814V115.987C104.814 109.813 109.82 104.808 115.993 104.808H186.331V81.517H128.03C125.539 81.517 124.291 78.5047 126.055 76.7471H126.049Z" fill="currentColor"/></svg>
+        </div>
+        <div class="marquee-item">
+          <span class="marquee-text">New: Osmo Button Pack</span>
+          <svg class="marquee-icon" viewBox="0 0 187 187" fill="none"><path d="M126.049 76.7471L167.276 35.5197L150.805 19.0486L109.577 60.276C107.82 62.0398 104.808 60.7915 104.808 58.3009V0H81.517V70.3375C81.517 76.511 76.511 81.517 70.3375 81.517H0V104.808H58.3009C60.7915 104.808 62.0398 107.82 60.276 109.577L19.0548 150.805L35.5259 167.276L76.7533 126.049C78.5109 124.291 81.5232 125.533 81.5232 128.024V186.324H104.814V115.987C104.814 109.813 109.82 104.808 115.993 104.808H186.331V81.517H128.03C125.539 81.517 124.291 78.5047 126.055 76.7471H126.049Z" fill="currentColor"/></svg>
+        </div>
+        <div class="marquee-item">
+          <span class="marquee-text">New: Osmo Button Pack</span>
+          <svg class="marquee-icon" viewBox="0 0 187 187" fill="none"><path d="M126.049 76.7471L167.276 35.5197L150.805 19.0486L109.577 60.276C107.82 62.0398 104.808 60.7915 104.808 58.3009V0H81.517V70.3375C81.517 76.511 76.511 81.517 70.3375 81.517H0V104.808H58.3009C60.7915 104.808 62.0398 107.82 60.276 109.577L19.0548 150.805L35.5259 167.276L76.7533 126.049C78.5109 124.291 81.5232 125.533 81.5232 128.024V186.324H104.814V115.987C104.814 109.813 109.82 104.808 115.993 104.808H186.331V81.517H128.03C125.539 81.517 124.291 78.5047 126.055 76.7471H126.049Z" fill="currentColor"/></svg>
+        </div>
+        <div class="marquee-item">
+          <span class="marquee-text">New: Osmo Button Pack</span>
+          <svg class="marquee-icon" viewBox="0 0 187 187" fill="none"><path d="M126.049 76.7471L167.276 35.5197L150.805 19.0486L109.577 60.276C107.82 62.0398 104.808 60.7915 104.808 58.3009V0H81.517V70.3375C81.517 76.511 76.511 81.517 70.3375 81.517H0V104.808H58.3009C60.7915 104.808 62.0398 107.82 60.276 109.577L19.0548 150.805L35.5259 167.276L76.7533 126.049C78.5109 124.291 81.5232 125.533 81.5232 128.024V186.324H104.814V115.987C104.814 109.813 109.82 104.808 115.993 104.808H186.331V81.517H128.03C125.539 81.517 124.291 78.5047 126.055 76.7471H126.049Z" fill="currentColor"/></svg>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:0.72rem;color:#555;text-align:center;margin-top:0.5rem">↑ Marquee Mode · green scrolling bar below the capsule</div>
+  </div>
+
+  <!-- Tags preview -->
+  <div id="preview-tags" style="display:none">
+    <div class="nav-tags-preview">
+      <div class="tags-left-preview">
+        <div class="tag-pill solid">
+          <span>Product</span>
+        </div>
+        <div class="tag-pill outline">
+          <span>Button Pack</span>
+        </div>
+      </div>
+      <div class="tags-right-preview">
+        <div class="tag-pill solid">
+          <span>✓ Included in Membership</span>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:0.72rem;color:#555;text-align:center;margin-top:0.5rem">↑ Tags Mode · category, name & status tags aligned left/right</div>
+  </div>
+</div>
+
+<!-- HIERARCHY -->
+<div class="spec-section">
+  <h2>Element Hierarchy</h2>
+  <div class="element-tree">[Div Block] under-nav-bar
+ └── [Div Block] under-nav-bar__inner
+      ├── [Div Block] nav-tags-row           ← Toggle: "Show Tags" prop
+      │    ├── [Div Block] tags-left
+      │    │    ├── [Div Block] tag is--category
+      │    │    │    └── [Text Block] eyebrow is--relative
+      │    │    └── [Div Block] tag is--name
+      │    │         └── [Text Block] eyebrow is--relative
+      │    └── [Div Block] tags-right
+      │         └── [Div Block] tag is--status
+      │              └── [Text Block] eyebrow is--relative
+      └── [Link Block] nav-marquee           ← Toggle: "Show Marquee" prop
+           └── [Div Block] marquee-css
+                ├── [Div Block] marquee-css__list   ← List 1
+                │    └── [Div Block] marquee-css__item  ×4
+                │         ├── [Text Block] eyebrow is--nav-marquee
+                │         └── [HTML Embed] (Osmo star SVG)
+                └── [Div Block] marquee-css__list   ← List 2 (loop duplicate)
+                     └── [Div Block] marquee-css__item  ×4
+                          ├── [Text Block] eyebrow is--nav-marquee
+                          └── [HTML Embed] (Osmo star SVG)</div>
+
+  <div class="note-box">
+    ⚠️ <strong>Two marquee lists required.</strong> Both <code>marquee-css__list</code> divs must be present with identical items for the seamless infinite loop. Each list animates <code>translateX(−100%)</code> so when one exits, the other takes its place.
+  </div>
+</div>
+
+<!-- STYLING -->
+<div class="spec-section">
+  <h2>Styling Reference</h2>
+  <div class="col-header">
+    <span>Class</span>
+    <span>Tag / Type</span>
+    <span>Key Properties</span>
+  </div>
+
+  <div class="element-row">
+    <div class="el-name">.under-nav-bar</div>
+    <div class="el-tag">div — Fixed container</div>
+    <div class="el-styles">
+      Position: <span class="val">Fixed</span>, Top: <span class="val">0</span>, Z-Index: <span class="val">50</span><br>
+      Padding-top: <span class="var">nav-bar-height</span> (4.625em)<br>
+      Padding L/R: <span class="var">gap-l</span> (1.875em)<br>
+      Pointer-events: <span class="val">none</span><br>
+      Transition: <span class="val">all 600ms cubic-bezier(.625,.05,0,1)</span>
+    </div>
+  </div>
+
+  <div class="element-row">
+    <div class="el-name">.under-nav-bar__inner</div>
+    <div class="el-tag">div — Width limiter</div>
+    <div class="el-styles">
+      Display: <span class="val">flex</span>, Direction: <span class="val">column</span><br>
+      Width: <span class="val">100%</span>, Max-width: <span class="val">38em</span><br>
+      Gap: <span class="val">0.375em</span>, Padding-top: <span class="val">0.375em</span><br>
+      Position: <span class="val">relative</span>
+    </div>
+  </div>
+
+  <div class="element-row">
+    <div class="el-name">.nav-tags-row</div>
+    <div class="el-tag">div — Tags layout row</div>
+    <div class="el-styles">
+      Display: <span class="val">flex</span>, Direction: <span class="val">row</span><br>
+      Justify: <span class="val">space-between</span>, Align: <span class="val">center</span><br>
+      Width: <span class="val">100%</span>
+    </div>
+  </div>
+
+  <div class="element-row">
+    <div class="el-name">.tags-left</div>
+    <div class="el-tag">div — Left group</div>
+    <div class="el-styles">
+      Display: <span class="val">flex</span>, Direction: <span class="val">row</span><br>
+      Align: <span class="val">center</span>, Gap: <span class="val">0.375em</span>
+    </div>
+  </div>
+
+  <div class="element-row">
+    <div class="el-name">.tag.is--category</div>
+    <div class="el-tag">div — Category badge</div>
+    <div class="el-styles">
+      Padding: <span class="val">0.25em 0.625em</span>, Radius: <span class="val">100em</span><br>
+      Background: <span class="var">neutral-800</span>, Border: 1px <span class="var">neutral-600</span><br>
+      Color: <span class="var">neutral-200</span>
+    </div>
+  </div>
+
+  <div class="element-row">
+    <div class="el-name">.tag.is--name</div>
+    <div class="el-tag">div — Name badge</div>
+    <div class="el-styles">
+      Padding: <span class="val">0.25em 0.625em</span>, Radius: <span class="val">100em</span><br>
+      Background: <span class="val">transparent</span>, Border: 1px <span class="var">neutral-600</span><br>
+      Color: <span class="var">neutral-200</span>
+    </div>
+  </div>
+
+  <div class="element-row">
+    <div class="el-name">.tag.is--status</div>
+    <div class="el-tag">div — Status badge</div>
+    <div class="el-styles">
+      Padding: <span class="val">0.25em 0.625em</span>, Radius: <span class="val">100em</span><br>
+      Background: <span class="var">neutral-800</span>, Border: 1px <span class="var">neutral-600</span><br>
+      Color: <span class="var">neutral-200</span>
+    </div>
+  </div>
+
+  <div class="element-row">
+    <div class="el-name">.nav-marquee</div>
+    <div class="el-tag">a — Link Block</div>
+    <div class="el-styles">
+      Height: <span class="val">1.25em</span>, Radius: <span class="val">0.1875em</span><br>
+      Background: <span class="var">electric</span> (#a1ff62)<br>
+      Color: <span class="var">neutral-800</span>, Overflow: <span class="val">hidden</span><br>
+      Pointer-events: <span class="val">auto</span> (override parent none)
+    </div>
+  </div>
+
+  <div class="element-row">
+    <div class="el-name">.marquee-css</div>
+    <div class="el-tag">div — Overflow clip</div>
+    <div class="el-styles">
+      Display: <span class="val">flex</span>, Width/Height: <span class="val">100%</span><br>
+      Overflow: <span class="val">hidden</span>, Position: <span class="val">relative</span>
+    </div>
+  </div>
+
+  <div class="element-row">
+    <div class="el-name">.marquee-css__list</div>
+    <div class="el-tag">div — Animating strip</div>
+    <div class="el-styles">
+      Display: <span class="val">flex</span>, Align: <span class="val">center</span><br>
+      Flex-shrink: <span class="val">0</span> (do not shrink)<br>
+      Animation: <span class="val">translateX 30s linear infinite</span>
+    </div>
+  </div>
+
+  <div class="element-row">
+    <div class="el-name">.marquee-css__item</div>
+    <div class="el-tag">div — Each item</div>
+    <div class="el-styles">
+      Display: <span class="val">flex</span>, Align: <span class="val">center</span><br>
+      Gap: <span class="val">1.5em</span>, Padding-right: <span class="val">1.5em</span><br>
+      Flex-shrink: <span class="val">0</span>
+    </div>
+  </div>
+
+  <div class="element-row">
+    <div class="el-name">.eyebrow.is--nav-marquee</div>
+    <div class="el-tag">p — Marquee text</div>
+    <div class="el-styles">
+      Font-size: <span class="val">0.65em</span>, Weight: <span class="val">600</span><br>
+      Uppercase, Letter-spacing: <span class="val">0.05em</span><br>
+      Margin-top: <span class="val">0.0625em</span>, Color: <span class="val">inherit</span>
+    </div>
+  </div>
+</div>
+
+<!-- ANIMATION CSS -->
+<div class="spec-section">
+  <h2>Custom CSS to Add (Page Head)</h2>
+  <p style="font-size:0.82rem;color:#888;margin-bottom:0.75rem">Paste this into Webflow → Page Settings → Custom Code (Head):</p>
+  <div class="css-block"><span class="css-comment">/* Infinite scroll keyframe */</span>
+<span class="css-selector">@keyframes translateX</span> {
+  <span class="css-prop">to</span> { <span class="css-prop">transform</span>: <span class="css-val">translateX(-100%)</span>; }
+}
+
+<span class="css-selector">.marquee-css__list</span> {
+  <span class="css-prop">animation</span>: <span class="css-val">translateX 30s linear infinite</span>;
+}
+
+<span class="css-comment">/* Pause when menu open or scrolling */</span>
+<span class="css-selector">body:has([data-scrolling-started="true"]) .marquee-css__list,
+body:has([data-nav-status="active"]) .marquee-css__list</span> {
+  <span class="css-prop">animation-play-state</span>: <span class="css-val">paused</span>;
+}
+
+<span class="css-comment">/* Hide sub-navbar when scrolling or menu active */</span>
+<span class="css-selector">body:has([data-nav-status="active"]) .under-nav-bar,
+body:has([data-scrolling-started="true"]) .under-nav-bar</span> {
+  <span class="css-prop">transform</span>: <span class="css-val">translateY(-2em) scale(0.975) rotate(0.001deg)</span>;
+}</div>
+</div>
+
+<!-- PROPERTIES -->
+<div class="spec-section">
+  <h2>Component Properties</h2>
+  <table class="props-table">
+    <thead>
+      <tr>
+        <th>Property Name</th>
+        <th>Type</th>
+        <th>Default</th>
+        <th>Binds To</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="prop-name">Show Tags</td>
+        <td class="prop-type">boolean</td>
+        <td class="prop-default">false</td>
+        <td><code style="font-size:0.78rem;color:#a78bfa">.nav-tags-row</code> — visibility toggle</td>
+      </tr>
+      <tr>
+        <td class="prop-name">Category Tag</td>
+        <td class="prop-type">textContent</td>
+        <td class="prop-default">"Product"</td>
+        <td><code style="font-size:0.78rem;color:#a78bfa">.tag.is--category .eyebrow</code> — text</td>
+      </tr>
+      <tr>
+        <td class="prop-name">Name Tag</td>
+        <td class="prop-type">textContent</td>
+        <td class="prop-default">"Button Pack"</td>
+        <td><code style="font-size:0.78rem;color:#a78bfa">.tag.is--name .eyebrow</code> — text</td>
+      </tr>
+      <tr>
+        <td class="prop-name">Status Tag</td>
+        <td class="prop-type">textContent</td>
+        <td class="prop-default">"✓ Included in Membership"</td>
+        <td><code style="font-size:0.78rem;color:#a78bfa">.tag.is--status .eyebrow</code> — text</td>
+      </tr>
+      <tr>
+        <td class="prop-name">Show Marquee</td>
+        <td class="prop-type">boolean</td>
+        <td class="prop-default">true</td>
+        <td><code style="font-size:0.78rem;color:#a78bfa">.nav-marquee</code> — visibility toggle</td>
+      </tr>
+      <tr>
+        <td class="prop-name">Marquee Text</td>
+        <td class="prop-type">textContent</td>
+        <td class="prop-default">"New: Osmo Button Pack"</td>
+        <td><code style="font-size:0.78rem;color:#a78bfa">.eyebrow.is--nav-marquee</code> — all items</td>
+      </tr>
+      <tr>
+        <td class="prop-name">Marquee Link</td>
+        <td class="prop-type">link</td>
+        <td class="prop-default">/</td>
+        <td><code style="font-size:0.78rem;color:#a78bfa">.nav-marquee</code> — link setting</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note-box" style="margin-top:1rem">
+    💡 <strong>Binding Marquee Text:</strong> Since all <code>.eyebrow.is--nav-marquee</code> elements inside both lists should show the same text, bind the <strong>Marquee Text</strong> property to the first item in each list. The other items are duplicates for visual density — they can stay static or you can bind them all to the same prop.
+  </div>
+</div>
+
+<!-- ICON SVG -->
+<div class="spec-section">
+  <h2>Marquee Icon SVG Embed</h2>
+  <p style="font-size:0.82rem;color:#888;margin-bottom:0.75rem">Place this inside each <code style="color:var(--color-electric)">.marquee-css__item</code> as an HTML Embed:</p>
+  <div class="css-block">&lt;svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 187 187" fill="none"
+  style="display:block; width:0.4375em; height:0.4375em; color:inherit;"&gt;
+  &lt;path d="M126.049 76.7471L167.276 35.5197L150.805 19.0486L109.577
+  60.276C107.82 62.0398 104.808 60.7915 104.808 58.3009V0H81.517V70.3375
+  C81.517 76.511 76.511 81.517 70.3375 81.517H0V104.808H58.3009C60.7915
+  104.808 62.0398 107.82 60.276 109.577L19.0548 150.805L35.5259 167.276
+  L76.7533 126.049C78.5109 124.291 81.5232 125.533 81.5232 128.024V186.324
+  H104.814V115.987C104.814 109.813 109.82 104.808 115.993 104.808H186.331
+  V81.517H128.03C125.539 81.517 124.291 78.5047 126.055 76.7471H126.049Z"
+  fill="currentColor"/&gt;
+&lt;/svg&gt;</div>
+</div>
+
+<script>
+function showMode(mode, btn) {
+  document.getElementById('preview-marquee').style.display = mode === 'marquee' ? 'block' : 'none';
+  document.getElementById('preview-tags').style.display = mode === 'tags' ? 'block' : 'none';
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

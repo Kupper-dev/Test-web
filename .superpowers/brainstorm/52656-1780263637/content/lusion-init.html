@@ -1,0 +1,47 @@
+<h2>Technical Approach for Lusion Section</h2>
+<p class="subtitle">Select the implementation approach for the WebGL effects and animations before we create the `/lusion` page.</p>
+
+<div class="options">
+  <div class="option" data-choice="webgl" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Full WebGL (Three.js) & Shader Morphing (Recommended)</h3>
+      <p>Recreates the exact lusion.co experience: custom 3D line geometry drawing, shader-based SDF border morphing transition for the video thumbnail, and SplitType word-sliding.</p>
+      <ul style="margin: 8px 0 0 16px; padding: 0; font-size: 0.9em; opacity: 0.85;">
+        <li>Requires adding <code>three</code> and <code>split-type</code> to local dependencies.</li>
+        <li>Uses a fixed WebGL canvas layer behind/above the DOM.</li>
+        <li>Provides the exact premium organic morphing transitions.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="option" data-choice="css" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>CSS Clip-Path & Canvas-Based Simplified Animations</h3>
+      <p>A lightweight, pure DOM alternative that mimics the animations using CSS 3D transforms, clip-paths, standard SVG animations, and standard HTML5 video elements.</p>
+      <ul style="margin: 8px 0 0 16px; padding: 0; font-size: 0.9em; opacity: 0.85;">
+        <li>No external WebGL dependencies (smaller bundle size).</li>
+        <li>Uses native Webflow interactions and CSS for easier edits directly in the Webflow Designer UI.</li>
+        <li>Slightly less fluid transition (rounded corners expansion instead of custom shader warp).</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons" style="margin-top: 24px;">
+  <div class="pros">
+    <h4>WebGL Pros</h4>
+    <ul>
+      <li>Exact recreation of lusion.co premium aesthetics.</li>
+      <li>Extremely smooth spline line drawing and organic mesh warp.</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>CSS Pros</h4>
+    <ul>
+      <li>Easier to maintain and edit inside Webflow (no complex shader code).</li>
+      <li>Highly compatible with standard mobile browsers and devices with disabled WebGL.</li>
+    </ul>
+  </div>
+</div>
