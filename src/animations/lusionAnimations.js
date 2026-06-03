@@ -622,13 +622,21 @@ function tick() {
       const count = newGeom.attributes.position.count;
       const colors = new Float32Array(count * 3);
 
-      const colorStart = new THREE.Color(0x5a90ff); // Electric blue
-      const colorEnd = new THREE.Color(0x2a38ee);   // Deep indigo
+      const colorStart = new THREE.Color('#2051FF');
+      const colorMid = new THREE.Color('#1B73F5');
+      const colorEnd = new THREE.Color('#65C2FF');
 
       let index = 0;
       for (let i = 0; i <= tubularSegments; i++) {
         const ratio = i / tubularSegments;
-        const c = colorStart.clone().lerp(colorEnd, ratio);
+        let c;
+        if (ratio < 0.5) {
+          // Interpolate start to mid (scale ratio to 0-1)
+          c = colorStart.clone().lerp(colorMid, ratio * 2);
+        } else {
+          // Interpolate mid to end (scale ratio to 0-1)
+          c = colorMid.clone().lerp(colorEnd, (ratio - 0.5) * 2);
+        }
 
         for (let j = 0; j <= radialSegments; j++) {
           colors[index++] = c.r;
