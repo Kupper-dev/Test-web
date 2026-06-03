@@ -114,7 +114,7 @@ export function Global({ marqueeUnder = true }) {
                         href: "#join",
                       }}
                     >
-                      {"Join"}
+                      {"Unete"}
                     </Link>
                   </Block>
                   <Block className={"nav-buttons__scrolled"} tag={"div"}>

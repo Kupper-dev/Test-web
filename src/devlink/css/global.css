@@ -4512,15 +4512,12 @@ a {
   border-top-right-radius: 32px;
   border-bottom-left-radius: 32px;
   border-bottom-right-radius: 32px;
-  background-image: url(https://cdn.prod.website-files.com/695c194c86d5e76167047ce4/69bcef57f860e355be87fb37_login-2.jpg),
-    linear-gradient(
-      319deg,
-      var(--_dev---blue-1),
-      var(--_dev---blue-2) 50%,
-      var(--_dev---blue-3)
-    );
-  background-position: 0px 0px, 0px 0px;
-  background-size: cover, auto;
+  background-image: linear-gradient(
+    33deg,
+    var(--_dev---blue-1),
+    var(--_dev---blue-2) 50%,
+    var(--_dev---blue-3)
+  );
   top: 0;
   right: 0;
   bottom: 0;
@@ -5156,7 +5153,6 @@ a {
   width: 100%;
   height: 360px;
   border-radius: 12px;
-  background-color: var(--_dev---turquoise);
   box-shadow: 0 15px 35px 0 rgba(42, 56, 238, 0.15);
 }
 
@@ -5274,7 +5270,7 @@ a {
 .home-reel-video-title-container {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 80%;
   z-index: 5;
   display: flex;
   width: auto;

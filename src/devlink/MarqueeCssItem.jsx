@@ -11,7 +11,6 @@ export function MarqueeCssItem({ text = "New: Osmo Button Pack" }) {
         {"Obten 1 més gratis en tu nuevo plan"}
       </Paragraph>
       <DOM
-        class={"marquee-css__item-svg"}
         className={"marquee-css__item-svg"}
         fill={"none"}
         tag={"svg"}

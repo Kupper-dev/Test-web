@@ -52,7 +52,7 @@ export function HeroSection({}) {
                     tag={"h2"}
                   >
                     {
-                      "We combine design, motion, 3D, and development to create digital experiences that feel visually striking and technically seamless"
+                      "IT profesional para empresas en la CDMX. Tiempo de respuesta garantizado, panel en tiempo real y precios claros."
                     }
                   </Heading>
                   <Link
@@ -73,7 +73,7 @@ export function HeroSection({}) {
                       className={"home-reel-cta-text"}
                       id={"home-reel-cta-text"}
                     >
-                      {"Our Approach"}
+                      {"COntrata ahora"}
                     </Span>{" "}
                     <Span
                       className={"home-reel-cta-arrow"}
@@ -92,9 +92,9 @@ export function HeroSection({}) {
                             "M2.343 8h11.314m0 0L8.673 3.016M13.657 8l-4.984 4.984"
                           }
                           stroke={"#0e0e11"}
-                          stroke-linecap={"round"}
-                          stroke-linejoin={"round"}
-                          stroke-width={"2"}
+                          strokeLinecap={"round"}
+                          strokeLinejoin={"round"}
+                          strokeWidth={"2"}
                           tag={"path"}
                         />
                       </DOM>

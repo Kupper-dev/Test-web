@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import BackgroundVideoWrapper from "./webflow_modules/BackgroundVideo/components/BackgroundVideoWrapper";
 import Block from "./webflow_modules/Basic/components/Block";
 import DOM from "./webflow_modules/Builtin/components/DOM";
 import Heading from "./webflow_modules/Basic/components/Heading";
@@ -24,7 +25,19 @@ export function HomeReel({}) {
             id={"home-reel-thumb-wrapper"}
             tag={"div"}
           >
-            <Block className={"home-reel-thumb"} tag={"div"} />
+            <BackgroundVideoWrapper
+              autoPlay={true}
+              className={"home-reel-thumb"}
+              loop={true}
+              posterImage={
+                "https://cdn.prod.website-files.com/695c194c86d5e76167047ce4%2F6a1e5b99bf22800753f0bc56_IT%20chaos%20web%20FHD_poster.0000000.jpg"
+              }
+              sources={[
+                "https://cdn.prod.website-files.com/695c194c86d5e76167047ce4%2F6a1e5b99bf22800753f0bc56_IT%20chaos%20web%20FHD_webm.webm",
+                "https://cdn.prod.website-files.com/695c194c86d5e76167047ce4%2F6a1e5b99bf22800753f0bc56_IT%20chaos%20web%20FHD_mp4.mp4",
+              ]}
+              tag={"div"}
+            />
           </Block>
           <Block
             className={
@@ -67,7 +80,7 @@ export function HomeReel({}) {
                   tag={"h2"}
                 >
                   {
-                    "We combine design, motion, 3D, and development to create digital experiences that feel visually striking and technically seamless. From campaign launches to immersive brand worlds, we build work that captures attention and invites interaction."
+                    "Una oficina que funciona no es casualidad — es soporte bien hecho. Kupper atiende empresas en la CDMX con pólizas mensuales, respuesta garantizada y tecnología que te da visibilidad total de tu infraestructura en tiempo real."
                   }
                 </Heading>
                 <Link
@@ -88,7 +101,7 @@ export function HomeReel({}) {
                     className={"home-reel-cta-text"}
                     id={"home-reel-cta-text"}
                   >
-                    {"Our Approach"}
+                    {"Solicita una prueba"}
                   </Span>{" "}
                   <Span
                     className={"home-reel-cta-arrow"}
@@ -107,9 +120,9 @@ export function HomeReel({}) {
                           "M2.343 8h11.314m0 0L8.673 3.016M13.657 8l-4.984 4.984"
                         }
                         stroke={"#0e0e11"}
-                        stroke-linecap={"round"}
-                        stroke-linejoin={"round"}
-                        stroke-width={"2"}
+                        strokeLinecap={"round"}
+                        strokeLinejoin={"round"}
+                        strokeWidth={"2"}
                         tag={"path"}
                       />
                     </DOM>
@@ -149,7 +162,7 @@ export function HomeReel({}) {
                   id={"home-reel-video-title-container"}
                   tag={"div"}
                 >
-                  <Span className={"home-reel-video-title-word"}>{"Play"}</Span>
+                  <Span className={"home-reel-video-title-word"}>{"Ver "}</Span>
                   <Link
                     aria-label={"Watch reel button"}
                     block={""}
@@ -161,7 +174,6 @@ export function HomeReel({}) {
                     }}
                   >
                     <DOM
-                      class={"home-reel-video-watch-btn-svg"}
                       className={"home-reel-video-watch-btn-svg"}
                       fill={"none"}
                       height={"36"}
@@ -180,7 +192,7 @@ export function HomeReel({}) {
                       />
                     </DOM>
                   </Link>
-                  <Span className={"home-reel-video-title-word"}>{"Reel"}</Span>
+                  <Span className={"home-reel-video-title-word"}>{"now"}</Span>
                 </Block>
               </Block>
             </Block>

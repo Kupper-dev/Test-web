@@ -32,7 +32,26 @@ function useSwipe({ onSwipeLeft, onSwipeRight, config }) {
   };
 }
 const SliderWrapper = React.forwardRef(function SlideWrapper(
-  { className = "", ...props },
+  {
+    className = "",
+    children,
+    navSpacing,
+    navShadow,
+    autoplay,
+    delay,
+    iconArrows,
+    animation,
+    navNumbers,
+    easing,
+    navRound,
+    hideArrows,
+    disableSwipe,
+    duration,
+    infinite,
+    autoMax,
+    navInvert,
+    ...domProps
+  },
   ref
 ) {
   const [slideAmount, setSlideAmount] = React.useState(0);
@@ -62,12 +81,27 @@ const SliderWrapper = React.forwardRef(function SlideWrapper(
   const swipeHandlers = useSwipe({
     onSwipeLeft: goToNextSlide,
     onSwipeRight: goToPreviousSlide,
+    config: { disableSwipe },
   });
   return React.createElement(
     SliderContext.Provider,
     {
       value: {
-        ...props,
+        navSpacing,
+        navShadow,
+        autoplay,
+        delay,
+        iconArrows,
+        animation,
+        navNumbers,
+        easing,
+        navRound,
+        hideArrows,
+        disableSwipe,
+        duration,
+        infinite,
+        autoMax,
+        navInvert,
         slideAmount,
         setSlideAmount,
         slide: { current: selectedSlide, previous: prevSelectedSlide },
@@ -82,13 +116,23 @@ const SliderWrapper = React.forwardRef(function SlideWrapper(
       "div",
       {
         ...swipeHandlers,
-        ...props,
+        ...domProps,
         className: cj(className, "w-slider"),
         role: "region",
         "aria-label": "carousel",
+        "data-animation": animation,
+        "data-autoplay-limit": autoMax,
+        "data-autoplay": autoplay,
+        "data-delay": delay,
+        "data-duration": duration,
+        "data-disable-swipe": disableSwipe,
+        "data-easing": easing,
+        "data-hide-arrows": hideArrows,
+        "data-infinite": infinite,
+        "data-nav-spacing": navSpacing,
         ref: ref,
       },
-      props.children
+      children
     )
   );
 });

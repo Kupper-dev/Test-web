@@ -32,9 +32,9 @@ export function FloatCard2({}) {
               <DOM
                 d={"M7 12.5L10.5 16L17 8"}
                 stroke={"white"}
-                stroke-linecap={"round"}
-                stroke-linejoin={"round"}
-                stroke-width={"2.5"}
+                strokeLinecap={"round"}
+                strokeLinejoin={"round"}
+                strokeWidth={"2.5"}
                 tag={"path"}
               />
             </DOM>

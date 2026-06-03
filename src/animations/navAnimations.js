@@ -3,14 +3,17 @@ import { gsap } from 'gsap';
 let navTimeline = null;
 
 export function initNavAnimations(isInitialLoad = false, isNavTriggered = false) {
-  const nav = document.querySelector('.nav');
+  const nav = document.querySelector('.nav-bar__wrap');
   const marquee = document.querySelector('.under-nav-bar');
 
   if (!nav) return;
 
   // Reset scrolled state classes / attributes to defaults
-  nav.setAttribute('data-scrolling-started', 'false');
-  nav.setAttribute('data-scrolling-direction', 'up');
+  const navContainer = document.querySelector('.nav');
+  if (navContainer) {
+    navContainer.setAttribute('data-scrolling-started', 'false');
+    navContainer.setAttribute('data-scrolling-direction', 'up');
+  }
   document.querySelectorAll('[data-scrolling-started]').forEach(el => {
     el.setAttribute('data-scrolling-started', 'false');
   });
@@ -27,7 +30,7 @@ export function initNavAnimations(isInitialLoad = false, isNavTriggered = false)
     gsap.set(nav, { yPercent: 0, y: 0 });
   } else {
     // Set initial state off-screen above the viewport
-    gsap.set(nav, { yPercent: -100 });
+    gsap.set(nav, { yPercent: -150 });
     
     // Animate sliding down with a premium magnetic easing
     navTimeline.to(nav, {
