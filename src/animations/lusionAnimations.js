@@ -11,13 +11,11 @@ let animationFrameId = null;
 
 // Three.js meshes
 let lineMesh = null;
-let lineCircle = null;
 let morphMesh = null;
 
 // DOM reference elements
 let containerEl = null;
 let titleEl = null;
-let thumbWrapperEl = null;
 let thumbEl = null;
 let videoContainerEl = null;
 let videoEl = null;
@@ -46,7 +44,6 @@ export function initLusionAnimations() {
   if (!containerEl) return;
 
   titleEl = document.getElementById('home-reel-title');
-  thumbWrapperEl = document.getElementById('home-reel-thumb-wrapper');
   thumbEl = document.getElementById('home-reel-thumb');
   videoContainerEl = document.getElementById('home-reel-container');
 
@@ -72,7 +69,7 @@ export function initLusionAnimations() {
   canvas.style.width = '100vw';
   canvas.style.height = '100vh';
   canvas.style.pointerEvents = 'none';
-  canvas.style.zIndex = '1'; // Behind text layer
+  canvas.style.zIndex = '2'; // In front of text layer, behind play button
   document.body.insertBefore(canvas, document.body.firstChild); // Insert as first child of body to avoid section transform shifts
 
 
@@ -85,11 +82,11 @@ export function initLusionAnimations() {
   const line2El = document.getElementById('home-reel-title-line-2');
   const descEl = document.getElementById('home-reel-desc');
   const ctaEl = document.getElementById('home-reel-cta');
-  
+
   if (line1El && line2El) {
     line1Split = new SplitType(line1El, { types: 'words' });
     line2Split = new SplitType(line2El, { types: 'words' });
-    
+
     if (line1Split.words && line2Split.words) {
       // Helper function to wrap text of each word in an inner span
       const wrapWordContent = (wordsArray) => {
@@ -99,13 +96,13 @@ export function initLusionAnimations() {
           word.style.overflow = 'hidden';
           word.style.verticalAlign = 'top';
           word.style.position = 'relative';
-          
+
           // Create inner element
           const innerSpan = document.createElement('span');
           innerSpan.className = 'word-inner';
           innerSpan.style.display = 'inline-block';
           innerSpan.style.position = 'relative';
-          
+
           // Move children into inner span
           while (word.firstChild) {
             innerSpan.appendChild(word.firstChild);
@@ -114,10 +111,10 @@ export function initLusionAnimations() {
           return innerSpan;
         });
       };
-      
+
       const line1Inners = wrapWordContent(line1Split.words);
       const line2Inners = wrapWordContent(line2Split.words);
-      
+
       const wordBold = line1Split.words[0];
       const wordIdeas = line1Split.words[1];
 
@@ -134,58 +131,58 @@ export function initLusionAnimations() {
           invalidateOnRefresh: true
         }
       });
-      
+
       // --- PHASE 1: Vertical Reveal ---
-      
+
       // Line 1 ("Bold Ideas,"): slide inner text upward (y: "100%" -> 0)
       const innerBold = line1Inners[0];
       const innerIdeas = line1Inners[1];
-      
-      titleTl.fromTo(innerBold, 
-        { yPercent: 100 }, 
-        { yPercent: 0, ease: 'power3.out', duration: 0.6 }, 
+
+      titleTl.fromTo(innerBold,
+        { yPercent: 100 },
+        { yPercent: 0, ease: 'power3.out', duration: 0.6 },
         0
       );
-      titleTl.fromTo(innerIdeas, 
-        { yPercent: 100 }, 
-        { yPercent: 0, ease: 'power3.out', duration: 0.6 }, 
+      titleTl.fromTo(innerIdeas,
+        { yPercent: 100 },
+        { yPercent: 0, ease: 'power3.out', duration: 0.6 },
         0.15
       );
-      
+
       // Line 2 ("Brought to Life"): slide inner text downward (y: "-100%" -> 0)
       const innerBrought = line2Inners[0];
       const innerTo = line2Inners[1];
       const innerLife = line2Inners[2];
-      
-      titleTl.fromTo(innerBrought, 
-        { yPercent: -100 }, 
-        { yPercent: 0, ease: 'power3.out', duration: 0.6 }, 
+
+      titleTl.fromTo(innerBrought,
+        { yPercent: -100 },
+        { yPercent: 0, ease: 'power3.out', duration: 0.6 },
         0.2
       );
-      titleTl.fromTo(innerTo, 
-        { yPercent: -100 }, 
-        { yPercent: 0, ease: 'power3.out', duration: 0.6 }, 
+      titleTl.fromTo(innerTo,
+        { yPercent: -100 },
+        { yPercent: 0, ease: 'power3.out', duration: 0.6 },
         0.3
       );
-      titleTl.fromTo(innerLife, 
-        { yPercent: -100 }, 
-        { yPercent: 0, ease: 'power3.out', duration: 0.6 }, 
+      titleTl.fromTo(innerLife,
+        { yPercent: -100 },
+        { yPercent: 0, ease: 'power3.out', duration: 0.6 },
         0.4
       );
-      
+
       // --- LINE 1 PHASE 2: Horizontal Slide to Right ---
       // Words slide from -D back to 0: "Ideas," first, then "Bold"
-      titleTl.fromTo(wordIdeas, 
+      titleTl.fromTo(wordIdeas,
         { x: () => -getOffsetD() },
-        { x: 0, ease: 'expo.out', duration: 0.5 }, 
+        { x: 0, ease: 'expo.out', duration: 0.5 },
         0.75
       );
-      titleTl.fromTo(wordBold, 
+      titleTl.fromTo(wordBold,
         { x: () => -getOffsetD() },
-        { x: 0, ease: 'expo.out', duration: 0.5 }, 
+        { x: 0, ease: 'expo.out', duration: 0.5 },
         0.85
       );
-      
+
       // --- Paragraph/CTA Slide Up & Staggered Word reveal ---
       if (paragraphEl) {
         paragraphTl = gsap.timeline({
@@ -204,25 +201,25 @@ export function initLusionAnimations() {
             lineClass: 'home-reel-line',
             wordClass: 'home-reel-word'
           });
-          
+
           descSplit.lines.forEach((line, lineIdx) => {
             line.style.overflow = 'hidden';
             line.style.display = 'block';
             line.style.position = 'relative';
-            
+
             const words = line.querySelectorAll('.home-reel-word');
             words.forEach(word => {
               word.style.display = 'inline-block';
               word.style.position = 'relative';
             });
-            
+
             paragraphTl.fromTo(words,
               { yPercent: 100 },
               { yPercent: 0, ease: 'power2.out', duration: 0.6, stagger: 0.05 },
               lineIdx * 0.15
             );
           });
-          
+
           if (ctaEl) {
             paragraphTl.fromTo(ctaEl,
               { y: 30, opacity: 0 },
@@ -232,9 +229,9 @@ export function initLusionAnimations() {
           }
         }
       }
-      
+
       scrollTriggerInstance = titleTl.scrollTrigger;
-      
+
       // --- Parallax Speedup (8% Faster) ---
       parallaxTween = gsap.to('#home-reel-content-inner', {
         y: () => -containerEl.offsetHeight * 0.08,
@@ -256,7 +253,7 @@ export function initLusionAnimations() {
       morphTl = gsap.timeline({
         scrollTrigger: {
           trigger: containerEl,
-          start: () => 'top -=' + paragraphEl.offsetTop, // pin dynamically when paragraph starts exiting top of viewport
+          start: 'top 25%',
           end: '+=180%', // scroll distance to complete morph
           scrub: true,
           pin: true,
@@ -265,15 +262,13 @@ export function initLusionAnimations() {
         }
       });
 
-      // Slide title and paragraph up out of view continuously over the full timeline duration (1.0)
-      morphTl.to(titleInner, { y: -window.innerHeight * 0.8, ease: 'none', duration: 1.0 }, 0);
-      if (paragraphEl) {
-        morphTl.to(paragraphEl, { y: -window.innerHeight * 0.8, ease: 'none', duration: 1.0 }, 0);
-      }
+      // Slide title and description wrapper up and fade out of view continuously over the full timeline duration (1.0)
+      morphTl.to(titleInner, { y: -window.innerHeight * 1.0, opacity: 0, ease: 'none', duration: 1.0 }, 0);
+      morphTl.to('#home-reel-content-reveal', { y: -window.innerHeight * 1.0, opacity: 0, ease: 'none', duration: 1.0 }, 0);
 
       // Translate the video container up dynamically to center in the viewport over the full timeline duration (1.0)
       morphTl.to('#home-reel-container', {
-        y: () => (window.innerHeight - 608) / 2 - (videoContainerEl.offsetTop - paragraphEl.offsetTop),
+        y: () => (window.innerHeight - 608) / 2 - (window.innerHeight * 0.25 + videoContainerEl.offsetTop),
         ease: 'power1.out',
         duration: 1.0
       }, 0);
@@ -288,7 +283,7 @@ export function initLusionAnimations() {
     const w = window.innerWidth;
     const h = window.innerHeight;
     scene = new THREE.Scene();
-    
+
     renderer = new THREE.WebGLRenderer({
       canvas: canvas,
       alpha: true,
@@ -311,67 +306,69 @@ export function initLusionAnimations() {
     // ───────────────────────────────────────────────
     // 2. Animated Scroll Line (Drawing Spline)
     // ───────────────────────────────────────────────
-    // Construct spline key points visually traversing the screen in pixel space
-    // --- SVG Path Parsing & Math Translation ---
     // SVG viewBox: 0 0 1920 1480
-    // Matrix transform applied in SVG: matrix(0.575343, 0, 0, 0.575343, -1.37604, 282.597)
+    // Group matrix: matrix(0.575343,0,0,0.575343,-1.37604,282.597)
     // We map 2D SVG canvas coordinate space to our WebGL NDC space:
     // WebGL space: x goes from -w/2 to +w/2, y goes from -h/2 to +h/2 (top is positive, bottom is negative)
     const mapSvgPoint = (svgX, svgY) => {
-      // 1. Apply SVG group matrix transformation
       const matScale = 0.575343;
       const tx = -1.37604;
       const ty = 282.597;
-      
+
       const xTransformed = svgX * matScale + tx;
       const yTransformed = svgY * matScale + ty;
-      
-      // 2. Scale proportionally to preserve original SVG viewBox aspect ratio
+
+      // Scale proportionally to preserve original SVG viewBox aspect ratio (1920 wide)
       const scale = w / 1920;
-      
-      // Local coordinate relative to section top-left (Y inverted)
+
       const glX = xTransformed * scale;
       const glY = -yTransformed * scale;
       return new THREE.Vector3(glX, glY, 0);
     };
 
-    // Parse path d attribute: M47.582,-286.085 C303.541,-284.445 1180.23,533.27 669,1062 C342.369,1399.81 -154,796 643,611 C1422.82,429.988 1450.04,1670.55 2179.95,1283.97 C2432.25,1150.34 2403.32,1461.04 2486.95,1530.9 C2607.95,1631.98 2763.89,1411.51 3032.95,1413.97 C3469.5,1417.94 3227.38,1807.53 3227.38,1807.53
-    // We build an array of Beziers to sample highly detailed and perfectly smooth curve points.
+    // Parse path d attribute:
+    // M52.796,-439.037 C308.755,-437.397 1571.89,-207.871 878.391,680.295
+    // C358.606,1345.99 -355.117,522.324 520.344,117.153
+    // C1571.89,-369.513 1036.56,848.89 2006.41,113.677
+    // C2941.51,-595.185 2030.75,449.53 3169.2,624.676
+    // C3553.32,683.771 2913.7,1318.17 2762.48,1452.01
+    // C2319.53,1844.05 3276.96,1973.44 3276.96,1973.44
     const svgSegments = [
-      { p0: [47.582, -286.085], cp1: [303.541, -284.445], cp2: [1180.23, 533.27], p1: [669, 1062] },
-      { p0: [669, 1062], cp1: [342.369, 1399.81], cp2: [-154, 796], p1: [643, 611] },
-      { p0: [643, 611], cp1: [1422.82, 429.988], cp2: [1450.04, 1670.55], p1: [2179.95, 1283.97] },
-      { p0: [2179.95, 1283.97], cp1: [2432.25, 1150.34], cp2: [2403.32, 1461.04], p1: [2486.95, 1530.9] },
-      { p0: [2486.95, 1530.9], cp1: [2607.95, 1631.98], cp2: [2763.89, 1411.51], p1: [3032.95, 1413.97] },
-      { p0: [3032.95, 1413.97], cp1: [3469.5, 1417.94], cp2: [3227.38, 1807.53], p1: [3227.38, 1807.53] }
+      { p0: [52.796, -439.037],  cp1: [308.755, -437.397],  cp2: [1571.89, -207.871],  p1: [878.391, 680.295] },
+      { p0: [878.391, 680.295],  cp1: [358.606, 1345.99],   cp2: [-355.117, 522.324],  p1: [520.344, 117.153] },
+      { p0: [520.344, 117.153],  cp1: [1571.89, -369.513],  cp2: [1036.56, 848.89],    p1: [2006.41, 113.677] },
+      { p0: [2006.41, 113.677],  cp1: [2941.51, -595.185],  cp2: [2030.75, 449.53],    p1: [3169.2, 624.676] },
+      { p0: [3169.2, 624.676],   cp1: [3553.32, 683.771],   cp2: [2913.7, 1318.17],    p1: [2762.48, 1452.01] },
+      { p0: [2762.48, 1452.01],  cp1: [2319.53, 1844.05],   cp2: [3276.96, 1973.44],   p1: [3276.96, 1973.44] }
     ];
 
     curvePoints = [];
-    
+
     // Evaluate cubic Bezier equations to generate smooth interpolation points
     svgSegments.forEach(seg => {
       const p0 = mapSvgPoint(seg.p0[0], seg.p0[1]);
       const cp1 = mapSvgPoint(seg.cp1[0], seg.cp1[1]);
       const cp2 = mapSvgPoint(seg.cp2[0], seg.cp2[1]);
       const p1 = mapSvgPoint(seg.p1[0], seg.p1[1]);
-      
-      const steps = 40; // 40 points per segment guarantees extremely smooth cubic shapes
+
+      const steps = 80; // 80 points per segment for smooth curve representation
       for (let i = 0; i <= steps; i++) {
         const t = i / steps;
         const mt = 1 - t;
-        
+
         // Cubic Bezier formula: P(t) = (1-t)^3 * P0 + 3*t*(1-t)^2 * CP1 + 3*t^2*(1-t) * CP2 + t^3 * P1
-        const x = mt*mt*mt * p0.x + 3 * t * mt*mt * cp1.x + 3 * t*t * mt * cp2.x + t*t*t * p1.x;
-        const y = mt*mt*mt * p0.y + 3 * t * mt*mt * cp1.y + 3 * t*t * mt * cp2.y + t*t*t * p1.y;
-        
+        const x = mt * mt * mt * p0.x + 3 * t * mt * mt * cp1.x + 3 * t * t * mt * cp2.x + t * t * t * p1.x;
+        const y = mt * mt * mt * p0.y + 3 * t * mt * mt * cp1.y + 3 * t * t * mt * cp2.y + t * t * t * p1.y;
+
         // Prevent duplicate segment end/start points
         if (i === 0 && curvePoints.length > 0) continue;
-        
+
         curvePoints.push(new THREE.Vector3(x, y, 0));
       }
     });
 
-    curve = new THREE.CatmullRomCurve3(curvePoints);
+    // 'centripetal' prevents Frenet frame flipping on tight curves (erratic polygon fix)
+    curve = new THREE.CatmullRomCurve3(curvePoints, false, 'centripetal');
 
     // Setup line geometry and material (Tube Mesh with Vertex Colors)
     const lineGeom = new THREE.BufferGeometry();
@@ -386,20 +383,6 @@ export function initLusionAnimations() {
     lineMesh.renderOrder = 1; // Render first (behind card)
     scene.add(lineMesh);
 
-    // Setup drawing tip circle mesh
-    const circleGeom = new THREE.RingGeometry(0, 10, 32);
-    const circleMat = new THREE.MeshBasicMaterial({
-      color: 0x5a90ff,
-      transparent: true,
-      opacity: 0.8,
-      side: THREE.DoubleSide,
-      depthWrite: false
-    });
-    lineCircle = new THREE.Mesh(circleGeom, circleMat);
-    lineCircle.renderOrder = 2; // Render second (on top of line, behind card)
-    lineCircle.visible = false; // Make the tip circle non-visible as requested
-    lineMesh.add(lineCircle); // Add as child of lineMesh so it inherits scrolling position
-
     // ───────────────────────────────────────────────
     // 3. Morphing Video Thumbnail Mesh
     // ───────────────────────────────────────────────
@@ -410,7 +393,6 @@ export function initLusionAnimations() {
         u_hasThumbTexture: { value: false },
         u_size: { value: new THREE.Vector2(280, 380) },
         u_radius: { value: 24.0 },
-        u_blueTint: { value: 0.9 },
         u_curveStrength: { value: 0.0 },
         u_progress: { value: 0.0 }
       },
@@ -457,7 +439,6 @@ export function initLusionAnimations() {
         uniform bool u_hasThumbTexture;
         uniform vec2 u_size;
         uniform float u_radius;
-        uniform float u_blueTint;
         varying vec2 v_uv;
         
         float sdRoundedBox(in vec2 p, in vec2 b, in float r) {
@@ -506,7 +487,7 @@ export function initLusionAnimations() {
   }
 
   // ───────────────────────────────────────────────
-  // 4. Resize Loops
+  // 4. Resize Handler
   // ───────────────────────────────────────────────
   resizeHandler = () => {
     if (renderer) {
@@ -519,71 +500,57 @@ export function initLusionAnimations() {
       camera.updateProjectionMatrix();
     }
 
-    // Recompute spline points to keep them aligned
+    // Recompute spline points to keep them aligned on resize
     const wNew = window.innerWidth;
-    const hNew = window.innerHeight;
     const mapSvgPoint = (svgX, svgY) => {
       const matScale = 0.575343;
       const tx = -1.37604;
       const ty = 282.597;
-      
+
       const xTransformed = svgX * matScale + tx;
       const yTransformed = svgY * matScale + ty;
-      
-      // Scale proportionally based on width only to preserve original SVG viewbox aspect ratio (1920x1480)
+
       const scale = wNew / 1920;
-      
+
       const glX = xTransformed * scale;
       const glY = -yTransformed * scale;
       return new THREE.Vector3(glX, glY, 0);
     };
 
     const svgSegments = [
-      { p0: [47.582, -286.085], cp1: [303.541, -284.445], cp2: [1180.23, 533.27], p1: [669, 1062] },
-      { p0: [669, 1062], cp1: [342.369, 1399.81], cp2: [-154, 796], p1: [643, 611] },
-      { p0: [643, 611], cp1: [1422.82, 429.988], cp2: [1450.04, 1670.55], p1: [2179.95, 1283.97] },
-      { p0: [2179.95, 1283.97], cp1: [2432.25, 1150.34], cp2: [2403.32, 1461.04], p1: [2486.95, 1530.9] },
-      { p0: [2486.95, 1530.9], cp1: [2607.95, 1631.98], cp2: [2763.89, 1411.51], p1: [3032.95, 1413.97] },
-      { p0: [3032.95, 1413.97], cp1: [3469.5, 1417.94], cp2: [3227.38, 1807.53], p1: [3227.38, 1807.53] }
+      { p0: [52.796, -439.037],  cp1: [308.755, -437.397],  cp2: [1571.89, -207.871],  p1: [878.391, 680.295] },
+      { p0: [878.391, 680.295],  cp1: [358.606, 1345.99],   cp2: [-355.117, 522.324],  p1: [520.344, 117.153] },
+      { p0: [520.344, 117.153],  cp1: [1571.89, -369.513],  cp2: [1036.56, 848.89],    p1: [2006.41, 113.677] },
+      { p0: [2006.41, 113.677],  cp1: [2941.51, -595.185],  cp2: [2030.75, 449.53],    p1: [3169.2, 624.676] },
+      { p0: [3169.2, 624.676],   cp1: [3553.32, 683.771],   cp2: [2913.7, 1318.17],    p1: [2762.48, 1452.01] },
+      { p0: [2762.48, 1452.01],  cp1: [2319.53, 1844.05],   cp2: [3276.96, 1973.44],   p1: [3276.96, 1973.44] }
     ];
 
     curvePoints = [];
-    
+
     svgSegments.forEach(seg => {
       const p0 = mapSvgPoint(seg.p0[0], seg.p0[1]);
       const cp1 = mapSvgPoint(seg.cp1[0], seg.cp1[1]);
       const cp2 = mapSvgPoint(seg.cp2[0], seg.cp2[1]);
       const p1 = mapSvgPoint(seg.p1[0], seg.p1[1]);
-      
-      const steps = 40;
+
+      const steps = 80;
       for (let i = 0; i <= steps; i++) {
         const t = i / steps;
         const mt = 1 - t;
-        
-        const x = mt*mt*mt * p0.x + 3 * t * mt*mt * cp1.x + 3 * t*t * mt * cp2.x + t*t*t * p1.x;
-        const y = mt*mt*mt * p0.y + 3 * t * mt*mt * cp1.y + 3 * t*t * mt * cp2.y + t*t*t * p1.y;
-        
+
+        const x = mt * mt * mt * p0.x + 3 * t * mt * mt * cp1.x + 3 * t * t * mt * cp2.x + t * t * t * p1.x;
+        const y = mt * mt * mt * p0.y + 3 * t * mt * mt * cp1.y + 3 * t * t * mt * cp2.y + t * t * t * p1.y;
+
         if (i === 0 && curvePoints.length > 0) continue;
-        
+
         curvePoints.push(new THREE.Vector3(x, y, 0));
       }
     });
 
-    curve = new THREE.CatmullRomCurve3(curvePoints);
+    curve = new THREE.CatmullRomCurve3(curvePoints, false, 'centripetal');
   };
   window.addEventListener('resize', resizeHandler);
-
-  // Expose debug variables to window
-  window.lusionDebug = {
-    line1Split,
-    line2Split,
-    lineMesh,
-    lineCircle,
-    morphMesh,
-    canvas,
-    renderer,
-    morphTl
-  };
 }
 
 function tick() {
@@ -599,79 +566,83 @@ function tick() {
   if (lineMesh) {
     lineMesh.position.set(
       sectionWebGLX - w * 0.03, // 3% left
-      sectionWebGLY + h * 0.25, // 25% up (10% + 15%)
+      sectionWebGLY + h * 0.25, // 25% up
       -5.0
     );
   }
 
-  // Calculate draw progress mathematically based on section position in viewport
-  // Start drawing when top of section enters the bottom of the screen (rect.top = h)
-  // Finish drawing when the paragraph top exits the viewport (meaning the section pins and morphs)
-  const paragraph = document.getElementById('home-reel-content');
-  const pinOffset = paragraph ? paragraph.offsetTop : 240;
-  
-  const startY = h * 0.60;
-  const endY = -pinOffset;
-  const currentY = sectionRect.top;
-  
-  let drawRatio = 0;
-  if (currentY <= startY) {
-    drawRatio = (startY - currentY) / (startY - endY);
-    drawRatio = Math.max(0, Math.min(1, drawRatio)); // Clamp between 0 and 1
-  }
-  
+  // Draw progress is split into two phases to avoid the mid-scroll freeze:
+  //
+  // PROBLEM: once GSAP pins the section, getBoundingClientRect().top freezes at
+  //          the pin position (h * 0.25) for the entire scroll duration → drawRatio
+  //          gets stuck mid-value and the line stops drawing.
+  //
+  // FIX: Phase 1 (pre-pin) is driven by sectionRect.top  →  drawRatio 0 → prePinWeight
+  //      Phase 2 (during pin) is driven by morphTl progress →  drawRatio prePinWeight → 1.0
+  //
+  //   prePinWeight + pinWeight must sum to 1.0
+  //   Adjust to control how much of the draw happens before vs. during the morph.
+
+  const startY    = h * 0.95; // section-top at which drawing starts
+  const pinStartY = h * 0.25; // must match morphTl ScrollTrigger start ('top 25%')
+  const currentY  = sectionRect.top;
+
+  const prePinWeight = 0.45; // fraction of total draw completed before pin
+  const pinWeight    = 0.55; // fraction completed during the pinned morph
+
+  // Phase 1: how far we are from startY down to pinStartY (0 → 1)
+  const prePinProgress = Math.max(0, Math.min(1,
+    (startY - currentY) / (startY - pinStartY)
+  ));
+
+  // Phase 2: morphTl.scrollTrigger.progress is 0 → 1 during the pinned scroll
+  const pinProgress = (morphTl && morphTl.scrollTrigger)
+    ? morphTl.scrollTrigger.progress
+    : 0;
+
+  const drawRatio = Math.min(1,
+    prePinProgress * prePinWeight + pinProgress * pinWeight
+  );
+
   if (curve) {
-    const totalPoints = 150;
+    const totalPoints = 300;
     const currentPointsCount = Math.max(2, Math.floor(drawRatio * totalPoints));
     const activePoints = curve.getPoints(totalPoints).slice(0, currentPointsCount);
-    
+
     if (activePoints.length >= 2) {
-      const subCurve = new THREE.CatmullRomCurve3(activePoints);
+      // centripetal prevents Frenet frame flips on tight bends (erratic polygon fix)
+      const subCurve = new THREE.CatmullRomCurve3(activePoints, false, 'centripetal');
       const tubularSegments = activePoints.length * 2;
-      const radialSegments = 8;
-      const radius = 10.2; // thick 3D tube geometry (15% thicker than 8.8)
-      
+      const radialSegments = 14;
+      const radius = 10.2;
+
       const newGeom = new THREE.TubeGeometry(subCurve, tubularSegments, radius, radialSegments, false);
-      
+
       // Generate gradient vertex colors along the path segments
       const count = newGeom.attributes.position.count;
       const colors = new Float32Array(count * 3);
-      
+
       const colorStart = new THREE.Color(0x5a90ff); // Electric blue
       const colorEnd = new THREE.Color(0x2a38ee);   // Deep indigo
-      
+
       let index = 0;
       for (let i = 0; i <= tubularSegments; i++) {
         const ratio = i / tubularSegments;
         const c = colorStart.clone().lerp(colorEnd, ratio);
-        
+
         for (let j = 0; j <= radialSegments; j++) {
           colors[index++] = c.r;
           colors[index++] = c.g;
           colors[index++] = c.b;
         }
       }
-      
+
       newGeom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-      
+
       if (lineMesh.geometry) {
         lineMesh.geometry.dispose();
       }
       lineMesh.geometry = newGeom;
-    }
-    
-    // Position drawing tip relative to lineMesh local origin
-    const tipPos = activePoints[activePoints.length - 1];
-    if (lineCircle) {
-      lineCircle.position.set(tipPos.x, tipPos.y, 0.1); // Z = 0.1 to prevent z-fighting
-      
-      // Sync tip circle color with current progress gradient
-      const colorStart = new THREE.Color(0x5a90ff); // Electric blue
-      const colorEnd = new THREE.Color(0x2a38ee);   // Deep indigo
-      const currentTipColor = colorStart.clone().lerp(colorEnd, drawRatio);
-      if (lineCircle.material) {
-        lineCircle.material.color.copy(currentTipColor);
-      }
     }
   }
 
@@ -698,7 +669,7 @@ function tick() {
       }
       // Keep background video playing on every frame to prevent browser pause optimizations
       if (bgVideoEl.paused) {
-        bgVideoEl.play().catch(() => {});
+        bgVideoEl.play().catch(() => { });
       }
 
       // Synchronize the full-size video source (videoEl) with the thumbnail video source (bgVideoEl)
@@ -755,17 +726,16 @@ function tick() {
 
     morphMesh.position.set(targetX, targetY, 0);
     morphMesh.scale.set(targetW, targetH, targetW);
-    
-    // Apply 3D perspective rotation (Y-rotation, X-rotation, Z-rotation) peaking mid-animation and flattening at progress = 0 and progress = 1
+
+    // Apply 3D perspective rotation peaking mid-animation and flattening at progress = 0 and 1
     const rotationFactor = Math.sin(transitionProgress * Math.PI);
     const rotX = rotationFactor * 0.12;
     const rotY = rotationFactor * -0.35;
     const rotZ = rotationFactor * -0.12;
     morphMesh.rotation.set(rotX, rotY, rotZ);
-    
+
     morphMesh.material.uniforms.u_size.value.set(targetW, targetH);
     morphMesh.material.uniforms.u_radius.value = targetRadius;
-    morphMesh.material.uniforms.u_blueTint.value = gsap.utils.interpolate(0.9, 0.0, transitionProgress);
     morphMesh.material.uniforms.u_progress.value = transitionProgress;
   }
 
@@ -809,14 +779,6 @@ export function killLusionAnimations() {
     lineMesh.material.dispose();
     scene.remove(lineMesh);
     lineMesh = null;
-  }
-  if (lineCircle) {
-    lineCircle.geometry.dispose();
-    lineCircle.material.dispose();
-    if (lineMesh) {
-      lineMesh.remove(lineCircle);
-    }
-    lineCircle = null;
   }
   if (morphMesh) {
     morphMesh.geometry.dispose();

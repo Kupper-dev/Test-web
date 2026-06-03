@@ -762,8 +762,13 @@ body:has([data-nav-status="active"]) .marquee-css__list {
 }
 
 /* Stacking context isolation to ensure watch button and text are in front of fixed canvas */
+.container-x {
+  position: relative;
+  z-index: 1;
+}
+
 #home-reel-container {
   position: relative;
-  z-index: 2;
+  z-index: 3;
 }
 
