@@ -41,14 +41,14 @@ export function HeroSection({}) {
               className={
                 "home-reel-content hero w-node-_8fbe3eac-8b93-aec8-d6dc-0b106aa45821-76feb159"
               }
-              id={"home-reel-content"}
+              id={"hero-content"}
               tag={"div"}
             >
-              <Block id={"home-reel-content-reveal"} tag={"div"}>
-                <Block id={"home-reel-content-inner"} tag={"div"}>
+              <Block id={"hero-content-reveal"} tag={"div"}>
+                <Block id={"hero-content-inner"} tag={"div"}>
                   <Heading
                     className={"home-reel-desc"}
-                    id={"home-reel-desc"}
+                    id={"hero-desc"}
                     tag={"h2"}
                   >
                     {
@@ -59,7 +59,7 @@ export function HeroSection({}) {
                     block={""}
                     button={false}
                     className={"home-reel-cta"}
-                    id={"home-reel-cta"}
+                    id={"hero-cta"}
                     options={{
                       href: "/about",
                       target: "_blank",
@@ -67,17 +67,17 @@ export function HeroSection({}) {
                   >
                     <Span
                       className={"home-reel-cta-dot"}
-                      id={"home-reel-cta-dot"}
+                      id={"hero-cta-dot"}
                     />{" "}
                     <Span
                       className={"home-reel-cta-text"}
-                      id={"home-reel-cta-text"}
+                      id={"hero-cta-text"}
                     >
                       {"COntrata ahora"}
                     </Span>{" "}
                     <Span
                       className={"home-reel-cta-arrow"}
-                      id={"home-reel-cta-arrow"}
+                      id={"hero-cta-arrow"}
                     >
                       <DOM
                         fill={"none"}

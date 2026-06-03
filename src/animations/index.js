@@ -4,6 +4,7 @@ import { initBranchAnimations, killBranchAnimations, resetToDefaultBranch } from
 import { initDynamicText, killDynamicText } from './dynamicText';
 import { initLusionAnimations, killLusionAnimations } from './lusionAnimations';
 import { initNavAnimations, killNavAnimations } from './navAnimations';
+import { initHeroAnimations, killHeroAnimations } from './heroAnimations';
 
 export { resetToDefaultBranch };
 
@@ -15,6 +16,7 @@ export function initAnimations(isNavTriggered = false) {
   initDynamicText();
   initLusionAnimations();
   initNavAnimations(false, isNavTriggered);
+  initHeroAnimations();
 }
 
 // Central registry to clean up all animations on page leave
@@ -25,4 +27,5 @@ export function killAnimations() {
   killDynamicText();
   killLusionAnimations();
   killNavAnimations();
+  killHeroAnimations();
 }
