@@ -158,10 +158,12 @@ function updateNavLinks(data) {
 
 // Initialize animations on first load
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initAnimations);
+  document.addEventListener('DOMContentLoaded', () => initAnimations(false));
 } else {
-  initAnimations();
+  initAnimations(false);
 }
+
+let nextTransitionWasNavTriggered = false;
 
 if (!window.location.pathname.includes('devlink')) {
   barba.init({
@@ -182,6 +184,14 @@ if (!window.location.pathname.includes('devlink')) {
       name: 'page-wipe',
 
       leave(data) {
+        // Detect if navigated via navbar menu
+        const triggerEl = data.trigger;
+        nextTransitionWasNavTriggered = !!(
+          triggerEl &&
+          typeof triggerEl.closest === 'function' &&
+          triggerEl.closest('.nav')
+        );
+
         // Close navigation menu if open
         closeNavigation();
 
@@ -263,7 +273,10 @@ if (!window.location.pathname.includes('devlink')) {
         lastScrollY = window.scrollY;
 
         // Initialize animations for the new page content
-        initAnimations();
+        initAnimations(nextTransitionWasNavTriggered);
+        
+        // Reset trigger state for next page transitions
+        nextTransitionWasNavTriggered = false;
       }
     }]
   });
