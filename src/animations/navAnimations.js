@@ -22,7 +22,9 @@ export function initNavAnimations(isInitialLoad = false, isNavTriggered = false)
     navTimeline.kill();
   }
 
+  window.gsap = gsap;
   navTimeline = gsap.timeline();
+  window.navTimeline = navTimeline;
 
   // If navigated via navbar, do NOT run the slide down entrance on the nav capsule itself.
   // It remains statically positioned at y: 0.
@@ -30,13 +32,14 @@ export function initNavAnimations(isInitialLoad = false, isNavTriggered = false)
     gsap.set(nav, { yPercent: 0, y: 0 });
   } else {
     // Set initial state off-screen above the viewport
-    gsap.set(nav, { yPercent: -150 });
+    gsap.set(nav, { yPercent: -200, y: 0 });
     
     // Animate sliding down with a premium magnetic easing
     navTimeline.to(nav, {
       yPercent: 0,
-      duration: 0.8,
-      ease: 'back.out(1.15)', // Custom back/magnetic ease
+      y: 0,
+      duration: 0.85,
+      ease: 'back.out(1.2)', // Custom back/magnetic ease
     }, 0);
   }
 

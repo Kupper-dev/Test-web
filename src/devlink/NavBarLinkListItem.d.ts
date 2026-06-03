@@ -6,5 +6,6 @@ declare function NavBarLinkListItem(props: {
   numberVisibility?: Types.Boolean.Boolean;
   tag?: React.ReactNode;
   tagVisibility?: Types.Boolean.Boolean;
+  testLinkNav?: Types.Basic.Link;
   title?: React.ReactNode;
 }): React.JSX.Element;

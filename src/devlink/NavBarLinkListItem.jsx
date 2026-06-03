@@ -9,6 +9,11 @@ export function NavBarLinkListItem({
   numberVisibility = false,
   tag = "Tag",
   tagVisibility = true,
+
+  testLinkNav = {
+    href: "#buttons",
+  },
+
   title = "Title",
 }) {
   return (
@@ -18,9 +23,7 @@ export function NavBarLinkListItem({
         button={false}
         className={"nav-bar__big-a"}
         data-hover={false}
-        options={{
-          href: "#buttons",
-        }}
+        options={testLinkNav}
       >
         <Block
           className={"nav-bar__big-span"}

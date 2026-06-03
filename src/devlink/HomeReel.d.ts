@@ -1,2 +1,5 @@
 import * as React from "react";
-declare function HomeReel(props: {}): React.JSX.Element;
+
+declare function HomeReel(props: {
+  testLink?: Types.Basic.Link;
+}): React.JSX.Element;

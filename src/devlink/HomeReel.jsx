@@ -8,7 +8,12 @@ import Link from "./webflow_modules/Basic/components/Link";
 import Section from "./webflow_modules/Layout/components/Section";
 import Span from "./webflow_modules/Basic/components/Span";
 
-export function HomeReel({}) {
+export function HomeReel({
+  testLink = {
+    href: "/about",
+    target: "_blank",
+  },
+}) {
   return (
     <Section
       className={"home-reel"}
@@ -80,7 +85,7 @@ export function HomeReel({}) {
                   tag={"h2"}
                 >
                   {
-                    "Una oficina que funciona no es casualidad — es soporte bien hecho. Kupper atiende empresas en la CDMX con pólizas mensuales, respuesta garantizada y tecnología que te da visibilidad total de tu infraestructura en tiempo real."
+                    "El IT de tu empresa no debería ser tu problema. Con una póliza mensual Kupper tienes técnicos reales, tickets en segundos y un panel donde ves todo lo que pasa, sin llamadas, sin esperas, sin sorpresas."
                   }
                 </Heading>
                 <Link
@@ -88,10 +93,9 @@ export function HomeReel({}) {
                   button={false}
                   className={"home-reel-cta"}
                   id={"home-reel-cta"}
-                  options={{
-                    href: "/about",
-                    target: "_blank",
-                  }}
+                  options={testLink}
+                  // @ts-ignore - User-defined custom attribute(s)
+                  target={"_blank"}
                 >
                   <Span
                     className={"home-reel-cta-dot"}
