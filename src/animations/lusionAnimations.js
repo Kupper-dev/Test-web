@@ -76,12 +76,12 @@ export function initLusionAnimations() {
   // ───────────────────────────────────────────────
   // 1. Text Splitting & GSAP Scroll Animation
   // ───────────────────────────────────────────────
-  const titleInner = document.getElementById('home-reel-title-inner');
-  const paragraphEl = document.getElementById('home-reel-content');
-  const line1El = document.getElementById('home-reel-title-line-1');
-  const line2El = document.getElementById('home-reel-title-line-2');
-  const descEl = document.getElementById('home-reel-desc');
-  const ctaEl = document.getElementById('home-reel-cta');
+  const titleInner = containerEl.querySelector('#home-reel-title-inner');
+  const paragraphEl = containerEl.querySelector('#home-reel-content');
+  const line1El = containerEl.querySelector('#home-reel-title-line-1');
+  const line2El = containerEl.querySelector('#home-reel-title-line-2');
+  const descEl = containerEl.querySelector('#home-reel-desc');
+  const ctaEl = containerEl.querySelector('#home-reel-cta');
 
   if (line1El && line2El) {
     line1Split = new SplitType(line1El, { types: 'words' });

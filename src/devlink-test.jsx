@@ -60,7 +60,12 @@ function App() {
         mainContent={
           <>
             <HeroSection />
-            <HomeReel />
+            <HomeReel
+              testLink={{
+                href: "/devlink-2.html",
+                target: "_self"
+              }}
+            />
           </>
         }
       />
