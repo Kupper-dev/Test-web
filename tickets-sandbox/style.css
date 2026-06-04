@@ -189,7 +189,7 @@ body {
   --height: 5.5em;
   width: var(--width);
   height: var(--height);
-  color: var(--color-black) !important;
+  color: var(--color-white) !important;
 }
 
 .s-tickets-home .sb-ticket--message {
@@ -197,7 +197,7 @@ body {
   --height: 7.2em;
   width: var(--width);
   height: var(--height);
-  color: var(--color-brand-11) !important;
+  color: var(--color-blue-3) !important;
 }
 
 /* Background SVGs shape styling */
@@ -212,13 +212,13 @@ body {
 }
 
 .s-tickets-home .sb-ticket--ticket .sb-ticket__shape {
-  color: var(--color-brand-11);
-  filter: drop-shadow(0 4px 8px rgba(171, 241, 57, 0.25));
+  color: var(--color-blue-2);
+  filter: drop-shadow(0 4px 8px rgba(32, 81, 255, 0.15));
 }
 
 .s-tickets-home .sb-ticket--message .sb-ticket__shape {
   color: var(--color-black);
-  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4));
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
 }
 
 /* Style the inner content to sit in the center of the shape */
