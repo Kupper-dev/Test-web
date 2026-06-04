@@ -1,9 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  --color-black: #231E25;
-  --color-brand-11: #ABF139; /* Neon lime green */
-  --color-white: #FFF;
+  --color-bg: var(--_dev---background, #fafbfc);
+  --color-black: var(--_dev---black, #252731);
+  --color-blue-2: var(--_dev---blue-2, hsla(214, 100%, 50.2%, 1));
+  --color-blue-3: var(--_dev---blue-3, #65c2ff);
+  --color-white: var(--_dev---white, #ffffff);
   --grid-offset: 20px;
   --grid-container-max-width-rem: 106.6667rem;
   --grid-width: min(calc(100vw - (var(--grid-offset) * 2)), calc(var(--grid-container-max-width-rem) - (var(--grid-offset) * 2)));
@@ -17,7 +19,7 @@ body {
   margin: 0;
   padding: 0;
   font-family: 'Inter', sans-serif;
-  background-color: #0e0e11;
+  background-color: var(--color-bg);
   color: var(--color-black);
   overflow-x: hidden;
 }
