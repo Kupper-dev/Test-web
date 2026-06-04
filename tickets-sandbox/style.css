@@ -29,8 +29,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #110c1d;
-  color: #fff;
+  background: var(--color-bg);
+  color: var(--color-black);
   font-size: 2rem;
   font-weight: 300;
 }
@@ -38,7 +38,7 @@ body {
 .s-tickets-home {
   position: relative;
   height: 200vh;
-  background: var(--color-brand-11);
+  background: var(--color-bg);
   clip-path: inset(0);
 }
 
@@ -78,7 +78,7 @@ body {
   z-index: -1;
   width: calc(var(--content-diag) * 1.75);
   height: calc(var(--content-diag) * 2);
-  background: radial-gradient(closest-side, rgba(171, 241, 57, 0.9) 25%, rgba(171, 241, 57, 0));
+  background: radial-gradient(closest-side, rgba(32, 81, 255, 0.12) 25%, rgba(32, 81, 255, 0));
   border-radius: 999rem;
   will-change: transform;
 }
@@ -110,7 +110,8 @@ body {
   font-weight: 500;
   letter-spacing: -0.06em;
   line-height: 1;
-  background: var(--color-brand-11);
+  background: var(--color-blue-2);
+  color: var(--color-white);
 }
 
 .s-tickets-home .s__title {
