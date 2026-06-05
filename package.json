@@ -13,6 +13,7 @@
     "@barba/core": "^2.10.3",
     "gsap": "^3.12.5",
     "lenis": "^1.1.18",
+    "matter-js": "^0.20.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "split-type": "^0.3.4",
