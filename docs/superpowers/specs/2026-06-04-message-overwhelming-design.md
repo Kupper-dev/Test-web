@@ -54,8 +54,11 @@ To keep the structure clean for Webflow export, the HTML hierarchy uses descript
 
     <!-- Hidden Spawning Template -->
     <div class="overwhelming-template-wrapper" style="display: none;">
-      <div class="message-bubble" data-wf-variant="white">
-        <span class="message-text"></span>
+      <div class="message-bubble-wrapper">
+        <div class="message-bubble-shadow"></div> <!-- The white card behind -->
+        <div class="message-bubble-front" data-wf-variant="white"> <!-- The actual message card -->
+          <span class="message-text"></span>
+        </div>
       </div>
     </div>
   </div>
@@ -65,9 +68,12 @@ To keep the structure clean for Webflow export, the HTML hierarchy uses descript
 ### CSS Styling & Variables
 - Background color of `.overwhelming-sticky` uses the DevLink light gray token (fallback `#dfe2e5`).
 - Spacing, fonts, and message bubble borders are styled using class selectors:
-  - `.message-bubble`: absolute positioned, `border-radius: 100px` (fully rounded corners), padding `0.75em 1.5em`, box-shadow, transition-less styling (handled by physics).
-  - `.message-bubble[data-wf-variant="white"]`: background `#ffffff`, color `#201D1D`, border `1px solid var(--color-neutral-200)`.
-  - `.message-bubble[data-wf-variant="blue-2"]`: background `#2051ff` (or Webflow blue variant), color `#ffffff`.
+  - `.message-bubble-wrapper`: absolute positioned, sizing matches the measured width/height.
+  - `.message-bubble-shadow`: absolute positioned, `inset: 0`, `border-radius: 100px`, background `#ffffff`, border `1px solid rgba(0,0,0,0.08)`, offset `transform: translate3d(4px, 4px, 0)`.
+  - `.message-bubble-front`: absolute positioned, `inset: 0`, `border-radius: 100px`, padding `0.85em 1.75em`, display flex, items-center.
+  - `.message-bubble-front[data-wf-variant="white"]`: background `#ffffff`, color `#201D1D`, border `1px solid var(--color-neutral-200)`.
+  - `.message-bubble-front[data-wf-variant="blue-2"]`: background `#2051ff` (or Webflow blue variant), color `#ffffff`.
+
 
 ---
 
@@ -86,7 +92,7 @@ To keep the structure clean for Webflow export, the HTML hierarchy uses descript
 
 ### 2. Spawning a Bubble
 - **Text content selection**: Select a random message string from an array of predefined messages.
-- **Node Cloning**: Clone the `.message-bubble` template node, inject the text, and assign a variant attribute (`data-wf-variant="white"` or `data-wf-variant="blue-2"`).
+- **Node Cloning**: Clone the `.message-bubble-wrapper` template node, inject the text, and assign a variant attribute (`data-wf-variant="white"` or `data-wf-variant="blue-2"`).
 - **Off-screen Measurement**:
   - Temporarily append the element to the document with visibility hidden to capture `getBoundingClientRect()`.
   - Get width and height.
@@ -94,8 +100,17 @@ To keep the structure clean for Webflow export, the HTML hierarchy uses descript
   - Spawn at coordinates $(X_{spawn}, Y_{spawn})$.
     - **Desktop**: Randomly choose between top-left ($X \approx 10\%$) or top-right ($X \approx 90\%$) corners.
     - **Mobile**: Spawn only on the left side ($X \approx 15\%$).
-  - Create a Matter.js body using `Bodies.rectangle(x, y, width, height, options)` with custom physical parameters (`restitution: 0.2` for subtle bouncing, `friction: 0.1`).
+  - Create a Matter.js body using `Bodies.rectangle(x, y, width, height, options)` and set it as static initially:
+    ```javascript
+    const body = Bodies.rectangle(x, y, width, height, { isStatic: true, restitution: 0.15 });
+    ```
+- **GSAP Entrance Swing**:
+  - Apply `transform-origin` dynamically: `top right` if spawned on the left, and `top left` if spawned on the right.
+  - Scale up both layers from 0 to 1. The shadow layer starts 50ms later and uses an aggressive `back.out(2.5)` ease to swing out wider and overshoot dramatically, while the front layer uses `back.out(1.6)`.
+- **Physics Activation**:
+  - After the GSAP animation finishes (approx. 800ms), update the Matter.js body: `Body.setStatic(body, false)` to allow it to fall with gravity, collide, and stack.
 - **Insertion**: Remove off-screen node, append it to `.overwhelming-physics-container`, and add the body to the Matter.js world.
+
 
 ### 3. Prefill (40% Capacity)
 - On initialization, calculate the target prefill count (e.g., 30 bubbles).
