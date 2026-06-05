@@ -8,6 +8,7 @@ let boundaries = []; // Floor, left, right boundaries
 let mouseBody = null;
 let mouseMoveListener = null;
 let mouseLeaveListener = null;
+let resizeListener = null;
 
 // Predefined customizable messages array
 const MESSAGES = [
