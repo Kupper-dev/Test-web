@@ -119,12 +119,50 @@
     <div class="main-content">
       <section class="overwhelming-track">
         <div class="overwhelming-sticky">
-          <!-- Placeholder Center Cards Area (Target for Phase 2) -->
+          <!-- Central Cards Area (Phase 2) -->
           <div class="overwhelming-center-content">
-            <div style="text-align: center; color: var(--color-neutral-600); max-width: 500px; padding: 2em; background: rgba(255,255,255,0.7); border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); backdrop-filter: blur(10px);">
-              <span class="eyebrow" style="color: #2051ff;">Message Overwhelming</span>
-              <h2 style="font-size: 2em; margin-top: 0.25em; font-weight: 700;">Phase 1 Physics</h2>
-              <p style="margin-top: 1em; font-size: 14px; line-height: 1.5;">Watch messages stack up dynamically at the bottom. Move your mouse cursor into the pile to push them aside. (Cards will be placed here in Phase 2).</p>
+            <div class="overwhelming-cards-container">
+              <!-- Card 1 -->
+              <div class="overwhelming-card active" data-card="1">
+                <div class="messy-element top-left">💻</div>
+                <div class="messy-element top-right">🛑</div>
+                <div class="messy-element bottom-left">⏳</div>
+                <div class="messy-element bottom-right">🚫</div>
+                <div class="item-title">
+                  <div>¿Un equipo falla y todo se detiene?</div>
+                </div>
+                <div class="item-desc">
+                  <p>No importa qué tan ocupado esté el día — una computadora que no prende lo frena todo. Mientras no hay quien lo resuelva, esa persona no trabaja y tú no puedes hacer nada al respecto.</p>
+                </div>
+              </div>
+
+              <!-- Card 2 -->
+              <div class="overwhelming-card" data-card="2">
+                <div class="messy-element top-left">🤷</div>
+                <div class="messy-element top-right">❓</div>
+                <div class="messy-element bottom-left">🔧</div>
+                <div class="messy-element bottom-right">🔄</div>
+                <div class="item-title">
+                  <div>¿No sabes si ya quedó la laptop?</div>
+                </div>
+                <div class="item-desc">
+                  <p>El técnico pasó, dijo que ya estaba listo, y al día siguiente volvió a fallar. Sin un seguimiento claro, nunca sabes si el problema realmente se resolvió o solo se pospuso.</p>
+                </div>
+              </div>
+
+              <!-- Card 3 -->
+              <div class="overwhelming-card" data-card="3">
+                <div class="messy-element top-left">📅</div>
+                <div class="messy-element top-right">⚠️</div>
+                <div class="messy-element bottom-left">⏰</div>
+                <div class="messy-element bottom-right">💣</div>
+                <div class="item-title">
+                  <div>¿Sabes cuándo tocan los mantenimientos?</div>
+                </div>
+                <div class="item-desc">
+                  <p>La mayoría de los problemas técnicos no llegan de sorpresa — se acumulan. Equipos sin mantenimiento, sin historial, sin fechas claras. Cuando algo truena, ya era tarde para prevenirlo.</p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -137,6 +175,7 @@
               <div class="message-bubble-shadow"></div>
               <div class="message-bubble-front">
                 <span class="message-text"></span>
+                <span class="message-icon" style="margin-left: 8px; display: none;"></span>
               </div>
             </div>
           </div>

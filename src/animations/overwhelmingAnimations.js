@@ -1,5 +1,9 @@
 import { Engine, World, Bodies, Composite, Body } from 'matter-js';
 import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import SplitType from 'split-type';
+
+gsap.registerPlugin(ScrollTrigger);
 
 let engine = null;
 let runnerId = null;
@@ -11,6 +15,8 @@ let mouseMoveListener = null;
 let mouseLeaveListener = null;
 let resizeListener = null;
 let activeTimeouts = []; // Track timeouts to prevent page leak crashes
+let cardSplitParagraphs = [];
+let scrollTriggerInstance = null;
 
 // Predefined customizable messages array
 const MESSAGES = [
@@ -30,7 +36,7 @@ const MESSAGES = [
 ];
 
 // Helper: Measure bubble size off-screen
-function measureBubble(text, variant) {
+function measureBubble(text, variant, icon = null) {
   const container = document.querySelector('.overwhelming-physics-container');
   if (!container) return { width: 120, height: 40 };
 
@@ -39,11 +45,26 @@ function measureBubble(text, variant) {
   temp.style.position = 'absolute';
   temp.style.visibility = 'hidden';
   temp.style.whiteSpace = 'nowrap';
+  // Override CSS inset: 0 and dimensions to measure intrinsic content size correctly
+  temp.style.top = 'auto';
+  temp.style.left = 'auto';
+  temp.style.right = 'auto';
+  temp.style.bottom = 'auto';
+  temp.style.width = 'auto';
+  temp.style.height = 'auto';
   
   const span = document.createElement('span');
   span.className = 'message-text';
   span.textContent = text;
   temp.appendChild(span);
+
+  if (icon) {
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'message-icon';
+    iconSpan.textContent = icon;
+    iconSpan.style.marginLeft = '8px';
+    temp.appendChild(iconSpan);
+  }
   
   container.appendChild(temp);
   const rect = temp.getBoundingClientRect();
@@ -77,8 +98,12 @@ function spawnBubble(isPrefill = false, customY = null) {
   const text = MESSAGES[Math.floor(Math.random() * MESSAGES.length)];
   const variant = Math.random() > 0.5 ? 'white' : 'blue-2';
 
-  // Measure
-  const size = measureBubble(text, variant);
+  // Decide icon status (randomly check if we show an emoji)
+  const showIcon = Math.random() < 0.35;
+  const icon = showIcon ? ["⭐", "✨", "❤️", "✓"][Math.floor(Math.random() * 4)] : null;
+
+  // Measure with icon support
+  const size = measureBubble(text, variant, icon);
 
   // Position calculation
   let spawnX = 0;
@@ -106,30 +131,46 @@ function spawnBubble(isPrefill = false, customY = null) {
     }
   }
 
-  // Create Matter.js body (Static during entry animation if not prefilling)
+  const isBubbleLeft = spawnX < width / 2;
+
+  // Create Matter.js body (Initially dynamic to save mass/inertia values, then set to static if not prefilling)
   const body = Bodies.rectangle(spawnX, spawnY, size.width, size.height, {
-    isStatic: !isPrefill,
     restitution: 0.15,
     friction: 0.15,
     frictionAir: 0.03,
     angle: isPrefill ? (Math.random() - 0.5) * 0.3 : 0
   });
 
+  if (!isPrefill) {
+    Body.setStatic(body, true);
+  }
+
   // Clone template DOM node
   const template = document.querySelector('.overwhelming-template-wrapper .message-bubble-wrapper');
   if (!template) return;
   const element = template.cloneNode(true);
+  element.classList.add(isBubbleLeft ? 'is--left' : 'is--right');
   element.style.width = `${size.width}px`;
   element.style.height = `${size.height}px`;
 
   const front = element.querySelector('.message-bubble-front');
   const shadow = element.querySelector('.message-bubble-shadow');
   const span = element.querySelector('.message-text');
+  const iconSpan = element.querySelector('.message-icon');
 
   if (front && span) {
     front.setAttribute('data-wf-variant', variant);
     front.classList.add(variant === 'blue-2' ? 'is--blue-2' : 'is--white');
     span.textContent = text;
+  }
+
+  if (iconSpan) {
+    if (icon) {
+      iconSpan.textContent = icon;
+      iconSpan.style.display = 'inline-block';
+    } else {
+      iconSpan.style.display = 'none';
+    }
   }
 
   // Position DOM element initially
@@ -142,31 +183,61 @@ function spawnBubble(isPrefill = false, customY = null) {
 
   // Play animations
   if (!isPrefill && front && shadow) {
-    const origin = isLeft ? 'top right' : 'top left';
+    const origin = isLeft ? 'top left' : 'top right';
     const startRotation = isLeft ? -35 : 35;
-    const shadowRotation = isLeft ? -50 : 50;
+    const shadowRotation = isLeft ? -45 : 45; // Swing same direction, slightly steeper starting angle
 
-    // Set initial states
+    // Set initial states (Squashed thin line, matching rotation directions)
     gsap.set([front, shadow], { transformOrigin: origin });
-    gsap.set(front, { scale: 0, rotation: startRotation });
-    gsap.set(shadow, { scale: 0, rotation: shadowRotation });
+    gsap.set(front, { scaleX: 0.15, scaleY: 0.05, rotation: startRotation });
+    gsap.set(shadow, { scaleX: 0.15, scaleY: 0.05, rotation: shadowRotation });
 
-    // Animate front card
+    if (span) {
+      gsap.set(span, { clipPath: "polygon(0 0, 0 0, 0 100%, 0% 100%)" });
+    }
+    if (iconSpan && icon) {
+      gsap.set(iconSpan, { scale: 0 });
+    }
+
+    // Animate front card (Delayed snappy swing and stretch)
     gsap.to(front, {
-      scale: 1,
+      scaleX: 1,
+      scaleY: 1,
       rotation: 0,
-      duration: 0.8,
-      ease: "back.out(1.6)"
+      duration: 0.75,
+      delay: 0.06,
+      ease: "back.out(1.5)"
     });
 
-    // Animate shadow card aggressively
+    // Animate shadow card (Immediate swing and stretch)
     gsap.to(shadow, {
-      scale: 1,
+      scaleX: 1,
+      scaleY: 1,
       rotation: 0,
       duration: 0.85,
-      delay: 0.04,
-      ease: "back.out(2.5)" // higher backout factor for more dramatic bounce/overshoot
+      delay: 0,
+      ease: "back.out(2.2)"
     });
+
+    // Wiping reveal for text (typewriter reveal, synced to front delay)
+    if (span) {
+      gsap.to(span, {
+        clipPath: "polygon(0 0, 100% 0, 100% 100%, 0% 100%)",
+        duration: 0.5,
+        delay: 0.3,
+        ease: "power2.out"
+      });
+    }
+
+    // Bounce in for status icon/emoji (synced to front delay)
+    if (iconSpan && icon) {
+      gsap.to(iconSpan, {
+        scale: 1,
+        duration: 0.3,
+        delay: 0.75,
+        ease: "back.out(2.0)"
+      });
+    }
 
     // Timeout to release body from static to dynamic
     const tId = setTimeout(() => {
@@ -178,6 +249,12 @@ function spawnBubble(isPrefill = false, customY = null) {
   } else if (front && shadow) {
     // Prefill: Set scale instantly
     gsap.set([front, shadow], { scale: 1, rotation: 0 });
+    if (span) {
+      gsap.set(span, { clipPath: "polygon(0 0, 100% 0, 100% 100%, 0% 100%)" });
+    }
+    if (iconSpan && icon) {
+      gsap.set(iconSpan, { scale: 1 });
+    }
   }
 }
 
@@ -273,7 +350,7 @@ export function initOverwhelmingAnimations() {
 
   // 2. Continuous time-based Spawner
   spawnInterval = setInterval(() => {
-    spawnBubble(false, -80);
+    spawnBubble(false, 80);
   }, 1200);
 
   // 3. Mouse event listeners
@@ -301,10 +378,292 @@ export function initOverwhelmingAnimations() {
     updateBoundaries();
   };
   window.addEventListener('resize', resizeListener);
+
+  // --- Phase 2 Card Scroll-Linked Transitions ---
+  const cards = document.querySelectorAll('.overwhelming-card');
+  const cardElements = Array.from(cards);
+  
+  if (cardElements.length > 0) {
+    // 1. Initial State Setup
+    cardElements.forEach((card, idx) => {
+      const title = card.querySelector('.item-title > div');
+      const desc = card.querySelector('.item-desc p');
+      const emojis = card.querySelectorAll('.messy-element');
+
+      // Setup paragraph splitting
+      if (desc) {
+        const descSplit = new SplitType(desc, {
+          types: 'lines, words',
+          lineClass: 'card-desc-line',
+          wordClass: 'card-desc-word'
+        });
+        
+        descSplit.lines.forEach((line) => {
+          line.style.overflow = 'hidden';
+          line.style.display = 'block';
+          line.style.position = 'relative';
+          
+          line.querySelectorAll('.card-desc-word').forEach((word) => {
+            word.style.display = 'inline-block';
+            word.style.position = 'relative';
+          });
+        });
+        cardSplitParagraphs.push(descSplit);
+      }
+
+      // Hide cards 2 & 3 initially
+      if (idx > 0) {
+        gsap.set(card, { opacity: 0, scale: 0.9, autoAlpha: 0 });
+        if (title) {
+          gsap.set(title, { yPercent: 105, rotate: 15, transformOrigin: '0% 100%' });
+        }
+        if (desc) {
+          const words = desc.querySelectorAll('.card-desc-word');
+          gsap.set(words, { yPercent: 110 });
+        }
+        if (emojis.length > 0) {
+          gsap.set(emojis, { scale: 0, opacity: 0 });
+        }
+      } else {
+        // Card 1 starts active and revealed
+        gsap.set(card, { opacity: 1, scale: 1, autoAlpha: 1 });
+        if (title) {
+          gsap.set(title, { yPercent: 0, rotate: 0, transformOrigin: '0% 100%' });
+        }
+        if (desc) {
+          const words = desc.querySelectorAll('.card-desc-word');
+          gsap.set(words, { yPercent: 0 });
+        }
+        // Animate Card 1 emojis drop and bounce on load
+        if (emojis.length > 0) {
+          gsap.set(emojis, { scale: 0, opacity: 0 });
+          gsap.to(emojis, {
+            scale: 1,
+            opacity: 1,
+            y: 0,
+            rotation: 0,
+            duration: 1.0,
+            ease: 'back.out(1.8)',
+            stagger: 0.1,
+            delay: 0.2
+          });
+        }
+      }
+    });
+
+    // 2. Build ScrollTrigger scrubbing timeline
+    scrollTriggerInstance = ScrollTrigger.create({
+      trigger: '.overwhelming-track',
+      start: 'top top',
+      end: 'bottom bottom',
+      scrub: 1,
+      onUpdate: (self) => {
+        const progress = self.progress;
+
+        // Helper function to show/hide a card
+        const setCardState = (activeIdx) => {
+          cardElements.forEach((card, i) => {
+            if (i === activeIdx) {
+              card.classList.add('active');
+            } else {
+              card.classList.remove('active');
+            }
+          });
+        };
+
+        // Scroll Range 1: Card 1 Active (progress: 0.0 -> 0.25)
+        if (progress <= 0.25) {
+          setCardState(0);
+          
+          const card1 = cardElements[0];
+          const card1Emojis = card1.querySelectorAll('.messy-element');
+          const card1Title = card1.querySelector('.item-title > div');
+          const card1Words = card1.querySelectorAll('.card-desc-word');
+
+          gsap.to(card1, { opacity: 1, scale: 1, autoAlpha: 1, duration: 0.2 });
+          if (card1Title) gsap.to(card1Title, { yPercent: 0, rotate: 0, duration: 0.2 });
+          if (card1Words.length > 0) gsap.to(card1Words, { yPercent: 0, duration: 0.2 });
+          if (card1Emojis.length > 0) gsap.to(card1Emojis, { scale: 1, opacity: 1, x: 0, y: 0, duration: 0.2 });
+
+          // Keep other cards completely hidden
+          cardElements.slice(1).forEach((card) => {
+            gsap.to(card, { opacity: 0, scale: 0.9, autoAlpha: 0, duration: 0.1 });
+          });
+        }
+        
+        // Scroll Range 2: Card 1 -> Card 2 Transition (progress: 0.25 -> 0.35 -> 0.45)
+        else if (progress > 0.25 && progress <= 0.45) {
+          const ratio = (progress - 0.25) / 0.2; // normalized 0 to 1
+          
+          const card1 = cardElements[0];
+          const card2 = cardElements[1];
+          const card1Title = card1.querySelector('.item-title > div');
+          const card1Words = card1.querySelectorAll('.card-desc-word');
+          const card1Emojis = card1.querySelectorAll('.messy-element');
+          
+          const card2Title = card2.querySelector('.item-title > div');
+          const card2Words = card2.querySelectorAll('.card-desc-word');
+          const card2Emojis = card2.querySelectorAll('.messy-element');
+
+          if (ratio < 0.5) {
+            // Card 1 Exiting
+            setCardState(0);
+            const subRatio = ratio * 2; // 0 to 1
+            gsap.to(card1, { opacity: 1 - subRatio, scale: 1 - subRatio * 0.1, autoAlpha: subRatio > 0.9 ? 0 : 1, duration: 0.1 });
+            
+            if (card1Title) gsap.to(card1Title, { yPercent: subRatio * 105, rotate: subRatio * 15, duration: 0.1 });
+            if (card1Words.length > 0) gsap.to(card1Words, { yPercent: subRatio * 110, duration: 0.1 });
+            
+            // Card 1 emojis slide away in different directions
+            if (card1Emojis.length === 4) {
+              gsap.to(card1Emojis[0], { x: -subRatio * 100, y: -subRatio * 100, opacity: 1 - subRatio, scale: 1 - subRatio, duration: 0.1 }); // Top-Left goes further top-left
+              gsap.to(card1Emojis[1], { x: subRatio * 100, y: -subRatio * 100, opacity: 1 - subRatio, scale: 1 - subRatio, duration: 0.1 });  // Top-Right goes top-right
+              gsap.to(card1Emojis[2], { x: -subRatio * 100, y: subRatio * 100, opacity: 1 - subRatio, scale: 1 - subRatio, duration: 0.1 });  // Bottom-Left goes bottom-left
+              gsap.to(card1Emojis[3], { x: subRatio * 100, y: subRatio * 100, opacity: 1 - subRatio, scale: 1 - subRatio, duration: 0.1 });    // Bottom-Right goes bottom-right
+            }
+
+            // Ensure card 2 is hidden
+            gsap.to(card2, { opacity: 0, scale: 0.9, autoAlpha: 0, duration: 0.1 });
+          } else {
+            // Card 2 Entering
+            setCardState(1);
+            const subRatio = (ratio - 0.5) * 2; // 0 to 1
+            gsap.to(card2, { opacity: subRatio, scale: 0.9 + subRatio * 0.1, autoAlpha: 1, duration: 0.1 });
+            
+            if (card2Title) gsap.to(card2Title, { yPercent: (1 - subRatio) * 105, rotate: (1 - subRatio) * 15, duration: 0.1 });
+            if (card2Words.length > 0) gsap.to(card2Words, { yPercent: (1 - subRatio) * 110, duration: 0.1 });
+            
+            // Card 2 emojis spin in
+            if (card2Emojis.length > 0) {
+              gsap.to(card2Emojis, {
+                scale: subRatio,
+                opacity: subRatio,
+                rotation: (1 - subRatio) * 360,
+                duration: 0.1
+              });
+            }
+
+            // Ensure card 1 is fully hidden
+            gsap.to(card1, { opacity: 0, scale: 0.9, autoAlpha: 0, duration: 0.1 });
+          }
+        }
+
+        // Scroll Range 3: Card 2 Active (progress: 0.45 -> 0.65)
+        else if (progress > 0.45 && progress <= 0.65) {
+          setCardState(1);
+          const card2 = cardElements[1];
+          const card2Emojis = card2.querySelectorAll('.messy-element');
+          const card2Title = card2.querySelector('.item-title > div');
+          const card2Words = card2.querySelectorAll('.card-desc-word');
+
+          gsap.to(card2, { opacity: 1, scale: 1, autoAlpha: 1, duration: 0.2 });
+          if (card2Title) gsap.to(card2Title, { yPercent: 0, rotate: 0, duration: 0.2 });
+          if (card2Words.length > 0) gsap.to(card2Words, { yPercent: 0, duration: 0.2 });
+          if (card2Emojis.length > 0) gsap.to(card2Emojis, { scale: 1, opacity: 1, rotation: 0, duration: 0.2 });
+
+          // Keep card 1 & 3 hidden
+          gsap.to(cardElements[0], { opacity: 0, scale: 0.9, autoAlpha: 0, duration: 0.1 });
+          gsap.to(cardElements[2], { opacity: 0, scale: 0.9, autoAlpha: 0, duration: 0.1 });
+        }
+
+        // Scroll Range 4: Card 2 -> Card 3 Transition (progress: 0.65 -> 0.75 -> 0.85)
+        else if (progress > 0.65 && progress <= 0.85) {
+          const ratio = (progress - 0.65) / 0.2; // normalized 0 to 1
+          
+          const card2 = cardElements[1];
+          const card3 = cardElements[2];
+          const card2Title = card2.querySelector('.item-title > div');
+          const card2Words = card2.querySelectorAll('.card-desc-word');
+          const card2Emojis = card2.querySelectorAll('.messy-element');
+          
+          const card3Title = card3.querySelector('.item-title > div');
+          const card3Words = card3.querySelectorAll('.card-desc-word');
+          const card3Emojis = card3.querySelectorAll('.messy-element');
+
+          if (ratio < 0.5) {
+            // Card 2 Exiting
+            setCardState(1);
+            const subRatio = ratio * 2; // 0 to 1
+            gsap.to(card2, { opacity: 1 - subRatio, scale: 1 - subRatio * 0.1, autoAlpha: subRatio > 0.9 ? 0 : 1, duration: 0.1 });
+            
+            if (card2Title) gsap.to(card2Title, { yPercent: subRatio * 105, rotate: subRatio * 15, duration: 0.1 });
+            if (card2Words.length > 0) gsap.to(card2Words, { yPercent: subRatio * 110, duration: 0.1 });
+            
+            // Card 2 emojis drop down vertically
+            if (card2Emojis.length > 0) {
+              gsap.to(card2Emojis, {
+                y: subRatio * 200,
+                opacity: 1 - subRatio,
+                duration: 0.1
+              });
+            }
+
+            // Ensure card 3 is hidden
+            gsap.to(card3, { opacity: 0, scale: 0.9, autoAlpha: 0, duration: 0.1 });
+          } else {
+            // Card 3 Entering
+            setCardState(2);
+            const subRatio = (ratio - 0.5) * 2; // 0 to 1
+            gsap.to(card3, { opacity: subRatio, scale: 0.9 + subRatio * 0.1, autoAlpha: 1, duration: 0.1 });
+            
+            if (card3Title) gsap.to(card3Title, { yPercent: (1 - subRatio) * 105, rotate: (1 - subRatio) * 15, duration: 0.1 });
+            if (card3Words.length > 0) gsap.to(card3Words, { yPercent: (1 - subRatio) * 110, duration: 0.1 });
+            
+            // Card 3 emojis pop in from 0 with elastic look (high amplitude scaling)
+            if (card3Emojis.length > 0) {
+              gsap.to(card3Emojis, {
+                scale: subRatio,
+                opacity: subRatio,
+                x: 0,
+                y: 0,
+                duration: 0.1
+              });
+            }
+
+            // Ensure card 2 is fully hidden
+            gsap.to(card2, { opacity: 0, scale: 0.9, autoAlpha: 0, duration: 0.1 });
+          }
+        }
+
+        // Scroll Range 5: Card 3 Active (progress: 0.85 -> 1.0)
+        else if (progress > 0.85) {
+          setCardState(2);
+          const card3 = cardElements[2];
+          const card3Emojis = card3.querySelectorAll('.messy-element');
+          const card3Title = card3.querySelector('.item-title > div');
+          const card3Words = card3.querySelectorAll('.card-desc-word');
+
+          gsap.to(card3, { opacity: 1, scale: 1, autoAlpha: 1, duration: 0.2 });
+          if (card3Title) gsap.to(card3Title, { yPercent: 0, rotate: 0, duration: 0.2 });
+          if (card3Words.length > 0) gsap.to(card3Words, { yPercent: 0, duration: 0.2 });
+          if (card3Emojis.length > 0) gsap.to(card3Emojis, { scale: 1, opacity: 1, x: 0, y: 0, duration: 0.2 });
+
+          // Keep other cards hidden
+          cardElements.slice(0, 2).forEach((card) => {
+            gsap.to(card, { opacity: 0, scale: 0.9, autoAlpha: 0, duration: 0.1 });
+          });
+        }
+      }
+    });
+  }
 }
 
 // Tear down engine and free memory
 export function killOverwhelmingAnimations() {
+  // Destroy ScrollTrigger instance
+  if (scrollTriggerInstance) {
+    scrollTriggerInstance.kill();
+    scrollTriggerInstance = null;
+  }
+
+  // Revert SplitType line/word wraps
+  cardSplitParagraphs.forEach((split) => {
+    if (split) {
+      split.revert();
+    }
+  });
+  cardSplitParagraphs = [];
+
   // Clear runner animation frame
   if (runnerId) {
     cancelAnimationFrame(runnerId);
