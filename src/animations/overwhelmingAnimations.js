@@ -1,4 +1,5 @@
 import { Engine, World, Bodies, Composite, Body } from 'matter-js';
+import { gsap } from 'gsap';
 
 let engine = null;
 let runnerId = null;
@@ -9,6 +10,7 @@ let mouseBody = null;
 let mouseMoveListener = null;
 let mouseLeaveListener = null;
 let resizeListener = null;
+let activeTimeouts = []; // Track timeouts to prevent page leak crashes
 
 // Predefined customizable messages array
 const MESSAGES = [
@@ -33,7 +35,7 @@ function measureBubble(text, variant) {
   if (!container) return { width: 120, height: 40 };
 
   const temp = document.createElement('div');
-  temp.className = `message-bubble ${variant === 'blue-2' ? 'is--blue-2' : 'is--white'}`;
+  temp.className = `message-bubble-front ${variant === 'blue-2' ? 'is--blue-2' : 'is--white'}`;
   temp.style.position = 'absolute';
   temp.style.visibility = 'hidden';
   temp.style.whiteSpace = 'nowrap';
@@ -80,7 +82,8 @@ function spawnBubble(isPrefill = false, customY = null) {
 
   // Position calculation
   let spawnX = 0;
-  let spawnY = customY !== null ? customY : -100;
+  let spawnY = customY !== null ? customY : 80;
+  let isLeft = true;
 
   if (isPrefill) {
     // Fill bottom 40% area randomly
@@ -90,40 +93,92 @@ function spawnBubble(isPrefill = false, customY = null) {
     const isMobile = width < 768;
     if (isMobile) {
       // Mobile: Left side spawning only
-      spawnX = Math.random() * 60 + size.width / 2 + 20;
+      isLeft = true;
+      spawnX = Math.random() * 40 + size.width / 2 + 20;
     } else {
       // Desktop: Left or right corner spawning
-      const spawnLeft = Math.random() > 0.5;
-      if (spawnLeft) {
-        spawnX = Math.random() * 80 + size.width / 2 + 40;
+      isLeft = Math.random() > 0.5;
+      if (isLeft) {
+        spawnX = Math.random() * 60 + size.width / 2 + 40;
       } else {
-        spawnX = width - (Math.random() * 80 + size.width / 2 + 40);
+        spawnX = width - (Math.random() * 60 + size.width / 2 + 40);
       }
     }
   }
 
-  // Create Matter.js body
+  // Create Matter.js body (Static during entry animation if not prefilling)
   const body = Bodies.rectangle(spawnX, spawnY, size.width, size.height, {
+    isStatic: !isPrefill,
     restitution: 0.15,
     friction: 0.15,
     frictionAir: 0.03,
-    angle: (Math.random() - 0.5) * 0.3 // Add a slight initial skew
+    angle: isPrefill ? (Math.random() - 0.5) * 0.3 : 0
   });
 
-  // Create DOM node
-  const element = document.createElement('div');
-  element.className = `message-bubble ${variant === 'blue-2' ? 'is--blue-2' : 'is--white'}`;
-  
-  const span = document.createElement('span');
-  span.className = 'message-text';
-  span.textContent = text;
-  element.appendChild(span);
-  
+  // Clone template DOM node
+  const template = document.querySelector('.overwhelming-template-wrapper .message-bubble-wrapper');
+  if (!template) return;
+  const element = template.cloneNode(true);
+  element.style.width = `${size.width}px`;
+  element.style.height = `${size.height}px`;
+
+  const front = element.querySelector('.message-bubble-front');
+  const shadow = element.querySelector('.message-bubble-shadow');
+  const span = element.querySelector('.message-text');
+
+  if (front && span) {
+    front.setAttribute('data-wf-variant', variant);
+    front.classList.add(variant === 'blue-2' ? 'is--blue-2' : 'is--white');
+    span.textContent = text;
+  }
+
+  // Position DOM element initially
+  element.style.transform = `translate3d(${spawnX - size.width / 2}px, ${spawnY - size.height / 2}px, 0px)`;
   container.appendChild(element);
 
   // Add to world & tracking array
   World.add(engine.world, body);
   activeBubbles.push({ body, element, width: size.width, height: size.height });
+
+  // Play animations
+  if (!isPrefill && front && shadow) {
+    const origin = isLeft ? 'top right' : 'top left';
+    const startRotation = isLeft ? -35 : 35;
+    const shadowRotation = isLeft ? -50 : 50;
+
+    // Set initial states
+    gsap.set([front, shadow], { transformOrigin: origin });
+    gsap.set(front, { scale: 0, rotation: startRotation });
+    gsap.set(shadow, { scale: 0, rotation: shadowRotation });
+
+    // Animate front card
+    gsap.to(front, {
+      scale: 1,
+      rotation: 0,
+      duration: 0.8,
+      ease: "back.out(1.6)"
+    });
+
+    // Animate shadow card aggressively
+    gsap.to(shadow, {
+      scale: 1,
+      rotation: 0,
+      duration: 0.85,
+      delay: 0.04,
+      ease: "back.out(2.5)" // higher backout factor for more dramatic bounce/overshoot
+    });
+
+    // Timeout to release body from static to dynamic
+    const tId = setTimeout(() => {
+      if (engine && body && engine.world.bodies.includes(body)) {
+        Body.setStatic(body, false);
+      }
+    }, 850);
+    activeTimeouts.push(tId);
+  } else if (front && shadow) {
+    // Prefill: Set scale instantly
+    gsap.set([front, shadow], { scale: 1, rotation: 0 });
+  }
 }
 
 // Build and update boundary bodies on init/resize
@@ -261,6 +316,10 @@ export function killOverwhelmingAnimations() {
     clearInterval(spawnInterval);
     spawnInterval = null;
   }
+
+  // Clear any pending physics activation timeouts
+  activeTimeouts.forEach(clearTimeout);
+  activeTimeouts = [];
 
   // Remove elements from DOM
   activeBubbles.forEach((bubble) => {

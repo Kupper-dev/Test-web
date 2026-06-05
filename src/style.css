@@ -807,29 +807,47 @@ body:has([data-nav-status="active"]) .marquee-css__list {
   z-index: 5;
 }
 
-.message-bubble {
+.message-bubble-wrapper {
   position: absolute;
   left: 0;
   top: 0;
+  will-change: transform;
+  pointer-events: none;
+  user-select: none;
+}
+
+.message-bubble-shadow {
+  position: absolute;
+  inset: 0;
+  border-radius: 100px;
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  transform: translate3d(5px, 5px, 0);
+  z-index: 1;
+}
+
+.message-bubble-front {
+  position: absolute;
+  inset: 0;
   border-radius: 100px;
   padding: 0.85em 1.75em;
   font-size: 14px;
   font-weight: 500;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
-  will-change: transform;
-  transform-origin: center center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   white-space: nowrap;
-  pointer-events: none; /* Let mouse moves pass through to container repeller */
-  user-select: none;
+  z-index: 2;
 }
 
-.message-bubble.is--white {
+.message-bubble-front.is--white {
   background-color: #ffffff;
   color: #201D1D;
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-.message-bubble.is--blue-2 {
+.message-bubble-front.is--blue-2 {
   background-color: #2051ff; /* variant blue 2 fallback */
   color: #ffffff;
   border: 1px solid #1041ef;
