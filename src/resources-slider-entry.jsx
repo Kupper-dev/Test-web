@@ -24,23 +24,23 @@ function App() {
     <div className="sandbox-container">
       <h1 style={{ display: "none" }}>Osmo Sliders Sandbox</h1>
       
-      {/* Horizontal Slider Section */}
+      {/* Horizontal Testimonials Slider Section */}
       <section className="sandbox-section">
-        <h2 className="sandbox-section-title">Latest Updates from Osmo</h2>
-        <div data-gsap-slider-init="updates" data-gsap-slider-rotate="true" className="product-slider">
+        <h2 className="sandbox-section-title">What People Say</h2>
+        <div data-gsap-slider-init="testimonials" data-gsap-slider-rotate="true" className="product-slider">
           <div data-gsap-slider-collection="true" className="gsap-slider__collection">
             <div data-gsap-slider-list="true" className="gsap-slider__list">
-              {[1, 2, 3, 4, 5, 6, 7].map((num) => (
-                <div key={num} data-gsap-slider-item="true" className="gsap-slider__item">
-                  <div className="demo-card">
-                    <span className="demo-card__tag">Resource {num}</span>
-                    <div className="demo-card__image-placeholder">
-                      <span>✨ Premium Asset {num}</span>
-                    </div>
-                    <div className="demo-card__bottom">
-                      <h3 className="transitions__card-title">Creative Component {num}</h3>
-                      <p className="demo-card__description">High-end Webflow & HTML component</p>
-                    </div>
+              {[
+                { name: "John Doe", text: "Osmo supply has completely transformed how we build Webflow projects. Highly recommend!" },
+                { name: "Jane Smith", text: "The premium design aesthetics and smooth animations make our sites look like they cost $50k+." },
+                { name: "Alex Johnson", text: "Unbelievable library of code snippets and templates. Dennis and Ilja are genius creators." },
+                { name: "Emily Davis", text: "The fluid scaling system makes responsive design automatic. A game changer." },
+                { name: "Michael Brown", text: "Cleanest GSAP integrations on the web. Easy to customize and super lightweight." }
+              ].map((t, idx) => (
+                <div key={idx} data-gsap-slider-item="true" className="gsap-slider__item">
+                  <div className="testimonial-card">
+                    <p className="testimonial-text">"{t.text}"</p>
+                    <span className="testimonial-author">- {t.name}</span>
                   </div>
                 </div>
               ))}
@@ -53,7 +53,7 @@ function App() {
             <div className="gsap-slider__counter">
               <span data-gsap-slider-active-slide>01</span>
               <span className="counter-divider">/</span>
-              <span data-gsap-slider-total-slide>07</span>
+              <span data-gsap-slider-total-slide>05</span>
             </div>
             <button data-gsap-slider-control="next" className="gsap-slider__control">
               <span className="slider-arrow-text">Next →</span>
@@ -62,37 +62,53 @@ function App() {
         </div>
       </section>
 
-      {/* Vertical Testimonial Section */}
+      {/* Vertical Updates Section */}
       <section className="sandbox-section">
-        <h2 className="sandbox-section-title">Testimonial Map Globe</h2>
         <div data-vertical-slider="true" className="vertical-slider-container">
+          
           <div className="about-map-section">
             <div className="about-map__outline">
-              <svg viewBox="0 0 100 100" className="globe-svg">
-                <circle cx="50" cy="50" r="45" fill="none" stroke="var(--color-neutral-400)" strokeWidth="1" />
-                <path d="M 5,50 A 45,45 0 0,0 95,50" fill="none" stroke="var(--color-neutral-400)" strokeWidth="0.5" strokeDasharray="3 3" />
-                <path d="M 50,5 A 45,45 0 0,0 50,95" fill="none" stroke="var(--color-neutral-400)" strokeWidth="0.5" strokeDasharray="3 3" />
-                <circle cx="50" cy="5" r="4" fill="var(--color-electric)" />
-              </svg>
+              <div className="vertical-slider__header">
+                <span className="slider-header-tag">Latest updates</span>
+                <span className="slider-header-sub">from Osmo</span>
+              </div>
+              
+              <div className="vertical-slider__content-wrap">
+                <div data-vertical-slider-list="true" className="vertical-slider__list">
+                  {[
+                    { title: "Film Grain Effect", category: "VISUAL EFFECTS", tags: ["4 DAYS AGO", "NEW RESOURCE"], text: "FILM GRAIN" },
+                    { title: "Split Text Reveal", category: "TYPOGRAPHY", tags: ["1 WEEK AGO", "EFFECT"], text: "SPLIT TEXT" },
+                    { title: "Web Dynamic Map", category: "COMPONENTS", tags: ["2 WEEKS AGO", "INTERACTIVE"], text: "GLOBE MAP" },
+                    { title: "Lenis Smooth Scroll", category: "SCROLL", tags: ["3 WEEKS AGO", "LIBRARY"], text: "SMOOTH SCROLL" },
+                    { title: "Vite React Starter", category: "STARTERS", tags: ["4 WEEKS AGO", "TEMPLATE"], text: "REACT COMP" }
+                  ].map((item, idx) => (
+                    <div key={idx} data-vertical-slider-item="true" className="vertical-slider__item">
+                      <div className="demo-card">
+                        <div className="demo-card__top">
+                          {item.tags.map((tag, i) => (
+                            <span key={i} className="demo-card__tag">{tag}</span>
+                          ))}
+                        </div>
+                        <div className="demo-card__middle">
+                          <h3 className="transitions__card-title">{item.title}</h3>
+                          <p className="demo-card__description">{item.category}</p>
+                        </div>
+                        <div className="demo-card__image-placeholder">
+                          <span>{item.text}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="vertical-slider__footer">
+                New stuff is<br />added every week!
+              </div>
             </div>
           </div>
-          <div className="vertical-slider__content-wrap">
-            <div data-vertical-slider-list="true" className="vertical-slider__list">
-              {[
-                { name: "John Doe", text: "Osmo supply has completely transformed how we build Webflow projects. Highly recommend!" },
-                { name: "Jane Smith", text: "The premium design aesthetics and smooth animations make our sites look like they cost $50k+." },
-                { name: "Alex Johnson", text: "Unbelievable library of code snippets and templates. Dennis and Ilja are genius creators." },
-                { name: "Emily Davis", text: "The fluid scaling system makes responsive design automatic. A game changer." },
-                { name: "Michael Brown", text: "Cleanest GSAP integrations on the web. Easy to customize and super lightweight." }
-              ].map((t, idx) => (
-                <div key={idx} data-vertical-slider-item="true" className="vertical-slider__item">
-                  <div className="testimonial-card">
-                    <p className="testimonial-text">"{t.text}"</p>
-                    <span className="testimonial-author">- {t.name}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+          
+          <div className="vertical-slider__controls-wrap">
             <div className="vertical-slider__controls">
               <button data-prev="true" className="gsap-slider__control">↑ Prev</button>
               <div className="vertical-slider__bullets">
@@ -105,6 +121,7 @@ function App() {
               <button data-next="true" className="gsap-slider__control">↓ Next</button>
             </div>
           </div>
+          
         </div>
       </section>
     </div>
