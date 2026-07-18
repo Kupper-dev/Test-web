@@ -1,22 +1,13 @@
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import '../resources-slider/slider-sandbox.css';
-import { initOsmoSlider, initVerticalSlider } from '../resources-slider/slider-animations';
+import { initVerticalSlider } from '../resources-slider/slider-animations';
 
 function App() {
   useEffect(() => {
-    // GSAP and Draggable are already in the project package.json dependencies!
-    // Simply register the plugins and run the initializers:
     import('gsap').then(({ gsap }) => {
-      import('gsap/Draggable').then(({ Draggable }) => {
-        gsap.registerPlugin(Draggable);
-        // Make them globally available for vanilla scripts
-        window.gsap = gsap;
-        window.Draggable = Draggable;
-        
-        initOsmoSlider();
-        initVerticalSlider();
-      });
+      window.gsap = gsap;
+      initVerticalSlider();
     });
   }, []);
 
@@ -24,44 +15,6 @@ function App() {
     <div className="sandbox-container">
       <h1 style={{ display: "none" }}>Osmo Sliders Sandbox</h1>
       
-      {/* Horizontal Testimonials Slider Section */}
-      <section className="sandbox-section">
-        <h2 className="sandbox-section-title">What People Say</h2>
-        <div data-gsap-slider-init="testimonials" data-gsap-slider-rotate="true" className="product-slider">
-          <div data-gsap-slider-collection="true" className="gsap-slider__collection">
-            <div data-gsap-slider-list="true" className="gsap-slider__list">
-              {[
-                { name: "John Doe", text: "Osmo supply has completely transformed how we build Webflow projects. Highly recommend!" },
-                { name: "Jane Smith", text: "The premium design aesthetics and smooth animations make our sites look like they cost $50k+." },
-                { name: "Alex Johnson", text: "Unbelievable library of code snippets and templates. Dennis and Ilja are genius creators." },
-                { name: "Emily Davis", text: "The fluid scaling system makes responsive design automatic. A game changer." },
-                { name: "Michael Brown", text: "Cleanest GSAP integrations on the web. Easy to customize and super lightweight." }
-              ].map((t, idx) => (
-                <div key={idx} data-gsap-slider-item="true" className="gsap-slider__item">
-                  <div className="testimonial-card">
-                    <p className="testimonial-text">"{t.text}"</p>
-                    <span className="testimonial-author">- {t.name}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="gsap-slider__controls">
-            <button data-gsap-slider-control="prev" className="gsap-slider__control">
-              <span className="slider-arrow-text">← Prev</span>
-            </button>
-            <div className="gsap-slider__counter">
-              <span data-gsap-slider-active-slide>01</span>
-              <span className="counter-divider">/</span>
-              <span data-gsap-slider-total-slide>05</span>
-            </div>
-            <button data-gsap-slider-control="next" className="gsap-slider__control">
-              <span className="slider-arrow-text">Next →</span>
-            </button>
-          </div>
-        </div>
-      </section>
-
       {/* Vertical Updates Section */}
       <section className="sandbox-section">
         <div data-vertical-slider="true" className="vertical-slider-container">
