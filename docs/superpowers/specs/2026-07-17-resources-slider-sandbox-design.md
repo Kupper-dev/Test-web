@@ -1,21 +1,14 @@
-# Design Spec: Remove Testimonials and Globe, Fix Card Spinning
+# Design Spec: Add Purple Box Placeholder and Clip Slider Cards
 
-This updated design spec simplifies the resources page to focus exclusively on the updates (resources) vertical slider:
-- Remove the horizontal Testimonials slider completely.
-- Remove the globe SVG and map sections completely.
-- Stop the 3D spinning/rotation of the cards when transitioning (set `rotationX: 0` / remove `rotationX` animation).
-- Position the vertical resources slider cleanly.
+This update aligns the layout with the actual design:
+- Add a purple box placeholder on the left of the circular resources slider inside the `.vertical-slider-container` row layout.
+- Clip the non-active vertical cards by adding `overflow: hidden` to `.about-map__outline` (the circular container) so that cards transitioning in/out are not visible outside the circle boundaries.
 
 ## Proposed Changes
 
 ### 1. React Entrypoint (`src/resources-slider-entry.jsx`)
-- Clean up the component layout. Remove the Testimonials section.
-- Under the Updates section, remove the `about-map-section` containing the SVG globe, and just render the circular wrapper `.about-map__outline` (acting as the circular black container shown in the reference image) with the updates vertical slider inside it.
+- In `.vertical-slider-container`, prepend a placeholder div `<div className="about-us-placeholder" />` on the left of the `.about-map-section`.
 
-### 2. Slider Animations script (`resources-slider/slider-animations.js`)
-- In `initVerticalSlider()`, remove the GSAP animation properties for `rotationX` (`rx` / `rotationX`) and `z` (if needed, keep only vertical `y` transitions and opacity fades) to prevent the cards from spinning.
-- Remove any references or rotations to `mapOutline`.
-
-### 3. Custom Layout Styles (`resources-slider/slider-sandbox.css`)
-- Remove `.testimonial-card` and other testimonial-specific styles.
-- Keep the clean circular wrapper and absolute positioned header/footer, centered card layout, and vertical bullet styling.
+### 2. Custom Layout Styles (`resources-slider/slider-sandbox.css`)
+- Add styling for `.about-us-placeholder`: `width: 36em; height: 44em; background-color: #5a3df4; border-radius: 2em; flex-shrink: 0;`.
+- Add `overflow: hidden` to `.about-map__outline` to clip cards transitioning outside the circle.
