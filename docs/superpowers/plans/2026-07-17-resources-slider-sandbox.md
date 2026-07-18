@@ -1,8 +1,8 @@
-# Osmo Sliders Sandbox Implementation Plan (Updated)
+# Osmo Sliders Sandbox Implementation Plan (Focus on Resources Slider)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Correctly swap the sliders, displaying testimonials in the horizontal slider and updates (resources) in the vertical slider, styled to match the reference image.
+**Goal:** Simplify the sandbox to render only the resources updates vertical slider inside a circular container, removing testimonials, the globe SVG, and card spinning animations.
 
 ---
 
@@ -11,25 +11,19 @@
 **Files:**
 - Modify: `src/resources-slider-entry.jsx`
 
-- [ ] **Step 1: Update src/resources-slider-entry.jsx**
-Replace the component structure to swap the sliders and lay out the updates inside the vertical circular slider.
+- [ ] **Step 1: Clean up src/resources-slider-entry.jsx**
+Remove the testimonials section and the SVG globe, keeping only the circular outline containing the updates vertical slider:
 ```javascript
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import '../resources-slider/slider-sandbox.css';
-import { initOsmoSlider, initVerticalSlider } from '../resources-slider/slider-animations';
+import { initVerticalSlider } from '../resources-slider/slider-animations';
 
 function App() {
   useEffect(() => {
     import('gsap').then(({ gsap }) => {
-      import('gsap/Draggable').then(({ Draggable }) => {
-        gsap.registerPlugin(Draggable);
-        window.gsap = gsap;
-        window.Draggable = Draggable;
-        
-        initOsmoSlider();
-        initVerticalSlider();
-      });
+      window.gsap = gsap;
+      initVerticalSlider();
     });
   }, []);
 
@@ -37,44 +31,6 @@ function App() {
     <div className="sandbox-container">
       <h1 style={{ display: "none" }}>Osmo Sliders Sandbox</h1>
       
-      {/* Horizontal Testimonials Slider Section */}
-      <section className="sandbox-section">
-        <h2 className="sandbox-section-title">What People Say</h2>
-        <div data-gsap-slider-init="testimonials" data-gsap-slider-rotate="true" className="product-slider">
-          <div data-gsap-slider-collection="true" className="gsap-slider__collection">
-            <div data-gsap-slider-list="true" className="gsap-slider__list">
-              {[
-                { name: "John Doe", text: "Osmo supply has completely transformed how we build Webflow projects. Highly recommend!" },
-                { name: "Jane Smith", text: "The premium design aesthetics and smooth animations make our sites look like they cost $50k+." },
-                { name: "Alex Johnson", text: "Unbelievable library of code snippets and templates. Dennis and Ilja are genius creators." },
-                { name: "Emily Davis", text: "The fluid scaling system makes responsive design automatic. A game changer." },
-                { name: "Michael Brown", text: "Cleanest GSAP integrations on the web. Easy to customize and super lightweight." }
-              ].map((t, idx) => (
-                <div key={idx} data-gsap-slider-item="true" className="gsap-slider__item">
-                  <div className="testimonial-card">
-                    <p className="testimonial-text">"{t.text}"</p>
-                    <span className="testimonial-author">- {t.name}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="gsap-slider__controls">
-            <button data-gsap-slider-control="prev" className="gsap-slider__control">
-              <span className="slider-arrow-text">← Prev</span>
-            </button>
-            <div className="gsap-slider__counter">
-              <span data-gsap-slider-active-slide>01</span>
-              <span className="counter-divider">/</span>
-              <span data-gsap-slider-total-slide>05</span>
-            </div>
-            <button data-gsap-slider-control="next" className="gsap-slider__control">
-              <span className="slider-arrow-text">Next →</span>
-            </button>
-          </div>
-        </div>
-      </section>
-
       {/* Vertical Updates Section */}
       <section className="sandbox-section">
         <div data-vertical-slider="true" className="vertical-slider-container">
@@ -150,165 +106,114 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 
 ---
 
-### Task 2: Update Vertical Slider Animation Active State Attribute
+### Task 2: Remove Card Spinning in Script
 
 **Files:**
 - Modify: `resources-slider/slider-animations.js`
 
-- [ ] **Step 1: Set data-vertical-slider-item-status on slides**
-In `resources-slider/slider-animations.js`, update `updateSlider()` and the initial layout loop to set the attribute `data-vertical-slider-item-status` to `"active"` or `"not-active"`.
+- [ ] **Step 1: Edit resources-slider/slider-animations.js**
+Modify `initVerticalSlider()` to animate cards strictly on the Y-axis and opacity (setting `rotationX` to `0` / removing it):
 ```javascript
+export function initVerticalSlider() {
+  if (typeof window === "undefined" || !window.gsap) return;
+
+  const gsap = window.gsap;
+
+  document.querySelectorAll("[data-vertical-slider]").forEach(container => {
+    const list = container.querySelector("[data-vertical-slider-list]");
+    if (!list) return;
+
+    const items = Array.from(container.querySelectorAll("[data-vertical-slider-item]"));
+    if (items.length < 5) return;
+
+    const prevBtn = container.querySelector("[data-prev]");
+    const nextBtn = container.querySelector("[data-next]");
+    const bullets = Array.from(container.querySelectorAll("[data-vertical-slider-bullet]"));
+
+    const isMobile = window.innerWidth < 768;
+    const yVal = isMobile ? 30 : 25;
+    const zVal = isMobile ? 20 : 15;
+
+    const states = {
+      "-2": { y: `${yVal}em`, z: `-${zVal}em`, opacity: 0 },
+      "-1": { y: `${yVal}em`, z: `-${zVal}em`, opacity: 0.7 },
+      "0":  { y: "0em",       z: "0em",       opacity: 1 },
+      "1":  { y: `-${yVal}em`, z: `-${zVal}em`, opacity: 0.7 },
+      "2":  { y: `-${yVal}em`, z: `-${zVal}em`, opacity: 0 }
+    };
+
+    let activeIndex = 0;
+    let isAnimating = false;
+
+    const getRelativeStateIndex = (itemIndex, activeIdx) => {
+      const len = items.length;
+      let diff = ((itemIndex - activeIdx) % len + len) % len;
+      if (diff > Math.floor(len / 2)) {
+        diff -= len;
+      }
+      return Math.max(-2, Math.min(2, diff));
+    };
+
+    const updateSlider = (newIndex) => {
+      if (isAnimating || newIndex === activeIndex) return;
+      isAnimating = true;
+
+      activeIndex = (newIndex + items.length) % items.length;
+
+      bullets.forEach((bullet, idx) => {
+        if (idx === activeIndex) {
+          bullet.setAttribute("data-vertical-slider-bullet", "active");
+        } else {
+          bullet.setAttribute("data-vertical-slider-bullet", "not-active");
+        }
+      });
+
       items.forEach((item, idx) => {
         const stateKey = String(getRelativeStateIndex(idx, activeIndex));
-        const state = states[stateKey] || { y: `-${yVal}em`, z: `-${zVal}em`, rx: rotVal, opacity: 0 };
+        const state = states[stateKey] || { y: `-${yVal}em`, z: `-${zVal}em`, opacity: 0 };
         const isCurrent = idx === activeIndex;
         item.setAttribute("data-vertical-slider-item-status", isCurrent ? "active" : "not-active");
-        ...
-```
 
----
+        gsap.to(item, {
+          y: state.y,
+          z: state.z,
+          opacity: state.opacity,
+          duration: 0.7,
+          ease: "power2.out",
+          onComplete: () => {
+            if (idx === items.length - 1) {
+              isAnimating = false;
+            }
+          }
+        });
+      });
+    };
 
-### Task 3: Update CSS for Circular Layout and Card Styling
+    items.forEach((item, idx) => {
+      const stateKey = String(getRelativeStateIndex(idx, activeIndex));
+      const state = states[stateKey] || { y: `-${yVal}em`, z: `-${zVal}em`, opacity: 0 };
+      const isCurrent = idx === activeIndex;
+      item.setAttribute("data-vertical-slider-item-status", isCurrent ? "active" : "not-active");
+      
+      gsap.set(item, {
+        transformOrigin: "50% 50%",
+        force3D: true,
+        y: state.y,
+        z: state.z,
+        opacity: state.opacity
+      });
+    });
 
-**Files:**
-- Modify: `resources-slider/slider-sandbox.css`
+    if (prevBtn) {
+      prevBtn.addEventListener("click", () => updateSlider(activeIndex - 1));
+    }
+    if (nextBtn) {
+      nextBtn.addEventListener("click", () => updateSlider(activeIndex + 1));
+    }
 
-- [ ] **Step 1: Add new styles and overrides**
-Append/update the CSS file with:
-```css
-/* Color Overrides for Lime Green theme */
-:root {
-  --color-electric: #a1ff62; /* Brand green */
-}
-
-/* Adjust circle size and background */
-.about-map__outline {
-  width: 44em !important;
-  height: 44em !important;
-  background-color: var(--color-neutral-900);
-  border: 1px solid var(--color-neutral-600);
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 3em 0;
-  box-sizing: border-box;
-}
-
-/* Header within circle */
-.vertical-slider__header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.2em;
-}
-.slider-header-tag {
-  color: var(--color-electric);
-  font-size: 1.1em;
-  font-weight: bold;
-}
-.slider-header-sub {
-  color: var(--color-neutral-100);
-  font-size: 1.6em;
-}
-
-/* Footer within circle */
-.vertical-slider__footer {
-  color: var(--color-electric);
-  text-align: center;
-  font-family: 'Georgia', serif;
-  font-style: italic;
-  font-size: 1.2em;
-  line-height: 1.3;
-}
-
-/* Center card wrap inside circle */
-.vertical-slider__content-wrap {
-  width: 28em;
-  height: 16em;
-  flex: none;
-}
-.vertical-slider__list {
-  height: 100%;
-}
-
-/* Make demo card in vertical slider render horizontally */
-.about-map__outline .demo-card {
-  flex-direction: row;
-  align-items: center;
-  width: 100%;
-  height: 100%;
-  padding: 1.5em;
-  border-radius: 1.5em;
-  background-color: var(--color-neutral-800);
-  border: 1px solid var(--color-neutral-600);
-  gap: 1em;
-}
-
-.demo-card__top {
-  display: flex;
-  gap: 0.5em;
-}
-
-.demo-card__middle {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 0.5em;
-  text-align: left;
-}
-
-.about-map__outline .demo-card__image-placeholder {
-  width: 10em;
-  height: 100%;
-  flex-grow: 0;
-  margin: 0;
-  background-color: rgba(255, 255, 255, 0.05);
-  color: #ff9d00;
-  font-weight: bold;
-  font-size: 1em;
-}
-
-/* Active vertical slide styles */
-[data-vertical-slider-item-status="active"] .demo-card {
-  background-color: var(--color-electric) !important;
-  border-color: var(--color-electric) !important;
-  color: var(--color-neutral-900) !important;
-}
-
-[data-vertical-slider-item-status="active"] .demo-card .transitions__card-title,
-[data-vertical-slider-item-status="active"] .demo-card .demo-card__description {
-  color: var(--color-neutral-900) !important;
-}
-
-[data-vertical-slider-item-status="active"] .demo-card .demo-card__tag {
-  background-color: var(--color-neutral-900) !important;
-  color: var(--color-electric) !important;
-}
-
-/* Adjust layout of controls to be on the right side of the circle */
-.vertical-slider-container {
-  position: relative;
-}
-.vertical-slider__controls-wrap {
-  position: absolute;
-  right: 2em;
-  top: 50%;
-  transform: translateY(-50%);
-}
-.vertical-slider__controls {
-  flex-direction: column;
-  align-items: center;
-  margin: 0;
-}
-.vertical-slider__bullets {
-  flex-direction: column;
-}
-.vertical-slider__bullet-item-line {
-  width: 2px;
-  height: 2em;
-  transform: scale(1, 0.6);
-}
-[data-vertical-slider-bullet="active"] .vertical-slider__bullet-item-line {
-  transform: scale(1, 1);
+    bullets.forEach((bullet, idx) => {
+      bullet.addEventListener("click", () => updateSlider(idx));
+    });
+  });
 }
 ```
