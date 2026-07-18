@@ -19,6 +19,9 @@ function App() {
       <section className="sandbox-section">
         <div data-vertical-slider="true" className="vertical-slider-container">
           
+          {/* Purple Card Placeholder on the Left */}
+          <div className="about-us-placeholder" />
+          
           <div className="about-map-section">
             <div className="about-map__outline">
               <div className="vertical-slider__header">
