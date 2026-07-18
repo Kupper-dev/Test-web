@@ -365,6 +365,8 @@ body {
   height: 44em !important;
   background-color: var(--color-neutral-900);
   border: 1px solid var(--color-neutral-600);
+  border-radius: 50%;
+  overflow: hidden; /* Clips non-active vertical cards */
   flex-direction: column;
   justify-content: space-between;
   padding: 3em 0;
@@ -486,6 +488,16 @@ body {
   height: 2em;
   transform: scale(1, 0.6);
 }
+
 [data-vertical-slider-bullet="active"] .vertical-slider__bullet-item-line {
   transform: scale(1, 1);
+}
+
+/* Purple about-us card placeholder */
+.about-us-placeholder {
+  width: 36em;
+  height: 44em;
+  background-color: #5d3fd3; /* Brand purple */
+  border-radius: 2.5em;
+  flex-shrink: 0;
 }
