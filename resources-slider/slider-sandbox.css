@@ -1,0 +1,491 @@
+/* CSS Variables & Scaling [Resources Slider Sandbox] */
+
+:root {
+  /* Fluid Clamp Sizing from Osmo */
+  --size-unit: 16;
+  --size-container-ideal: 1440;
+  --size-container-min: 992px;
+  --size-container-max: 1920px;
+  --size-container: clamp(var(--size-container-min), 100vw, var(--size-container-max));
+  --size-font: calc(var(--size-container) / (var(--size-container-ideal) / var(--size-unit)));
+
+  /* Colors */
+  --color-neutral-100: #ffffff;
+  --color-neutral-200: #F4F4F4;
+  --color-neutral-300: #EAEAEA;
+  --color-neutral-400: #E1E1E1;
+  --color-neutral-500: #817F7F;
+  --color-neutral-600: #312E2E;
+  --color-neutral-800: #201D1D;
+  --color-neutral-900: #151313;
+  
+  --color-electric: #118bee;
+  --color-purple: #7f00ff;
+  --color-dark: var(--color-neutral-800);
+  --color-light: var(--color-neutral-200);
+
+  /* Animations */
+  --cubic-default: cubic-bezier(0.625, 0.05, 0, 1);
+  --duration-default: 0.6s;
+  --animation-default: var(--duration-default) var(--cubic-default);
+  --gap-sm: 1.5em;
+  --gap-xxl: 5em;
+}
+
+body {
+  font-size: var(--size-font);
+  font-family: Arial, sans-serif;
+  background-color: var(--color-neutral-200);
+  color: var(--color-neutral-800);
+  margin: 0;
+  padding: 0;
+}
+
+.sandbox-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: var(--gap-xxl);
+  padding: 4em var(--gap-sm);
+  box-sizing: border-box;
+}
+
+.sandbox-section {
+  width: 100%;
+  max-width: var(--size-container);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.sandbox-section-title {
+  font-size: 2.2em;
+  margin-bottom: 1.5em;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* ------------------------- GSAP Horizontal Slider ------------------------- */
+
+.product-slider {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  --slider-gap: 2em;
+  padding-bottom: 2em;
+}
+
+.gsap-slider__collection {
+  position: relative;
+  width: 100%;
+  cursor: grab;
+}
+
+.gsap-slider__collection:active {
+  cursor: grabbing;
+}
+
+.gsap-slider__list {
+  display: flex;
+  position: relative;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.gsap-slider__item {
+  flex-shrink: 0;
+  width: 22em;
+  margin-right: var(--slider-gap);
+  box-sizing: border-box;
+}
+
+/* Rotate Effect origin */
+[data-gsap-slider-rotate] .gsap-slider__item {
+  transform-origin: 50% 300%;
+}
+
+/* Demo Card styles */
+.demo-card {
+  background-color: var(--color-neutral-800);
+  color: var(--color-neutral-200);
+  border-radius: 1.5em;
+  padding: 1.5em;
+  height: 28em;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+  transition: background-color 0.4s ease, transform 0.4s ease;
+  border: 1px solid var(--color-neutral-600);
+}
+
+[data-gsap-slider-item-status="active"] .demo-card {
+  background-color: var(--color-neutral-900);
+  border-color: var(--color-electric);
+  box-shadow: 0 10px 30px rgba(17, 139, 238, 0.15);
+}
+
+.demo-card__tag {
+  background-color: var(--color-electric);
+  color: var(--color-neutral-900);
+  align-self: flex-start;
+  padding: 0.3em 0.8em;
+  border-radius: 1em;
+  font-size: 0.8em;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.demo-card__image-placeholder {
+  flex-grow: 1;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 1em;
+  margin: 1.5em 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1em;
+}
+
+.demo-card__bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+
+.transitions__card-title {
+  font-size: 1.4em;
+  margin: 0;
+  font-weight: bold;
+  color: var(--color-neutral-100);
+}
+
+.demo-card__description {
+  margin: 0;
+  font-size: 0.9em;
+  color: var(--color-neutral-500);
+}
+
+/* Controls */
+.gsap-slider__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2em;
+  margin-top: 3em;
+}
+
+.gsap-slider__control {
+  background-color: var(--color-neutral-800);
+  color: var(--color-neutral-100);
+  border: none;
+  padding: 0.8em 1.5em;
+  border-radius: 2em;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+.gsap-slider__control:hover {
+  background-color: var(--color-electric);
+  color: var(--color-neutral-900);
+}
+
+[data-gsap-slider-control-status="not-active"] {
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+.gsap-slider__counter {
+  font-size: 1.2em;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.counter-divider {
+  color: var(--color-neutral-500);
+}
+
+/* ------------------------- Vertical Testimonial Slider ------------------------- */
+
+.vertical-slider-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 4em;
+  background-color: var(--color-neutral-900);
+  padding: 4em;
+  border-radius: 2em;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.about-map-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.about-map__outline {
+  width: 20em;
+  height: 20em;
+  border-radius: 50%;
+  border: 1px solid var(--color-neutral-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.globe-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.vertical-slider__content-wrap {
+  flex: 1.5;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  position: relative;
+  height: 30em;
+  perspective: 1200px;
+}
+
+.vertical-slider__list {
+  position: relative;
+  width: 100%;
+  height: 20em;
+  transform-style: preserve-3d;
+}
+
+.vertical-slider__item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backface-visibility: hidden;
+}
+
+.testimonial-card {
+  background-color: var(--color-neutral-800);
+  border: 1px solid var(--color-neutral-700);
+  padding: 2.5em;
+  border-radius: 1.5em;
+  color: var(--color-neutral-200);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5em;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.testimonial-text {
+  font-size: 1.5em;
+  line-height: 1.4;
+  margin: 0;
+  font-style: italic;
+}
+
+.testimonial-author {
+  font-size: 1.1em;
+  color: var(--color-electric);
+  font-weight: bold;
+}
+
+.vertical-slider__controls {
+  display: flex;
+  align-items: center;
+  gap: 2em;
+  margin-top: 2em;
+  width: 100%;
+}
+
+.vertical-slider__bullets {
+  display: flex;
+  gap: 0.8em;
+  align-items: center;
+}
+
+.vertical-slider__bullet {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.5em 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vertical-slider__bullet-item-line {
+  display: block;
+  width: 2em;
+  height: 2px;
+  background-color: var(--color-neutral-600);
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  transform: scale(0.6, 1);
+}
+
+[data-vertical-slider-bullet="active"] .vertical-slider__bullet-item-line {
+  background-color: var(--color-electric);
+  transform: scale(1, 1);
+}
+
+/* Responsive */
+@media screen and (max-width: 991px) {
+  .vertical-slider-container {
+    flex-direction: column;
+    padding: 2em;
+    gap: 2em;
+  }
+}
+
+/* Color Overrides for Lime Green theme */
+:root {
+  --color-electric: #a1ff62; /* Brand green */
+}
+
+/* Adjust circle size and background */
+.about-map__outline {
+  width: 44em !important;
+  height: 44em !important;
+  background-color: var(--color-neutral-900);
+  border: 1px solid var(--color-neutral-600);
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 3em 0;
+  box-sizing: border-box;
+}
+
+/* Header within circle */
+.vertical-slider__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2em;
+}
+.slider-header-tag {
+  color: var(--color-electric);
+  font-size: 1.1em;
+  font-weight: bold;
+}
+.slider-header-sub {
+  color: var(--color-neutral-100);
+  font-size: 1.6em;
+}
+
+/* Footer within circle */
+.vertical-slider__footer {
+  color: var(--color-electric);
+  text-align: center;
+  font-family: 'Georgia', serif;
+  font-style: italic;
+  font-size: 1.2em;
+  line-height: 1.3;
+}
+
+/* Center card wrap inside circle */
+.vertical-slider__content-wrap {
+  width: 28em;
+  height: 16em;
+  flex: none;
+}
+.vertical-slider__list {
+  height: 100%;
+}
+
+/* Make demo card in vertical slider render horizontally */
+.about-map__outline .demo-card {
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 1.5em;
+  border-radius: 1.5em;
+  background-color: var(--color-neutral-800);
+  border: 1px solid var(--color-neutral-600);
+  gap: 1em;
+}
+
+.demo-card__top {
+  display: flex;
+  gap: 0.5em;
+}
+
+.demo-card__middle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5em;
+  text-align: left;
+}
+
+.about-map__outline .demo-card__image-placeholder {
+  width: 10em;
+  height: 100%;
+  flex-grow: 0;
+  margin: 0;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #ff9d00;
+  font-weight: bold;
+  font-size: 1em;
+}
+
+/* Active vertical slide styles */
+[data-vertical-slider-item-status="active"] .demo-card {
+  background-color: var(--color-electric) !important;
+  border-color: var(--color-electric) !important;
+  color: var(--color-neutral-900) !important;
+}
+
+[data-vertical-slider-item-status="active"] .demo-card .transitions__card-title,
+[data-vertical-slider-item-status="active"] .demo-card .demo-card__description {
+  color: var(--color-neutral-900) !important;
+}
+
+[data-vertical-slider-item-status="active"] .demo-card .demo-card__tag {
+  background-color: var(--color-neutral-900) !important;
+  color: var(--color-electric) !important;
+}
+
+/* Adjust layout of controls to be on the right side of the circle */
+.vertical-slider-container {
+  position: relative;
+}
+.vertical-slider__controls-wrap {
+  position: absolute;
+  right: 2em;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.vertical-slider__controls {
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+}
+.vertical-slider__bullets {
+  flex-direction: column;
+}
+.vertical-slider__bullet-item-line {
+  width: 2px;
+  height: 2em;
+  transform: scale(1, 0.6);
+}
+[data-vertical-slider-bullet="active"] .vertical-slider__bullet-item-line {
+  transform: scale(1, 1);
+}
