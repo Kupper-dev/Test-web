@@ -1,0 +1,154 @@
+<!-- Webflow Custom Code: ticket card vertical (Configurable Test Sandbox) -->
+<script src="https://unpkg.com/@studio-freight/lenis@1.0.34/dist/lenis.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+<style>
+:root {
+  /* Configurable CSS Variables to fine-tune line aesthetics & colors */
+  --it-track-color: rgba(37, 99, 235, 0.22);
+  --it-track-width-1: 24px;
+  --it-track-width-2: 32px;
+  --it-track-width-3: 26px;
+
+  --it-core-width-1: 8px;
+  --it-core-width-2: 10px;
+  --it-core-width-3: 8px;
+
+  --it-gradient-start: #2563EB;
+  --it-gradient-mid: #00F0FF;
+  --it-gradient-end: #2563EB;
+
+  --it-speed-multiplier: 3200;
+}
+
+/* SVG Layout and Alignment */
+.w-embed.it-network-paths,
+.it-network-paths {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  min-width: 740px;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: visible;
+  background: transparent !important;
+  fill: none !important;
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+}
+
+.it-network-paths svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Semi-transparent outer track casings */
+.it-network-paths use.track-line {
+  fill: none !important;
+  stroke: var(--it-track-color) !important;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.it-network-paths use.track-path-1 {
+  stroke-width: var(--it-track-width-1);
+}
+.it-network-paths use.track-path-2 {
+  stroke-width: var(--it-track-width-2);
+}
+.it-network-paths use.track-path-3 {
+  stroke-width: var(--it-track-width-3);
+}
+
+/* Moving inner core lines */
+.it-network-paths use.core-line {
+  fill: none !important;
+  stroke: url(#itSignalGradient) !important;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  will-change: stroke-dashoffset;
+}
+
+.it-network-paths use.core-path-1 {
+  stroke-width: var(--it-core-width-1);
+  stroke-dasharray: 20 60 140 60 20 60 300 60 20 60 160 60 20 99999;
+}
+.it-network-paths use.core-path-2 {
+  stroke-width: var(--it-core-width-2);
+  stroke-dasharray: 30 70 140 70 30 70 300 70 30 70 160 70 30 99999;
+}
+.it-network-paths use.core-path-3 {
+  stroke-width: var(--it-core-width-3);
+  stroke-dasharray: 24 50 140 50 24 50 260 50 24 50 160 50 24 99999;
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  // 1. SVG Signal Path Scroll Animation (Dash-Offset Movement)
+  (function(){
+    var container = document.querySelector(".it-flow-cards");
+    var svgPaths = document.querySelector(".it-network-paths");
+    if (!container || !svgPaths) return;
+    var ticking = false;
+
+    function updatePathOffset() {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(function() {
+          var rect = container.getBoundingClientRect();
+          var vh = window.innerHeight;
+          var progress = (vh - rect.top) / (vh + rect.height);
+          progress = Math.max(0, Math.min(1, progress));
+          
+          var speedMult = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--it-speed-multiplier')) || 3200;
+          var dashOffset = -(speedMult * progress);
+          
+          var coreLines = svgPaths.querySelectorAll("use.core-line");
+          coreLines.forEach(function(u) {
+            u.style.strokeDashoffset = dashOffset + "px";
+          });
+          ticking = false;
+        });
+      }
+    }
+
+    window.addEventListener("scroll", updatePathOffset, { passive: true });
+    updatePathOffset();
+  })();
+
+  // 2. Ticket Track Feed Scroll Animation (Original Card Feed Motion)
+  (function(){
+    var stacks = document.querySelectorAll("[data-it-feed]");
+    if (!stacks.length) return;
+    var ticking = false;
+
+    function updateFeed() {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(function() {
+          var vh = window.innerHeight;
+          stacks.forEach(function(stack) {
+            var track = stack.querySelector(".it-ticket-track");
+            if (!track) return;
+            var rect = stack.getBoundingClientRect();
+            var progress = (vh - rect.top) / (vh + rect.height);
+            progress = Math.max(0, Math.min(1, progress));
+            var translateY = track.scrollHeight * 0.35 * progress;
+            track.style.transform = "translateY(" + (-translateY) + "px)";
+          });
+          ticking = false;
+        });
+      }
+    }
+
+    window.addEventListener("scroll", updateFeed, { passive: true });
+    updateFeed();
+  })();
+});
+</script>
