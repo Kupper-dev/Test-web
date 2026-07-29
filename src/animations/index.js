@@ -7,8 +7,10 @@ import { initLusionAnimations, killLusionAnimations } from './lusionAnimations';
 import { initNavAnimations, killNavAnimations } from './navAnimations';
 import { initHeroAnimations, killHeroAnimations } from './heroAnimations';
 import { initOverwhelmingAnimations, killOverwhelmingAnimations } from './overwhelmingAnimations';
+import { initDataFlowAnimations, killDataFlowAnimations } from './dataFlowAnimations';
+import { initItGlassFlowAnimations, killItGlassFlowAnimations } from './itGlassFlowAnimations';
 
-export { resetToDefaultBranch };
+export { resetToDefaultBranch, initDataFlowAnimations, killDataFlowAnimations, initItGlassFlowAnimations, killItGlassFlowAnimations };
 
 // Central registry to start all animations
 export function initAnimations(isNavTriggered = false) {
@@ -19,6 +21,8 @@ export function initAnimations(isNavTriggered = false) {
   initLusionAnimations();
   initNavAnimations(false, isNavTriggered);
   initHeroAnimations();
+  initDataFlowAnimations();
+  initItGlassFlowAnimations();
   
   if (document.querySelector('.overwhelming-track')) {
     initOverwhelmingAnimations();
@@ -38,4 +42,6 @@ export function killAnimations() {
   killNavAnimations();
   killHeroAnimations();
   killOverwhelmingAnimations();
+  killDataFlowAnimations();
+  killItGlassFlowAnimations();
 }
