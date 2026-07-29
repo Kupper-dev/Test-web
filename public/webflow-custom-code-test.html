@@ -4,15 +4,22 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
 
 <style>
+/* -------------------------------------------------------------
+   CONFIGURABLE TEST VARIABLES
+   Change these values to test widths, colors, and speed in Webflow!
+   ------------------------------------------------------------- */
 :root {
-  /* Configurable CSS Variables for Webflow testing */
-  --it-line-width-1: 24px;
+  --it-line-width-1: 20px;
   --it-line-width-2: 34px;
-  --it-line-width-3: 26px;
+  --it-line-width-3: 25px;
 
-  --it-gradient-start: #2563EB;
-  --it-gradient-mid: #00F0FF;
-  --it-gradient-end: #2563EB;
+  --it-line-opacity-1: 0.85;
+  --it-line-opacity-2: 0.75;
+  --it-line-opacity-3: 0.90;
+
+  --it-color-start: #2563EB;
+  --it-color-mid: #00F0FF;
+  --it-color-end: #2563EB;
 
   --it-speed-multiplier: 3200;
 }
@@ -35,7 +42,6 @@
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);
 }
 
-/* Target Webflow SVG <use> elements directly */
 .it-network-paths use {
   fill: none !important;
   stroke: url(#itSignalGradient) !important;
@@ -43,62 +49,65 @@
   will-change: stroke-dashoffset;
 }
 
+/* Target exact Webflow SVG <use> elements directly */
 .it-network-paths use[href*="itSignalPath1"],
 .it-network-paths use[*|href*="itSignalPath1"] {
   stroke-width: var(--it-line-width-1) !important;
-  stroke-dasharray: 20 50 120 50 20 50 300 50 20 50 150 50 20 99999;
+  stroke-dasharray: 20 50 120 50 20 50 300 50 20 50 150 50 20 99999 !important;
+  opacity: var(--it-line-opacity-1) !important;
 }
+
 .it-network-paths use[href*="itSignalPath2"],
 .it-network-paths use[*|href*="itSignalPath2"] {
   stroke-width: var(--it-line-width-2) !important;
-  stroke-dasharray: 34 60 120 60 34 60 300 60 34 60 150 60 34 99999;
+  stroke-dasharray: 34 60 120 60 34 60 300 60 34 60 150 60 34 99999 !important;
+  opacity: var(--it-line-opacity-2) !important;
 }
+
 .it-network-paths use[href*="itSignalPath3"],
 .it-network-paths use[*|href*="itSignalPath3"] {
   stroke-width: var(--it-line-width-3) !important;
-  stroke-dasharray: 25 40 120 40 25 40 250 40 25 40 150 40 25 99999;
+  stroke-dasharray: 25 40 120 40 25 40 250 40 25 40 150 40 25 99999 !important;
+  opacity: var(--it-line-opacity-3) !important;
 }
 </style>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-  // Dynamic gradient injection to sync CSS variables with SVG linearGradient
-  (function(){
-    var svg = document.querySelector(".it-network-paths svg, svg.it-network-paths");
-    if (!svg) return;
-    
-    var defs = svg.querySelector("defs");
-    if (!defs) {
-      defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-      svg.insertBefore(defs, svg.firstChild);
-    }
-    
-    var grad = defs.querySelector("#itSignalGradient");
+  // Update/Inject dynamic linearGradient with CSS Variables
+  (function updateGradient() {
+    var grad = document.getElementById("itSignalGradient");
     if (!grad) {
-      grad = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
-      grad.setAttribute("id", "itSignalGradient");
-      grad.setAttribute("gradientUnits", "objectBoundingBox");
-      grad.setAttribute("x1", "0");
-      grad.setAttribute("y1", "0");
-      grad.setAttribute("x2", "0.2");
-      grad.setAttribute("y2", "1");
-      defs.appendChild(grad);
+      var svg = document.querySelector(".it-network-paths svg, svg.it-network-paths");
+      if (svg) {
+        var defs = svg.querySelector("defs") || svg.insertBefore(document.createElementNS("http://www.w3.org/2000/svg", "defs"), svg.firstChild);
+        grad = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+        grad.setAttribute("id", "itSignalGradient");
+        grad.setAttribute("gradientUnits", "objectBoundingBox");
+        grad.setAttribute("x1", "0");
+        grad.setAttribute("y1", "0");
+        grad.setAttribute("x2", "0.2");
+        grad.setAttribute("y2", "1");
+        defs.appendChild(grad);
+      }
     }
-    
-    var cs = getComputedStyle(document.documentElement);
-    var cStart = cs.getPropertyValue('--it-gradient-start').trim() || '#2563EB';
-    var cMid = cs.getPropertyValue('--it-gradient-mid').trim() || '#00F0FF';
-    var cEnd = cs.getPropertyValue('--it-gradient-end').trim() || '#2563EB';
-    
-    grad.innerHTML = 
-      '<stop offset="0%" stop-color="' + cStart + '" stop-opacity="0.2"></stop>' +
-      '<stop offset="25%" stop-color="' + cStart + '" stop-opacity="0.85"></stop>' +
-      '<stop offset="50%" stop-color="' + cMid + '" stop-opacity="1"></stop>' +
-      '<stop offset="75%" stop-color="' + cEnd + '" stop-opacity="0.85"></stop>' +
-      '<stop offset="100%" stop-color="' + cEnd + '" stop-opacity="0.2"></stop>';
+
+    if (grad) {
+      var cs = getComputedStyle(document.documentElement);
+      var cStart = cs.getPropertyValue('--it-color-start').trim() || '#2563EB';
+      var cMid   = cs.getPropertyValue('--it-color-mid').trim()   || '#00F0FF';
+      var cEnd   = cs.getPropertyValue('--it-color-end').trim()   || '#2563EB';
+
+      grad.innerHTML = 
+        '<stop offset="0%" stop-color="' + cStart + '" stop-opacity="0.2"></stop>' +
+        '<stop offset="25%" stop-color="' + cStart + '" stop-opacity="0.85"></stop>' +
+        '<stop offset="50%" stop-color="' + cMid + '" stop-opacity="1"></stop>' +
+        '<stop offset="75%" stop-color="' + cEnd + '" stop-opacity="0.85"></stop>' +
+        '<stop offset="100%" stop-color="' + cEnd + '" stop-opacity="0.2"></stop>';
+    }
   })();
 
-  // 1. SVG Signal Path Scroll Animation (Dash-Offset Movement)
+  // 1. SVG Signal Path Scroll Animation
   (function(){
     var container = document.querySelector(".it-flow-cards");
     var svgPaths = document.querySelector(".it-network-paths");
@@ -130,7 +139,7 @@ document.addEventListener("DOMContentLoaded", function() {
     updatePathOffset();
   })();
 
-  // 2. Ticket Track Feed Scroll Animation (Card Motion)
+  // 2. Ticket Track Feed Scroll Animation
   (function(){
     var stacks = document.querySelectorAll("[data-it-feed]");
     if (!stacks.length) return;
