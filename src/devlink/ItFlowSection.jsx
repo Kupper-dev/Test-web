@@ -3,7 +3,7 @@ import '../styles/suite-section.css';
 
 export function ItFlowSection() {
   useEffect(() => {
-    // 1. SVG Signal Path Scroll Animation
+    // 1. Exact SVG Core Line Dash-Offset Scroll Handler
     const handlePathScroll = () => {
       const container = document.querySelector(".it-flow-cards");
       const svgPaths = document.querySelector(".it-network-paths");
@@ -15,14 +15,13 @@ export function ItFlowSection() {
       progress = Math.max(0, Math.min(1, progress));
 
       const dashOffset = -(3200 * progress);
-      svgPaths.style.setProperty("--it-dash-offset", `${dashOffset}px`);
-      const uses = svgPaths.querySelectorAll("use");
-      uses.forEach((u) => {
+      const coreLines = svgPaths.querySelectorAll("use.core-line");
+      coreLines.forEach((u) => {
         u.style.strokeDashoffset = `${dashOffset}px`;
       });
     };
 
-    // 2. Ticket Track Feed Scroll Animation
+    // 2. Ticket Feed Scroll Handler
     const handleFeedScroll = () => {
       const stacks = document.querySelectorAll("[data-it-feed]");
       if (!stacks.length) return;
@@ -65,8 +64,26 @@ export function ItFlowSection() {
       <h2>¿Qué áreas conecta IT Support Flow?</h2>
       <div className="it-flow-cards">
 
-        {/* 1. Ventas / Mesa de Ayuda IT */}
+        {/* Exact Original SVG Signal paths with Outer Track + Solid Core Line */}
+        <svg className="it-network-paths w-embed" viewBox="0 0 740 2000" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <defs>
+            <path id="itSignalPath1" d="m 106,45h 375c 114,0 226,128 226,235v 236c 0,136 -122,222 -224,221l -182,-2c -89,1 -141,42 -142,158l -2,204c -1,117 37,173 134,173h 186c 110,-3 230,111 230,220v 242c 0,113 -125,225 -248,225H 105" />
+            <path id="itSignalPath2" d="m 33,85h 444c 96,0 190,107 190,201v 224c 0,116 -98,188 -190,187l -192,-2c -92,0 -166,75 -166,168v 278c 0,94 74,169 166,169h 194c 92,0 188,94 188,188v 228c 0,94 -104,191 -214,191H 105" />
+            <path id="itSignalPath3" d="m 155,127h 308c 94,0 162,86 162,177v 178c 0,109 -50,174 -166,173L 277,653C 158,653 77,762 77,849v 302c 0,118 107,196 180,197l 204,4c 92,0 164,67 164,160v 200c 0,91 -89,163 -188,163H 105" />
+          </defs>
 
+          {/* Outer semi-transparent track casings (matching reference image) */}
+          <use href="#itSignalPath1" className="track-line track-path-1" />
+          <use href="#itSignalPath2" className="track-line track-path-2" />
+          <use href="#itSignalPath3" className="track-line track-path-3" />
+
+          {/* Solid inner core lines with traveling signal bursts */}
+          <use href="#itSignalPath1" className="core-line core-path-1" />
+          <use href="#itSignalPath2" className="core-line core-path-2" />
+          <use href="#itSignalPath3" className="core-line core-path-3" />
+        </svg>
+
+        {/* 1. Ventas / Mesa de Ayuda IT */}
         <div className="it-card-wrapper">
           <div className="it-card">
             <h3 className="it-card__title">Gestión de Helpdesk IT</h3>
@@ -262,4 +279,3 @@ export function ItFlowSection() {
     </section>
   );
 }
-

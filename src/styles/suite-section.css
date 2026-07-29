@@ -1,4 +1,4 @@
-/* IT Support — Flow Section Styles (from suite-section.html & webflow-custom-code.html) */
+/* IT Support — Flow Section Styles (Clean Flat Track + Core Line + Pulsing Signal Dot) */
 :root {
   --c-azul: #2563EB;
 }
@@ -48,7 +48,6 @@
   gap: 32px;
 }
 
-/* Prevent Webflow HtmlEmbed wrapper div from rendering a solid black mask shape */
 .w-embed.it-network-paths,
 .it-network-paths {
   position: absolute;
@@ -62,45 +61,57 @@
   z-index: 1;
   overflow: visible;
   background: transparent !important;
-  background-color: transparent !important;
   fill: none !important;
-  mask-image: none !important;
-  -webkit-mask-image: none !important;
 }
 
-.it-network-paths {
+.it-network-paths svg {
   width: 100%;
   height: 100%;
   overflow: visible;
-  mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);
 }
 
-
-.it-network-paths use {
+/* Semi-transparent wide track (outer casing like in image) */
+.it-network-paths use.track-line {
   fill: none !important;
-  stroke: url(#itSignalGradient);
   stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.it-network-paths use.track-path-1 {
+  stroke: rgba(37, 99, 235, 0.22) !important;
+  stroke-width: 24px;
+}
+.it-network-paths use.track-path-2 {
+  stroke: rgba(0, 240, 255, 0.18) !important;
+  stroke-width: 32px;
+}
+.it-network-paths use.track-path-3 {
+  stroke: rgba(243, 42, 115, 0.20) !important;
+  stroke-width: 26px;
+}
+
+/* Solid core inner line */
+.it-network-paths use.core-line {
+  fill: none !important;
+  stroke-linecap: round;
+  stroke-linejoin: round;
   will-change: stroke-dashoffset;
 }
 
-.it-network-paths use[href*="itSignalPath1"],
-.it-network-paths use[*|href*="itSignalPath1"] {
-  stroke-width: 20px;
-  stroke-dasharray: 20 50 120 50 20 50 300 50 20 50 150 50 20 99999;
-  opacity: .35;
+.it-network-paths use.core-path-1 {
+  stroke: #2563EB !important;
+  stroke-width: 8px;
+  stroke-dasharray: 20 60 140 60 20 60 300 60 20 60 160 60 20 99999;
 }
-.it-network-paths use[href*="itSignalPath2"],
-.it-network-paths use[*|href*="itSignalPath2"] {
-  stroke-width: 34px;
-  stroke-dasharray: 34 60 120 60 34 60 300 60 34 60 150 60 34 99999;
-  opacity: .25;
+.it-network-paths use.core-path-2 {
+  stroke: #00F0FF !important;
+  stroke-width: 10px;
+  stroke-dasharray: 30 70 140 70 30 70 300 70 30 70 160 70 30 99999;
 }
-.it-network-paths use[href*="itSignalPath3"],
-.it-network-paths use[*|href*="itSignalPath3"] {
-  stroke-width: 25px;
-  stroke-dasharray: 25 40 120 40 25 40 250 40 25 40 150 40 25 99999;
-  opacity: .4;
+.it-network-paths use.core-path-3 {
+  stroke: #F32A73 !important;
+  stroke-width: 8px;
+  stroke-dasharray: 24 50 140 50 24 50 260 50 24 50 160 50 24 99999;
 }
 
 .it-card-wrapper {
