@@ -5,6 +5,7 @@ import { Global } from './devlink/Global';
 import { Main } from './devlink/Main';
 import { HeroSection } from './devlink/HeroSection';
 import { HomeReel } from './devlink/HomeReel';
+import { ItFlowSection } from './devlink/ItFlowSection';
 
 // Import DevLink and our custom sandbox styles
 import './devlink/css/global.css';
@@ -66,12 +67,14 @@ function App() {
                 target: "_self"
               }}
             />
+            <ItFlowSection />
           </>
         }
       />
     </DevLinkProvider>
   );
 }
+
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

@@ -1,0 +1,208 @@
+/* IT Support — Flow Section Styles (from suite-section.html & webflow-custom-code.html) */
+:root {
+  --c-azul: #2563EB;
+}
+
+.it-flow-section {
+  position: relative;
+  width: 100%;
+  padding: 80px 24px;
+  background-color: #f2f3f8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+}
+
+.ticket-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #1f1c1b;
+  background: rgba(31, 28, 27, 0.05);
+  padding: 6px 14px;
+  border-radius: 100px;
+  margin-bottom: 16px;
+}
+
+.it-flow-section h2 {
+  font-size: clamp(32px, 4vw, 56px);
+  font-weight: 700;
+  color: #1f1c1b;
+  margin: 0 0 48px 0;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+
+.it-flow-cards {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+}
+
+/* Prevent Webflow HtmlEmbed wrapper div from rendering a solid black mask shape */
+.w-embed.it-network-paths,
+.it-network-paths {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  background: transparent !important;
+  background-color: transparent !important;
+  fill: none !important;
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+}
+
+.it-network-paths svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);
+}
+
+.it-network-paths use {
+  fill: none !important;
+  stroke: url(#itSignalGradient);
+  stroke-linecap: round;
+  will-change: stroke-dashoffset;
+}
+
+.it-network-paths use[href*="itSignalPath1"],
+.it-network-paths use[*|href*="itSignalPath1"] {
+  stroke-width: 20px;
+  stroke-dasharray: 20 50 120 50 20 50 300 50 20 50 150 50 20 99999;
+  opacity: .35;
+}
+.it-network-paths use[href*="itSignalPath2"],
+.it-network-paths use[*|href*="itSignalPath2"] {
+  stroke-width: 34px;
+  stroke-dasharray: 34 60 120 60 34 60 300 60 34 60 150 60 34 99999;
+  opacity: .25;
+}
+.it-network-paths use[href*="itSignalPath3"],
+.it-network-paths use[*|href*="itSignalPath3"] {
+  stroke-width: 25px;
+  stroke-dasharray: 25 40 120 40 25 40 250 40 25 40 150 40 25 99999;
+  opacity: .4;
+}
+
+.it-card-wrapper {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 640px;
+}
+
+.it-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.it-card__title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f1c1b;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.it-card p {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #585858;
+  margin: 0;
+}
+
+.it-card__preview {
+  margin-top: 8px;
+  border-radius: 14px;
+  background: #f8f9fc;
+  padding: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.it-card__stage {
+  height: 220px;
+  overflow: hidden;
+  position: relative;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.it-ticket-stack {
+  height: 100%;
+  position: relative;
+}
+
+.it-ticket-track {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  will-change: transform;
+}
+
+.it-ticket-card {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.it-connector {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.it-connector__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--c-azul);
+  box-shadow: 0 0 10px var(--c-azul);
+}
+
+.it-connector__line {
+  display: block;
+}
+
+.it-marching-line {
+  animation: marchingDash 1s linear infinite;
+}
+
+@keyframes marchingDash {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+.it-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
