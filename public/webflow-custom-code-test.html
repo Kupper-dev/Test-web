@@ -1,170 +1,200 @@
-<!-- Webflow Custom Code: ticket card vertical (Configurable Test Sandbox) -->
+<!-- Webflow Custom Code: ticket card vertical (Configurable Test Sandbox with Dual Track Casing) -->
 <script src="https://unpkg.com/@studio-freight/lenis@1.0.34/dist/lenis.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
 
 <style>
-/* -------------------------------------------------------------
-   CONFIGURABLE TEST VARIABLES (Injected directly into CSS properties)
-   ------------------------------------------------------------- */
-:root {
-  --it-line-width-1: 34px;
-  --it-line-width-2: 42px;
-  --it-line-width-3: 36px;
+  /* -------------------------------------------------------------
+     CONFIGURABLE TEST VARIABLES
+     ------------------------------------------------------------- */
+  :root {
+    /* Outer Semi-Transparent Track Casing Colors & Widths */
+    --it-track-color: rgba(37, 99, 235, 0.15);
+    --it-track-width-1: 24px;
+    --it-track-width-2: 32px;
+    --it-track-width-3: 26px;
 
-  --it-line-opacity-1: 0.85;
-  --it-line-opacity-2: 0.75;
-  --it-line-opacity-3: 0.90;
+    /* Inner Moving Animated Core Line Widths */
+    --it-line-width-1: 14px;
+    --it-line-width-2: 12px;
+    --it-line-width-3: 16px;
 
-  --it-color-start: #2563EB;
-  --it-color-mid: #00F0FF;
-  --it-color-end: #2563EB;
+    /* Animated Blue Gradient Colors */
+    --it-color-start: #2563EB;
+    --it-color-mid: #00F0FF;
+    --it-color-end: #2563EB;
 
-  --it-speed-multiplier: 3200;
-}
+    --it-speed-multiplier: 3200;
+  }
 
-/* Prevent Webflow HtmlEmbed wrapper div from rendering a solid black mask shape */
-.w-embed.it-network-paths,
-.it-network-paths {
-  background: transparent !important;
-  background-color: transparent !important;
-  fill: none !important;
-  mask-image: none !important;
-  -webkit-mask-image: none !important;
-}
+  /* Prevent Webflow HtmlEmbed wrapper div from rendering a solid black mask shape */
+  .w-embed.it-network-paths,
+  .it-network-paths {
+    background: transparent !important;
+    background-color: transparent !important;
+    fill: none !important;
+    mask-image: none !important;
+    -webkit-mask-image: none !important;
+  }
 
-.it-network-paths svg {
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);
-}
+  .it-network-paths svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);
+  }
 
-.it-network-paths use {
-  fill: none !important;
-  stroke: url(#itSignalGradient) !important;
-  stroke-linecap: round !important;
-  will-change: stroke-dashoffset !important;
-}
+  /* Base styling for all <use> elements */
+  .it-network-paths use {
+    fill: none !important;
+    stroke-linecap: round !important;
+  }
 
-.it-network-paths use[href*="itSignalPath1"],
-.it-network-paths use[*|href*="itSignalPath1"] {
-  stroke-width: var(--it-line-width-1) !important;
-  stroke-dasharray: 20 50 120 50 20 50 300 50 20 50 150 50 20 99999 !important;
-  opacity: var(--it-line-opacity-1) !important;
-}
+  /* Outer static track casings */
+  .it-network-paths use.track-line,
+  .it-network-paths use.track-path-1 {
+    stroke: var(--it-track-color) !important;
+    stroke-width: var(--it-track-width-1) !important;
+  }
+  .it-network-paths use.track-line.track-path-2 {
+    stroke-width: var(--it-track-width-2) !important;
+  }
+  .it-network-paths use.track-line.track-path-3 {
+    stroke-width: var(--it-track-width-3) !important;
+  }
 
-.it-network-paths use[href*="itSignalPath2"],
-.it-network-paths use[*|href*="itSignalPath2"] {
-  stroke-width: var(--it-line-width-2) !important;
-  stroke-dasharray: 34 60 120 60 34 60 300 60 34 60 150 60 34 99999 !important;
-  opacity: var(--it-line-opacity-2) !important;
-}
+  /* Inner animated moving dashed lines */
+  .it-network-paths use.core-line,
+  .it-network-paths use[href*="itSignalPath1"],
+  .it-network-paths use[*|href*="itSignalPath1"] {
+    stroke: url(#itSignalGradient) !important;
+    stroke-width: var(--it-line-width-1) !important;
+    stroke-dasharray: 20 50 120 50 20 50 300 50 20 50 150 50 20 99999 !important;
+    will-change: stroke-dashoffset !important;
+  }
 
-.it-network-paths use[href*="itSignalPath3"],
-.it-network-paths use[*|href*="itSignalPath3"] {
-  stroke-width: var(--it-line-width-3) !important;
-  stroke-dasharray: 25 40 120 40 25 40 250 40 25 40 150 40 25 99999 !important;
-  opacity: var(--it-line-opacity-3) !important;
-}
+  .it-network-paths use.core-line.core-path-2,
+  .it-network-paths use[href*="itSignalPath2"],
+  .it-network-paths use[*|href*="itSignalPath2"] {
+    stroke-width: var(--it-line-width-2) !important;
+    stroke-dasharray: 34 60 120 60 34 60 300 60 34 60 150 60 34 99999 !important;
+  }
+
+  .it-network-paths use.core-line.core-path-3,
+  .it-network-paths use[href*="itSignalPath3"],
+  .it-network-paths use[*|href*="itSignalPath3"] {
+    stroke-width: var(--it-line-width-3) !important;
+    stroke-dasharray: 25 40 120 40 25 40 250 40 25 40 150 40 25 99999 !important;
+  }
 </style>
 
 <script>
-(function initItFlowCode() {
-  function runScripts() {
-    // 1. Dynamic SVG linearGradient sync with CSS variables
-    var svg = document.querySelector(".it-network-paths svg, svg.it-network-paths");
-    if (svg) {
-      var defs = svg.querySelector("defs");
-      if (!defs) {
-        defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-        svg.insertBefore(defs, svg.firstChild);
-      }
-      var grad = defs.querySelector("#itSignalGradient");
-      if (!grad) {
-        grad = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
-        grad.setAttribute("id", "itSignalGradient");
-        grad.setAttribute("gradientUnits", "objectBoundingBox");
-        grad.setAttribute("x1", "0");
-        grad.setAttribute("y1", "0");
-        grad.setAttribute("x2", "0.2");
-        grad.setAttribute("y2", "1");
-        defs.appendChild(grad);
-      }
-      var cs = getComputedStyle(document.documentElement);
-      var cStart = cs.getPropertyValue('--it-color-start').trim() || '#2563EB';
-      var cMid   = cs.getPropertyValue('--it-color-mid').trim()   || '#00F0FF';
-      var cEnd   = cs.getPropertyValue('--it-color-end').trim()   || '#2563EB';
-
-      grad.innerHTML = 
-        '<stop offset="0%" stop-color="' + cStart + '" stop-opacity="0.2"></stop>' +
-        '<stop offset="25%" stop-color="' + cStart + '" stop-opacity="0.85"></stop>' +
-        '<stop offset="50%" stop-color="' + cMid + '" stop-opacity="1"></stop>' +
-        '<stop offset="75%" stop-color="' + cEnd + '" stop-opacity="0.85"></stop>' +
-        '<stop offset="100%" stop-color="' + cEnd + '" stop-opacity="0.2"></stop>';
-    }
-
-    // 2. SVG Signal Path Scroll Animation
-    var container = document.querySelector(".it-flow-cards");
-    var svgPaths = document.querySelector(".it-network-paths");
-    if (container && svgPaths) {
-      var tickingPaths = false;
-      function updatePathOffset() {
-        if (!tickingPaths) {
-          tickingPaths = true;
-          requestAnimationFrame(function() {
-            var rect = container.getBoundingClientRect();
-            var vh = window.innerHeight;
-            var progress = (vh - rect.top) / (vh + rect.height);
-            progress = Math.max(0, Math.min(1, progress));
-            
-            var speedMult = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--it-speed-multiplier')) || 3200;
-            var dashOffset = -(speedMult * progress);
-            
-            var uses = svgPaths.querySelectorAll("use");
-            uses.forEach(function(u) {
-              u.style.strokeDashoffset = dashOffset + "px";
-            });
-            tickingPaths = false;
+  (function initItFlowCode() {
+    function runScripts() {
+      var svg = document.querySelector(".it-network-paths svg, svg.it-network-paths");
+      if (svg) {
+        // Automatically inject outer track casing <use> elements if only single <use> elements exist
+        var uses = svg.querySelectorAll("use");
+        if (uses.length === 3 && !svg.querySelector("use.track-line")) {
+          uses.forEach(function(origUse, idx) {
+            var trackUse = origUse.cloneNode(true);
+            trackUse.classList.add("track-line", "track-path-" + (idx + 1));
+            origUse.classList.add("core-line", "core-path-" + (idx + 1));
+            svg.insertBefore(trackUse, origUse);
           });
         }
-      }
-      window.addEventListener("scroll", updatePathOffset, { passive: true });
-      updatePathOffset();
-    }
 
-    // 3. Ticket Track Feed Scroll Animation
-    var stacks = document.querySelectorAll("[data-it-feed]");
-    if (stacks.length) {
-      var tickingFeed = false;
-      function updateFeed() {
-        if (!tickingFeed) {
-          tickingFeed = true;
-          requestAnimationFrame(function() {
-            var vh = window.innerHeight;
-            stacks.forEach(function(stack) {
-              var track = stack.querySelector(".it-ticket-track");
-              if (!track) return;
-              var rect = stack.getBoundingClientRect();
+        // Dynamic SVG linearGradient sync with CSS variables
+        var defs = svg.querySelector("defs");
+        if (!defs) {
+          defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+          svg.insertBefore(defs, svg.firstChild);
+        }
+        var grad = defs.querySelector("#itSignalGradient");
+        if (!grad) {
+          grad = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+          grad.setAttribute("id", "itSignalGradient");
+          grad.setAttribute("gradientUnits", "objectBoundingBox");
+          grad.setAttribute("x1", "0");
+          grad.setAttribute("y1", "0");
+          grad.setAttribute("x2", "0.2");
+          grad.setAttribute("y2", "1");
+          defs.appendChild(grad);
+        }
+        var cs = getComputedStyle(document.documentElement);
+        var cStart = cs.getPropertyValue('--it-color-start').trim() || '#2563EB';
+        var cMid = cs.getPropertyValue('--it-color-mid').trim() || '#00F0FF';
+        var cEnd = cs.getPropertyValue('--it-color-end').trim() || '#2563EB';
+
+        grad.innerHTML =
+          '<stop offset="0%" stop-color="' + cStart + '" stop-opacity="0.2"></stop>' +
+          '<stop offset="25%" stop-color="' + cStart + '" stop-opacity="0.85"></stop>' +
+          '<stop offset="50%" stop-color="' + cMid + '" stop-opacity="1"></stop>' +
+          '<stop offset="75%" stop-color="' + cEnd + '" stop-opacity="0.85"></stop>' +
+          '<stop offset="100%" stop-color="' + cEnd + '" stop-opacity="0.2"></stop>';
+      }
+
+      // 2. SVG Signal Path Scroll Animation
+      var container = document.querySelector(".it-flow-cards");
+      var svgPaths = document.querySelector(".it-network-paths");
+      if (container && svgPaths) {
+        var tickingPaths = false;
+        function updatePathOffset() {
+          if (!tickingPaths) {
+            tickingPaths = true;
+            requestAnimationFrame(function () {
+              var rect = container.getBoundingClientRect();
+              var vh = window.innerHeight;
               var progress = (vh - rect.top) / (vh + rect.height);
               progress = Math.max(0, Math.min(1, progress));
-              var translateY = track.scrollHeight * 0.35 * progress;
-              track.style.transform = "translateY(" + (-translateY) + "px)";
-            });
-            tickingFeed = false;
-          });
-        }
-      }
-      window.addEventListener("scroll", updateFeed, { passive: true });
-      updateFeed();
-    }
-  }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", runScripts);
-  } else {
-    runScripts();
-  }
-})();
+              var speedMult = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--it-speed-multiplier')) || 3200;
+              var dashOffset = -(speedMult * progress);
+
+              var movingLines = svgPaths.querySelectorAll("use.core-line, use[href*='itSignalPath']");
+              movingLines.forEach(function (u) {
+                u.style.strokeDashoffset = dashOffset + "px";
+              });
+              tickingPaths = false;
+            });
+          }
+        }
+        window.addEventListener("scroll", updatePathOffset, { passive: true });
+        updatePathOffset();
+      }
+
+      // 3. Ticket Track Feed Scroll Animation
+      var stacks = document.querySelectorAll("[data-it-feed]");
+      if (stacks.length) {
+        var tickingFeed = false;
+        function updateFeed() {
+          if (!tickingFeed) {
+            tickingFeed = true;
+            requestAnimationFrame(function () {
+              var vh = window.innerHeight;
+              stacks.forEach(function (stack) {
+                var track = stack.querySelector(".it-ticket-track");
+                if (!track) return;
+                var rect = stack.getBoundingClientRect();
+                var progress = (vh - rect.top) / (vh + rect.height);
+                progress = Math.max(0, Math.min(1, progress));
+                var translateY = track.scrollHeight * 0.35 * progress;
+                track.style.transform = "translateY(" + (-translateY) + "px)";
+              });
+              tickingFeed = false;
+            });
+          }
+        }
+        window.addEventListener("scroll", updateFeed, { passive: true });
+        updateFeed();
+      }
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", runScripts);
+    } else {
+      runScripts();
+    }
+  })();
 </script>
