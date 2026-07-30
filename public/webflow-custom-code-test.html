@@ -1,4 +1,4 @@
-<!-- Webflow Custom Code: ticket card vertical (Configurable Test Sandbox with Dual Track Casing) -->
+<!-- Webflow Custom Code: ticket card vertical (Configurable Test Sandbox with Full Static Background Tracks) -->
 <script src="https://unpkg.com/@studio-freight/lenis@1.0.34/dist/lenis.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
@@ -8,18 +8,18 @@
      CONFIGURABLE TEST VARIABLES
      ------------------------------------------------------------- */
   :root {
-    /* Outer Semi-Transparent Track Casing Colors & Widths */
-    --it-track-color: rgba(37, 99, 235, 0.15);
+    /* Full Outer Background Track (Continuous casing path) */
+    --it-track-color: rgba(37, 99, 235, 0.18);
     --it-track-width-1: 24px;
     --it-track-width-2: 32px;
     --it-track-width-3: 26px;
 
-    /* Inner Moving Animated Core Line Widths */
+    /* Inner Moving Animated Signal Line */
     --it-line-width-1: 14px;
     --it-line-width-2: 12px;
     --it-line-width-3: 16px;
 
-    /* Animated Blue Gradient Colors */
+    /* Animated Blue Gradient Colors for moving signal bursts */
     --it-color-start: #2563EB;
     --it-color-mid: #00F0FF;
     --it-color-end: #2563EB;
@@ -45,45 +45,46 @@
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);
   }
 
-  /* Base styling for all <use> elements */
   .it-network-paths use {
     fill: none !important;
     stroke-linecap: round !important;
   }
 
-  /* Outer static track casings */
-  .it-network-paths use.track-line,
-  .it-network-paths use.track-path-1 {
+  /* 1. Full continuous outer background tracks (Rendered BEHIND moving core lines) */
+  .it-network-paths use.it-track-bg {
     stroke: var(--it-track-color) !important;
+    stroke-dasharray: none !important; /* Continuous solid track casing */
+    stroke-dashoffset: 0 !important;
+    opacity: 1 !important;
+  }
+
+  .it-network-paths use.it-track-bg.it-track-bg-1 {
     stroke-width: var(--it-track-width-1) !important;
   }
-  .it-network-paths use.track-line.track-path-2 {
+  .it-network-paths use.it-track-bg.it-track-bg-2 {
     stroke-width: var(--it-track-width-2) !important;
   }
-  .it-network-paths use.track-line.track-path-3 {
+  .it-network-paths use.it-track-bg.it-track-bg-3 {
     stroke-width: var(--it-track-width-3) !important;
   }
 
-  /* Inner animated moving dashed lines */
-  .it-network-paths use.core-line,
-  .it-network-paths use[href*="itSignalPath1"],
-  .it-network-paths use[*|href*="itSignalPath1"] {
+  /* 2. Inner moving animated core lines (Rendered ON TOP of background tracks) */
+  .it-network-paths use.it-core-line {
     stroke: url(#itSignalGradient) !important;
-    stroke-width: var(--it-line-width-1) !important;
-    stroke-dasharray: 20 50 120 50 20 50 300 50 20 50 150 50 20 99999 !important;
+    stroke-linecap: round !important;
     will-change: stroke-dashoffset !important;
+    opacity: 1 !important;
   }
 
-  .it-network-paths use.core-line.core-path-2,
-  .it-network-paths use[href*="itSignalPath2"],
-  .it-network-paths use[*|href*="itSignalPath2"] {
+  .it-network-paths use.it-core-line.it-core-line-1 {
+    stroke-width: var(--it-line-width-1) !important;
+    stroke-dasharray: 20 50 120 50 20 50 300 50 20 50 150 50 20 99999 !important;
+  }
+  .it-network-paths use.it-core-line.it-core-line-2 {
     stroke-width: var(--it-line-width-2) !important;
     stroke-dasharray: 34 60 120 60 34 60 300 60 34 60 150 60 34 99999 !important;
   }
-
-  .it-network-paths use.core-line.core-path-3,
-  .it-network-paths use[href*="itSignalPath3"],
-  .it-network-paths use[*|href*="itSignalPath3"] {
+  .it-network-paths use.it-core-line.it-core-line-3 {
     stroke-width: var(--it-line-width-3) !important;
     stroke-dasharray: 25 40 120 40 25 40 250 40 25 40 150 40 25 99999 !important;
   }
@@ -94,14 +95,17 @@
     function runScripts() {
       var svg = document.querySelector(".it-network-paths svg, svg.it-network-paths");
       if (svg) {
-        // Automatically inject outer track casing <use> elements if only single <use> elements exist
-        var uses = svg.querySelectorAll("use");
-        if (uses.length === 3 && !svg.querySelector("use.track-line")) {
-          uses.forEach(function(origUse, idx) {
-            var trackUse = origUse.cloneNode(true);
-            trackUse.classList.add("track-line", "track-path-" + (idx + 1));
-            origUse.classList.add("core-line", "core-path-" + (idx + 1));
-            svg.insertBefore(trackUse, origUse);
+        // Automatically inject continuous background track casing <use> elements BEHIND animated core lines
+        var origUses = Array.from(svg.querySelectorAll("use:not(.it-track-bg)"));
+        if (origUses.length >= 3 && !svg.querySelector("use.it-track-bg")) {
+          origUses.slice(0, 3).forEach(function(origUse, idx) {
+            var trackBg = origUse.cloneNode(true);
+            trackBg.removeAttribute("style");
+            trackBg.className.baseVal = "it-track-bg it-track-bg-" + (idx + 1);
+            origUse.className.baseVal = "it-core-line it-core-line-" + (idx + 1);
+            
+            // Insert static track casing BEFORE original <use> element (so it sits underneath)
+            svg.insertBefore(trackBg, origUse);
           });
         }
 
@@ -128,14 +132,14 @@
         var cEnd = cs.getPropertyValue('--it-color-end').trim() || '#2563EB';
 
         grad.innerHTML =
-          '<stop offset="0%" stop-color="' + cStart + '" stop-opacity="0.2"></stop>' +
-          '<stop offset="25%" stop-color="' + cStart + '" stop-opacity="0.85"></stop>' +
+          '<stop offset="0%" stop-color="' + cStart + '" stop-opacity="0.25"></stop>' +
+          '<stop offset="25%" stop-color="' + cStart + '" stop-opacity="0.9"></stop>' +
           '<stop offset="50%" stop-color="' + cMid + '" stop-opacity="1"></stop>' +
-          '<stop offset="75%" stop-color="' + cEnd + '" stop-opacity="0.85"></stop>' +
-          '<stop offset="100%" stop-color="' + cEnd + '" stop-opacity="0.2"></stop>';
+          '<stop offset="75%" stop-color="' + cEnd + '" stop-opacity="0.9"></stop>' +
+          '<stop offset="100%" stop-color="' + cEnd + '" stop-opacity="0.25"></stop>';
       }
 
-      // 2. SVG Signal Path Scroll Animation
+      // 2. SVG Signal Path Scroll Animation (Only animates the inner core lines)
       var container = document.querySelector(".it-flow-cards");
       var svgPaths = document.querySelector(".it-network-paths");
       if (container && svgPaths) {
@@ -152,7 +156,7 @@
               var speedMult = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--it-speed-multiplier')) || 3200;
               var dashOffset = -(speedMult * progress);
 
-              var movingLines = svgPaths.querySelectorAll("use.core-line, use[href*='itSignalPath']");
+              var movingLines = svgPaths.querySelectorAll("use.it-core-line");
               movingLines.forEach(function (u) {
                 u.style.strokeDashoffset = dashOffset + "px";
               });
