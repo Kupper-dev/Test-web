@@ -5,13 +5,12 @@
 
 <style>
 /* -------------------------------------------------------------
-   CONFIGURABLE TEST VARIABLES
-   Change these values to test widths, colors, and speed in Webflow!
+   CONFIGURABLE TEST VARIABLES (Injected directly into CSS properties)
    ------------------------------------------------------------- */
 :root {
-  --it-line-width-1: 20px;
-  --it-line-width-2: 34px;
-  --it-line-width-3: 25px;
+  --it-line-width-1: 34px;
+  --it-line-width-2: 42px;
+  --it-line-width-3: 36px;
 
   --it-line-opacity-1: 0.85;
   --it-line-opacity-2: 0.75;
@@ -45,11 +44,10 @@
 .it-network-paths use {
   fill: none !important;
   stroke: url(#itSignalGradient) !important;
-  stroke-linecap: round;
-  will-change: stroke-dashoffset;
+  stroke-linecap: round !important;
+  will-change: stroke-dashoffset !important;
 }
 
-/* Target exact Webflow SVG <use> elements directly */
 .it-network-paths use[href*="itSignalPath1"],
 .it-network-paths use[*|href*="itSignalPath1"] {
   stroke-width: var(--it-line-width-1) !important;
@@ -73,14 +71,18 @@
 </style>
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-  // Update/Inject dynamic linearGradient with CSS Variables
-  (function updateGradient() {
-    var grad = document.getElementById("itSignalGradient");
-    if (!grad) {
-      var svg = document.querySelector(".it-network-paths svg, svg.it-network-paths");
-      if (svg) {
-        var defs = svg.querySelector("defs") || svg.insertBefore(document.createElementNS("http://www.w3.org/2000/svg", "defs"), svg.firstChild);
+(function initItFlowCode() {
+  function runScripts() {
+    // 1. Dynamic SVG linearGradient sync with CSS variables
+    var svg = document.querySelector(".it-network-paths svg, svg.it-network-paths");
+    if (svg) {
+      var defs = svg.querySelector("defs");
+      if (!defs) {
+        defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+        svg.insertBefore(defs, svg.firstChild);
+      }
+      var grad = defs.querySelector("#itSignalGradient");
+      if (!grad) {
         grad = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
         grad.setAttribute("id", "itSignalGradient");
         grad.setAttribute("gradientUnits", "objectBoundingBox");
@@ -90,9 +92,6 @@ document.addEventListener("DOMContentLoaded", function() {
         grad.setAttribute("y2", "1");
         defs.appendChild(grad);
       }
-    }
-
-    if (grad) {
       var cs = getComputedStyle(document.documentElement);
       var cStart = cs.getPropertyValue('--it-color-start').trim() || '#2563EB';
       var cMid   = cs.getPropertyValue('--it-color-mid').trim()   || '#00F0FF';
@@ -105,67 +104,67 @@ document.addEventListener("DOMContentLoaded", function() {
         '<stop offset="75%" stop-color="' + cEnd + '" stop-opacity="0.85"></stop>' +
         '<stop offset="100%" stop-color="' + cEnd + '" stop-opacity="0.2"></stop>';
     }
-  })();
 
-  // 1. SVG Signal Path Scroll Animation
-  (function(){
+    // 2. SVG Signal Path Scroll Animation
     var container = document.querySelector(".it-flow-cards");
     var svgPaths = document.querySelector(".it-network-paths");
-    if (!container || !svgPaths) return;
-    var ticking = false;
-
-    function updatePathOffset() {
-      if (!ticking) {
-        ticking = true;
-        requestAnimationFrame(function() {
-          var rect = container.getBoundingClientRect();
-          var vh = window.innerHeight;
-          var progress = (vh - rect.top) / (vh + rect.height);
-          progress = Math.max(0, Math.min(1, progress));
-          
-          var speedMult = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--it-speed-multiplier')) || 3200;
-          var dashOffset = -(speedMult * progress);
-          
-          var uses = svgPaths.querySelectorAll("use");
-          uses.forEach(function(u) {
-            u.style.strokeDashoffset = dashOffset + "px";
-          });
-          ticking = false;
-        });
-      }
-    }
-
-    window.addEventListener("scroll", updatePathOffset, { passive: true });
-    updatePathOffset();
-  })();
-
-  // 2. Ticket Track Feed Scroll Animation
-  (function(){
-    var stacks = document.querySelectorAll("[data-it-feed]");
-    if (!stacks.length) return;
-    var ticking = false;
-
-    function updateFeed() {
-      if (!ticking) {
-        ticking = true;
-        requestAnimationFrame(function() {
-          var vh = window.innerHeight;
-          stacks.forEach(function(stack) {
-            var track = stack.querySelector(".it-ticket-track");
-            if (!track) return;
-            var rect = stack.getBoundingClientRect();
+    if (container && svgPaths) {
+      var tickingPaths = false;
+      function updatePathOffset() {
+        if (!tickingPaths) {
+          tickingPaths = true;
+          requestAnimationFrame(function() {
+            var rect = container.getBoundingClientRect();
+            var vh = window.innerHeight;
             var progress = (vh - rect.top) / (vh + rect.height);
             progress = Math.max(0, Math.min(1, progress));
-            var translateY = track.scrollHeight * 0.35 * progress;
-            track.style.transform = "translateY(" + (-translateY) + "px)";
+            
+            var speedMult = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--it-speed-multiplier')) || 3200;
+            var dashOffset = -(speedMult * progress);
+            
+            var uses = svgPaths.querySelectorAll("use");
+            uses.forEach(function(u) {
+              u.style.strokeDashoffset = dashOffset + "px";
+            });
+            tickingPaths = false;
           });
-          ticking = false;
-        });
+        }
       }
+      window.addEventListener("scroll", updatePathOffset, { passive: true });
+      updatePathOffset();
     }
 
-    window.addEventListener("scroll", updateFeed, { passive: true });
-    updateFeed();
-  })();
-});
+    // 3. Ticket Track Feed Scroll Animation
+    var stacks = document.querySelectorAll("[data-it-feed]");
+    if (stacks.length) {
+      var tickingFeed = false;
+      function updateFeed() {
+        if (!tickingFeed) {
+          tickingFeed = true;
+          requestAnimationFrame(function() {
+            var vh = window.innerHeight;
+            stacks.forEach(function(stack) {
+              var track = stack.querySelector(".it-ticket-track");
+              if (!track) return;
+              var rect = stack.getBoundingClientRect();
+              var progress = (vh - rect.top) / (vh + rect.height);
+              progress = Math.max(0, Math.min(1, progress));
+              var translateY = track.scrollHeight * 0.35 * progress;
+              track.style.transform = "translateY(" + (-translateY) + "px)";
+            });
+            tickingFeed = false;
+          });
+        }
+      }
+      window.addEventListener("scroll", updateFeed, { passive: true });
+      updateFeed();
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", runScripts);
+  } else {
+    runScripts();
+  }
+})();
 </script>
