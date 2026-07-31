@@ -160,39 +160,30 @@ export class GlassFlowRenderer {
 
           vec3 normal = normalize(vNormal);
           vec3 viewDir = normalize(vViewPosition);
-          float viewDot = abs(dot(normal, viewDir)); // 1.0 is facing camera, 0.0 is edge
+          float viewDot = abs(dot(normal, viewDir));
 
-          // 1. Define the Masks (Wider thresholds for thicker frost)
-          float coreMask = smoothstep(0.45, 0.95, viewDot);
-          float rimMask = smoothstep(0.0, 0.25, viewDot);
+          // 1. Calculate Opacity (Alpha) independently of color
+          float coreAlpha = smoothstep(0.4, 0.9, viewDot) * 0.95; // 95% opaque blue center
+          float rimAlpha = (1.0 - smoothstep(0.0, 0.2, viewDot)) * 0.75; // 75% opaque sharp white rim
+          float frostAlpha = smoothstep(0.1, 0.6, viewDot) * 0.20; // 20% opaque base glass thickness
+          
+          // Combine alphas without adding them (prevents blowing out to solid white)
+          float totalAlpha = max(max(coreAlpha, rimAlpha), frostAlpha);
 
-          // 2. Define the Pure Colors (Do not pre-darken these)
-          vec3 coreColor = vec3(0.0, 0.25, 1.0) * 1.5; // Vivid Blue
-          vec3 frostColor = vec3(0.95, 0.98, 1.0);     // Icy White
-          vec3 rimColor = vec3(1.0, 1.0, 1.0);         // Pure White
+          // 2. Define Pure Colors (Dark-Mode Ready)
+          vec3 blue = vec3(0.0, 0.25, 1.0) * 1.5; // HDR Blue
+          vec3 white = vec3(1.0, 1.0, 1.0);       // Pure White
 
-          // 3. Mix the RGB Colors Independently
-          // Start with frost as the base color
-          vec3 finalColor = frostColor; 
-          // Blend in the bright rim on the extreme edges (inverted rimMask)
-          finalColor = mix(finalColor, rimColor, 1.0 - rimMask); 
-          // Blend in the blue core in the center
-          finalColor = mix(finalColor, coreColor, coreMask);
-
-          // 4. Calculate Alpha (Thickness)
-          // Base frost is 65% opaque. Rim is 85% opaque. Core is 100% opaque.
-          float frostAlpha = 0.65; 
-          float rimAlpha = 0.85;
-
-          float alpha = frostAlpha; // Base glass thickness
-          alpha = max(alpha, (1.0 - rimMask) * rimAlpha); // Add bright edges
-          alpha = max(alpha, coreMask); // Add solid core
+          // 3. Mix Colors smoothly from white edges to blue core
+          vec3 finalColor = mix(white, blue, smoothstep(0.25, 0.75, viewDot));
 
           // Safe GPU calculation for soft fade at the very tip of the flowing liquid
           float tipFade = clamp((uProgress - vUv.x) / 0.02, 0.0, 1.0);
-          alpha *= tipFade;
+          totalAlpha *= tipFade;
 
-          gl_FragColor = vec4(finalColor, clamp(alpha, 0.0, 1.0));
+          // 4. EXPLICIT PREMULTIPLIED OUTPUT
+          // Multiplying the RGB by the alpha eliminates the black/grey compositing halos
+          gl_FragColor = vec4(finalColor * totalAlpha, clamp(totalAlpha, 0.0, 1.0));
         }
       `,
 

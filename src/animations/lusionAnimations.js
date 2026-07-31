@@ -302,8 +302,7 @@ export function initLusionAnimations() {
     renderer = new THREE.WebGLRenderer({
       canvas: canvas,
       alpha: true,
-      antialias: true,
-      premultipliedAlpha: false
+      antialias: true
     });
 
     // Sized to window viewport to preserve exact SVG point projection calculations
