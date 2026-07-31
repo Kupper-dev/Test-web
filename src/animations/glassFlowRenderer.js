@@ -3,20 +3,20 @@ import * as THREE from 'three';
 export const GlassFlowConfig = {
   // Geometry parameters
   tubeRadius: 22,
-  tubularSegments: 600,        // High-density subdivisions for silk-smooth curve silhouette
-  radialSegments: 48,          // High-density radial subdivisions for round cross-section
+  tubularSegments: 400,
+  radialSegments: 32,
 
-  // Frosted Glass Material & Thickness
-  glassColor: 0x93c5fd,        // Translucent icy sky-blue tint
-  glassOpacity: 0.40,          // Base translucency
-  glassBlur: 0.28,             // Internal diffusion factor
-  rimGlowIntensity: 0.85,      // Fresnel edge glow strength
-  rimWidth: 3.0,               // Fresnel falloff exponent
-  wallThicknessRatio: 0.25,    // Glass wall thickness (25% glass wall, 75% inner hollow bore)
+  // Crystal Frosted Glass Conduit Wrapper
+  glassColor: 0xdbeafe,        // Light translucent icy crystal tint
+  glassOpacity: 0.28,          // Light glass opacity (prevents dimming the core)
+  glassBlur: 0.25,             // Internal edge diffusion
+  rimGlowIntensity: 0.75,      // Crisp Fresnel edge highlight
+  rimWidth: 2.5,               // Fresnel falloff exponent
+  wallThicknessRatio: 0.22,    // Inner bore radius boundary
 
-  // Inner Volumetric Blue Energy Stream
-  coreColor: 0x1d4ed8,         // Deep vibrant blue
-  glowColor: 0x38bdf8,         // Electric cyan highlight
+  // Emitted Self-Luminous Blue Energy Stream
+  coreColor: 0x0560ff,         // Ultra-vibrant saturated electric blue
+  glowColor: 0x38bdf8,         // Glowing cyan energy pulse
   flowSpeed: 3.2,              // Velocity of traveling data pulses
   flowDirection: 1.0,          // Flow direction (1 = forward, -1 = reverse)
   highlightDensity: 18.0,      // Procedural UV flow frequency
@@ -106,7 +106,7 @@ export class GlassFlowRenderer {
       const cp2 = mapSvgPoint(seg.cp2[0], seg.cp2[1]);
       const p1 = mapSvgPoint(seg.p1[0], seg.p1[1]);
 
-      const steps = 100;
+      const steps = 80;
       for (let i = 0; i <= steps; i++) {
         const t = i / steps;
         const mt = 1 - t;
@@ -178,86 +178,55 @@ export class GlassFlowRenderer {
         varying vec3 vNormal;
         varying vec3 vViewPosition;
 
-        // Procedural micro-noise to break perfect specular highlights (frosted glass micro-roughness)
-        float hash21(vec2 p) {
-          p = fract(p * vec2(123.34, 456.21));
-          p += dot(p, p + 45.32);
-          return fract(p.x * p.y);
-        }
-
-        float noise21(vec2 p) {
-          vec2 i = floor(p);
-          vec2 f = fract(p);
-          f = f * f * (3.0 - 2.0 * f);
-          float a = hash21(i);
-          float b = hash21(i + vec2(1.0, 0.0));
-          float c = hash21(i + vec2(0.0, 1.0));
-          float d = hash21(i + vec2(1.0, 1.0));
-          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-        }
-
         void main() {
-          vec3 rawNormal = normalize(vNormal);
+          vec3 normal = normalize(vNormal);
           vec3 viewDir = normalize(vViewPosition);
 
-          // Micro-surface noise for frosted glass micro-roughness
-          float microRoughness = (noise21(vUv * 120.0) - 0.5) * 0.06;
-          vec3 normal = normalize(rawNormal + vec3(microRoughness));
+          // 1. Analytical 1D Radial Profile Across Tube (Zero Mesh Triangle Artifacts)
+          // vUv.y goes 0.0 -> 1.0 around tube circumference.
+          // radialDist is 1.0 at center axis (vUv.y = 0.5) and 0.0 at top/bottom silhouettes.
+          float radialDist = sin(vUv.y * 3.14159265);
 
-          // Top key light direction
-          vec3 lightDir = normalize(vec3(0.2, 0.9, 0.4));
-
-          // 1. Hollow Glass Pipe & Wall Thickness Geometry
+          // 2. Outer Glass Envelope & Fresnel Rim Reflections
           float NdotV = max(dot(normal, viewDir), 0.0);
-          
-          // Outer glass wall Fresnel silhouette (grazing view angle)
           float outerFresnel = pow(1.0 - NdotV, uRimWidth);
 
-          // Inner hollow bore boundary highlight (transition between glass wall and hollow inner channel)
-          float innerBoreRadiusRatio = 1.0 - uWallThicknessRatio; // e.g. 0.75
-          float innerBoreNdotV = sqrt(clamp(1.0 - innerBoreRadiusRatio * innerBoreRadiusRatio, 0.0, 1.0)); // ~0.66
-          float innerBoreDist = abs(NdotV - innerBoreNdotV);
-          float innerFresnel = exp(-innerBoreDist * innerBoreDist / 0.012) * 0.40;
-
-          // Glass wall optical path length & attenuation
-          float pathLength = 1.0 / max(NdotV, 0.15);
-          float attenuation = exp(-pathLength * 0.18);
-
-          // Specular highlights on outer glass surface
+          vec3 lightDir = normalize(vec3(0.2, 0.9, 0.4));
           vec3 halfVector = normalize(lightDir + viewDir);
-          float NdotH = max(dot(normal, halfVector), 0.0);
-          float specular = pow(NdotH, 24.0) * 0.35;
+          float specular = pow(max(dot(normal, halfVector), 0.0), 32.0) * 0.45;
 
-          vec3 rimGlow = vec3(0.70, 0.88, 1.0) * (outerFresnel + innerFresnel) * uRimGlowIntensity;
-          vec3 specGlow = vec3(0.95, 0.98, 1.0) * specular;
+          vec3 rimHighlight = vec3(0.80, 0.93, 1.0) * outerFresnel * uRimGlowIntensity;
+          vec3 specHighlight = vec3(0.95, 0.98, 1.0) * specular;
 
-          // 2. Translucent Glass Shell
-          float glassAlpha = mix(uGlassOpacity * 0.7, uGlassOpacity * 1.3, outerFresnel);
-          vec3 glassBody = mix(uGlassColor * attenuation, vec3(0.9, 0.95, 1.0), outerFresnel * 0.3) + specGlow + rimGlow;
+          // Outer glass translucent body (light, non-darkening crystal glass wrapper)
+          vec3 glassBody = mix(uGlassColor, vec3(0.92, 0.96, 1.0), outerFresnel * 0.4) + specHighlight + rimHighlight;
+          float glassAlpha = mix(uGlassOpacity * 0.6, uGlassOpacity * 1.3, outerFresnel);
 
-          // 3. Volumetric Inner Blue Energy Core (hollow bore channel)
-          // Core is active for NdotV > innerBoreNdotV (inside the hollow bore)
-          float insideBoreMask = smoothstep(innerBoreNdotV - 0.08, innerBoreNdotV + 0.08, NdotV);
+          // 3. Self-Luminous Volumetric Blue Energy Pipeline Core
+          // Core is strictly confined within inner bore (radialDist > wallThicknessRatio)
+          float boreMask = smoothstep(uWallThicknessRatio, uWallThicknessRatio + uGlassBlur, radialDist);
 
-          // Volumetric scattering falloff (brighter center, soft scattering toward inner glass wall)
-          float volumetricScattering = exp(-5.0 * (1.0 - NdotV) * (1.0 - NdotV));
+          // Volumetric scattering profile: Peak emission at tube center, soft falloff toward inner glass wall
+          float coreIntensity = pow(radialDist, 2.2);
 
           // Smooth self-drawing cutoff in UV space along path length (vUv.x goes 0.0 -> 1.0)
           float drawMask = smoothstep(vUv.x + 0.012, vUv.x - 0.004, uProgress);
 
-          // Analytical procedural UV flow markers (zero mesh tessellation artifacts)
+          // Analytical procedural UV flow markers (smooth 2D trigonometric pulse, 0 mesh artifacts)
           float pulse1 = sin(vUv.x * uHighlightDensity - uTime * uFlowSpeed * uFlowDirection);
           float pulse2 = sin(vUv.x * (uHighlightDensity * 2.2) + uTime * (uFlowSpeed * 1.4) * uFlowDirection);
-          float energyWave = smoothstep(-0.25, 0.80, pulse1 * 0.6 + pulse2 * 0.4);
+          float energyWave = smoothstep(-0.20, 0.85, pulse1 * 0.6 + pulse2 * 0.4);
 
-          vec3 flowEnergy = mix(uCoreColor, uGlowColor, energyWave);
+          // Self-luminous emitted energy color (unmuted max saturation)
+          vec3 emittedEnergy = mix(uCoreColor, uGlowColor, energyWave) * 2.2;
 
-          // Volumetric core energy scattering through the frosted glass
-          vec3 activeFlow = flowEnergy * volumetricScattering * insideBoreMask * drawMask * 1.5;
+          // Active emitted core stream
+          vec3 coreStream = emittedEnergy * coreIntensity * boreMask * drawMask;
 
-          // 4. Composite Hollow Glass & Volumetric Data Pipeline
-          vec3 finalColor = mix(glassBody, glassBody + activeFlow, drawMask * insideBoreMask);
-          float finalAlpha = max(glassAlpha, insideBoreMask * drawMask * 0.95);
+          // 4. Additive Composite: Glass Conduit wraps around Emitted Liquid Light
+          // Core is added directly on top of glass shell to preserve 100% saturation and zero color dimming!
+          vec3 finalColor = glassBody + coreStream;
+          float finalAlpha = max(glassAlpha, drawMask * boreMask * 0.95);
 
           gl_FragColor = vec4(finalColor, finalAlpha);
         }
