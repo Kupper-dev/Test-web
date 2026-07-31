@@ -318,7 +318,7 @@ export function initLusionAnimations() {
 
     // Perspective Camera mapping 1:1 to screen pixels at z = 0
     const fov = 45;
-    camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 1, 2000);
+    camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 0.1, 20000);
     const depth = window.innerHeight / (2 * Math.tan((fov * Math.PI) / 360));
     camera.position.set(0, 0, depth);
     camera.updateProjectionMatrix();
@@ -531,7 +531,7 @@ export function initLusionAnimations() {
     }
     if (camera) {
       camera.aspect = window.innerWidth / window.innerHeight;
-      camera.far = 2000;
+      camera.far = 20000;
       const depth = window.innerHeight / (2 * Math.tan((45 * Math.PI) / 360));
       camera.position.set(0, 0, depth);
       camera.updateProjectionMatrix();
