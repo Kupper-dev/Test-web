@@ -2,24 +2,23 @@ import * as THREE from 'three';
 
 export const GlassFlowConfig = {
   // Geometry parameters
-  tubeRadius: 20,
+  tubeRadius: 22,
   tubularSegments: 400,
   radialSegments: 32,
 
-  // Frosted Glass Conduit Wrapper (Target Look Spec)
-  glassColor: 0xc7d2fe,        // Light crystal translucent glass tint
-  glassOpacity: 0.35,          // Crystal glass translucency
-  glassBlur: 0.18,             // Soft wall edge diffusion
-  rimGlowIntensity: 0.85,      // Bright Fresnel rim sheen
-  rimWidth: 2.2,               // Fresnel exponent
-  wallThicknessRatio: 0.12,    // 90%-95% inner core ratio for clear wall thickness perception
+  // Frosted Glass Conduit Wrapper (Target Reference Image Match)
+  glassColor: 0x93c5fd,        // Translucent soft ice blue glass tint
+  glassOpacity: 0.45,          // Frosted glass depth & body
+  glassBlur: 0.25,             // Internal diffusion factor
+  rimGlowIntensity: 0.65,      // Soft ice specular rim sheen
+  rimWidth: 2.2,               // Soft Fresnel exponent
 
-  // Hero Element: Self-Luminous Additive Blue Energy Core (Emission Intensity: 3.5x)
-  coreColor: 0x0055ff,         // Vibrant electric primary blue
-  glowColor: 0x00d5ff,         // Glowing cyan energy pulse
-  flowSpeed: 2.5,              // Smooth velocity of traveling data pulses
+  // Hero Element: Rich Ultramarine Blue Energy Stream (Target Reference Image Match)
+  coreColor: 0x0f3ce6,         // Rich deep ultramarine blue
+  glowColor: 0x2563eb,         // Royal blue energy highlight
+  flowSpeed: 2.2,              // Smooth velocity of traveling data pulses
   flowDirection: 1.0,          // Flow direction (1 = forward, -1 = reverse)
-  highlightDensity: 4.5,       // Broad smooth energy waves (zero tight ribbing/facets)
+  highlightDensity: 4.0,       // Smooth continuous flow waves (zero tight ribbing)
 
   // Animation & Timeline
   progress: 0.0
@@ -143,7 +142,6 @@ export class GlassFlowRenderer {
         uGlassBlur: { value: this.config.glassBlur },
         uRimGlowIntensity: { value: this.config.rimGlowIntensity },
         uRimWidth: { value: this.config.rimWidth },
-        uWallThicknessRatio: { value: this.config.wallThicknessRatio },
         uCoreColor: { value: new THREE.Color(this.config.coreColor) },
         uGlowColor: { value: new THREE.Color(this.config.glowColor) },
         uFlowSpeed: { value: this.config.flowSpeed },
@@ -171,7 +169,6 @@ export class GlassFlowRenderer {
         uniform float uGlassBlur;
         uniform float uRimGlowIntensity;
         uniform float uRimWidth;
-        uniform float uWallThicknessRatio;
         uniform vec3 uCoreColor;
         uniform vec3 uGlowColor;
         uniform float uFlowSpeed;
@@ -186,52 +183,45 @@ export class GlassFlowRenderer {
           vec3 normal = normalize(vNormal);
           vec3 viewDir = normalize(vViewPosition);
 
-          // 1. Smooth 3D View-Space Tube Center Distance (Zero UV Seam Teeth, Zero Facet Lines)
-          float centerDist = abs(normal.z);
+          // 1. Surface Orientation & Fresnel (Smooth C1 Continuous Everywhere - Zero Teeth!)
+          float NdotV = max(dot(normal, viewDir), 0.0);
+          float fresnel = pow(1.0 - NdotV, uRimWidth);
 
-          // 2. Outer Glass Conduit & Bright Fresnel Rim (Target Look Spec)
-          float outerFresnel = pow(1.0 - centerDist, uRimWidth);
-
-          vec3 lightDir = normalize(vec3(0.25, 0.90, 0.35));
+          // Soft specular top highlight
+          vec3 lightDir = normalize(vec3(0.25, 0.85, 0.45));
           vec3 halfVector = normalize(lightDir + viewDir);
-          float specular = pow(max(dot(normal, halfVector), 0.0), 24.0) * 0.40;
+          float specular = pow(max(dot(normal, halfVector), 0.0), 16.0) * 0.30;
 
-          vec3 rimSheen = vec3(0.75, 0.92, 1.0) * outerFresnel * uRimGlowIntensity;
-          vec3 specSheen = vec3(0.95, 0.98, 1.0) * specular;
+          vec3 rimGlow = vec3(0.85, 0.92, 1.0) * fresnel * uRimGlowIntensity;
+          vec3 specGlow = vec3(0.95, 0.98, 1.0) * specular;
 
-          // Glass Wall Optical Transmission (Zero Blue Absorption)
-          float wallPath = 1.0 / max(centerDist, 0.15);
-          float glassAttenuation = exp(-wallPath * 0.08);
+          // Frosted Glass Base Shell (Soft ice blue translucent body + gentle rim sheen)
+          vec3 glassBody = mix(uGlassColor, vec3(0.85, 0.92, 1.0), fresnel * 0.35) + specGlow + rimGlow;
+          float glassAlpha = mix(uGlassOpacity * 0.8, uGlassOpacity * 1.2, fresnel);
 
-          // Translucent Glass Shell Wrapper
-          vec3 glassBody = mix(uGlassColor * glassAttenuation, vec3(0.88, 0.95, 1.0), outerFresnel * 0.4) + specSheen + rimSheen;
-          float glassAlpha = mix(uGlassOpacity * 0.6, uGlassOpacity * 1.3, outerFresnel);
+          // 2. Rich Ultramarine Blue Inner Core (Soft Volumetric Falloff, ZERO Step Thresholds)
+          // pow(NdotV, 1.8) is 1.0 at center axis facing camera, smoothly fading to 0.0 at tube edges.
+          // Continuous C1 function - ZERO teeth, ZERO step artifacts!
+          float coreVolumetric = pow(NdotV, 1.8);
 
-          // 3. Additive / Screen Emitted Inner Blue Core (Target Look Spec)
-          // 90%-95% inner core ratio for clear wall thickness perception
-          float boreMask = smoothstep(uWallThicknessRatio, uWallThicknessRatio + uGlassBlur, centerDist);
+          // Self-drawing progress mask along tube length (vUv.x goes 0.0 -> 1.0)
+          float drawMask = smoothstep(vUv.x + 0.010, vUv.x - 0.005, uProgress);
 
-          // Volumetric core profile: Bright center, soft falloff toward inner glass wall
-          float coreProfile = pow(centerDist, 1.4);
-
-          // Smooth self-drawing progress mask along tube length (vUv.x goes 0.0 -> 1.0)
-          float drawMask = smoothstep(vUv.x + 0.012, vUv.x - 0.004, uProgress);
-
-          // Smooth broad procedural flow markers in UV space (zero tight ribbing, zero step functions)
+          // Smooth procedural traveling wave highlights
           float wave1 = sin(vUv.x * uHighlightDensity - uTime * uFlowSpeed * uFlowDirection) * 0.5 + 0.5;
-          float wave2 = sin(vUv.x * (uHighlightDensity * 1.6) + uTime * (uFlowSpeed * 1.3) * uFlowDirection) * 0.5 + 0.5;
-          float energyPulse = smoothstep(0.10, 0.90, wave1 * 0.6 + wave2 * 0.4);
+          float wave2 = sin(vUv.x * (uHighlightDensity * 1.5) + uTime * (uFlowSpeed * 1.2) * uFlowDirection) * 0.5 + 0.5;
+          float energyPulse = pow(mix(wave1, wave2, 0.5), 1.4);
 
-          // High-intensity self-luminous emission (3.5x emission intensity as specified in Target Look)
-          vec3 emissionColor = mix(uCoreColor, uGlowColor, energyPulse) * 3.5;
+          // Rich ultramarine blue energy stream (matching Target Reference Image exactly!)
+          vec3 coreColor = mix(uCoreColor, uGlowColor, energyPulse);
 
-          // Active emitted core stream
-          vec3 coreStream = emissionColor * coreProfile * boreMask * drawMask;
+          // Active inner blue stream
+          vec3 activeCore = coreColor * coreVolumetric * drawMask * 1.25;
 
-          // 4. Additive / Screen Blend Composite (Core added directly onto glass shell)
-          // Preserves 100% blue color vibrancy and brightness through the glass shell!
-          vec3 finalColor = glassBody + coreStream;
-          float finalAlpha = max(glassAlpha, drawMask * boreMask * 0.95);
+          // 3. Composite: Frosted Glass Shell wraps around Inner Ultramarine Blue Stream
+          // Blends glass body with inner core seamlessly with zero color blowouts
+          vec3 finalColor = mix(glassBody, glassBody * 0.35 + activeCore, drawMask * coreVolumetric * 0.85);
+          float finalAlpha = max(glassAlpha, drawMask * coreVolumetric * 0.95);
 
           gl_FragColor = vec4(finalColor, finalAlpha);
         }
