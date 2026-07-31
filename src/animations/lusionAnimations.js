@@ -301,46 +301,25 @@ export function initLusionAnimations() {
       premultipliedAlpha: false
     });
     renderer.setClearColor(0x000000, 0);
-
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    // Force Canvas CSS Transparency immediately after creation
+    renderer.domElement.style.background = 'transparent';
+    renderer.domElement.style.backgroundColor = 'rgba(0,0,0,0)';
 
     // Add webgl-active class to hide duplicate HTML placeholder elements
     if (containerEl) {
       containerEl.classList.add('webgl-active');
     }
 
-    // Perspective Camera mapping 1:1 to screen pixels at z = 0
+    // Perspective Camera mapping 1:1 to screen pixels at z = 0 with expanded clipping planes
     const fov = 45;
-    camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 1, 2000);
+    camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 0.1, 20000);
+    camera.updateProjectionMatrix();
     const depth = window.innerHeight / (2 * Math.tan((fov * Math.PI) / 360));
     camera.position.set(0, 0, depth);
 
-    // EffectComposer & UnrealBloomPass for HDR energy bleed through frosted glass (Transparent Alpha Buffer)
-    const renderTarget = new THREE.WebGLRenderTarget(
-      window.innerWidth,
-      window.innerHeight,
-      {
-        minFilter: THREE.LinearFilter,
-        magFilter: THREE.LinearFilter,
-        format: THREE.RGBAFormat,
-        type: THREE.HalfFloatType,
-        stencilBuffer: false
-      }
-    );
-
-    composer = new EffectComposer(renderer, renderTarget);
-    const renderPass = new RenderPass(scene, camera);
-    renderPass.clearAlpha = 0;
-    composer.addPass(renderPass);
-
-    bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.8,  // bloomStrength
-      0.4,  // bloomRadius
-      1.2   // bloomThreshold (exceeds 1.0 white UI cards, catches 3.0x HDR blue liquid core)
-    );
-    composer.addPass(bloomPass);
 
 
 
@@ -537,18 +516,14 @@ export function initLusionAnimations() {
     if (renderer) {
       renderer.setSize(window.innerWidth, window.innerHeight);
     }
-    if (composer) {
-      composer.setSize(window.innerWidth, window.innerHeight);
-    }
-    if (bloomPass) {
-      bloomPass.resolution.set(window.innerWidth, window.innerHeight);
-    }
     if (camera) {
       camera.aspect = window.innerWidth / window.innerHeight;
+      camera.far = 20000;
       const depth = window.innerHeight / (2 * Math.tan((45 * Math.PI) / 360));
       camera.position.z = depth;
       camera.updateProjectionMatrix();
     }
+
 
 
     // Recompute spline points to keep them aligned on resize
@@ -743,13 +718,12 @@ function tick() {
     morphMesh.material.uniforms.u_progress.value = transitionProgress;
   }
 
-  if (composer) {
-    composer.render();
-  } else if (renderer && scene && camera) {
+  if (renderer && scene && camera) {
     renderer.render(scene, camera);
   }
   animationFrameId = requestAnimationFrame(tick);
 }
+
 
 
 export function killLusionAnimations() {

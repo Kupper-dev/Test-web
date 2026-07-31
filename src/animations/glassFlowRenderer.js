@@ -49,7 +49,8 @@ export class GlassFlowRenderer {
     this.scene = new THREE.Scene();
 
     const fov = 45;
-    this.camera = new THREE.PerspectiveCamera(fov, width / height, 1, 2000);
+    this.camera = new THREE.PerspectiveCamera(fov, width / height, 0.1, 20000);
+    this.camera.updateProjectionMatrix();
     const depth = height / (2 * Math.tan((fov * Math.PI) / 360));
     this.camera.position.set(0, 0, depth);
 
@@ -62,7 +63,12 @@ export class GlassFlowRenderer {
       this.renderer.setClearColor(0x000000, 0);
       this.renderer.setSize(width, height);
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      // Force Canvas CSS Transparency immediately
+      this.renderer.domElement.style.background = 'transparent';
+      this.renderer.domElement.style.backgroundColor = 'rgba(0,0,0,0)';
     }
+
   }
 
   buildCurveFromSvg() {
@@ -183,11 +189,13 @@ export class GlassFlowRenderer {
           gl_FragColor = vec4(finalColor, clamp(alpha, 0.0, 1.0));
         }
       `,
-      transparent: true,
+      depthTest: true,
       depthWrite: false,
+      transparent: true,
       side: THREE.FrontSide,
       blending: THREE.NormalBlending
     });
+
 
     this.tubeMesh = new THREE.Mesh(geometry, this.material);
     this.tubeMesh.frustumCulled = false; // Disable culling so massive tube is not cut off
@@ -243,10 +251,12 @@ export class GlassFlowRenderer {
       if (this.camera) {
         this.camera.aspect = width / height;
         const fov = 45;
+        this.camera.far = 20000;
         const depth = height / (2 * Math.tan((fov * Math.PI) / 360));
         this.camera.position.set(0, 0, depth);
         this.camera.updateProjectionMatrix();
       }
+
 
       if (this.renderer) {
         this.renderer.setSize(width, height);
