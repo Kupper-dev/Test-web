@@ -171,11 +171,8 @@ export class GlassFlowRenderer {
         varying vec3 vViewPosition;
 
         void main() {
-          // GSAP Self-drawing scroll progress mask along path length (vUv.x goes 0 -> 1)
-          float drawMask = smoothstep(vUv.x + 0.010, vUv.x - 0.005, uProgress);
-          if (drawMask < 0.01) {
-            discard; // Skip rendering un-drawn pixels
-          }
+          // Correct GLSL smoothstep argument order (edge0 < edge1) for scroll self-drawing
+          float drawMask = smoothstep(vUv.x - 0.015, vUv.x + 0.005, uProgress);
 
           vec3 normal = normalize(vNormal);
           vec3 viewDir = normalize(vViewPosition);
@@ -197,15 +194,15 @@ export class GlassFlowRenderer {
           vec3 liquidColor = mix(uCoreColor, uGlowColor, flow * 0.35);
 
           // Zone Color Assignments
-          vec3 coreRGB = liquidColor * coreMask * 1.25;
+          vec3 coreRGB = liquidColor * coreMask * drawMask * 1.25;
           vec3 wallRGB = uGlassColor * wallMask * 0.45;
           vec3 rimRGB  = uRimColor * rimMask * 0.85;
 
           // Composite RGB
           vec3 finalRGB = coreRGB + wallRGB + rimRGB;
 
-          // Composite Alpha
-          float finalAlpha = max(max(coreMask * 0.95, wallMask * 0.35), rimMask * 0.85) * drawMask;
+          // Composite Alpha (outer glass shell remains translucent, inner liquid core draws with uProgress)
+          float finalAlpha = max(max(coreMask * drawMask * 0.95, wallMask * 0.40), rimMask * 0.85);
 
           gl_FragColor = vec4(finalRGB, finalAlpha);
         }
