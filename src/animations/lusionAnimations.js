@@ -401,6 +401,8 @@ export function initLusionAnimations() {
     // 3D Translucent Frosted Glass Tube & Inner Blue Energy Flow Renderer
     glassFlowRenderer = new GlassFlowRenderer({
       scene: scene,
+      camera: camera,
+      renderer: renderer,
       tubeRadius: 22,
       glassOpacity: 0.5,
       glassBlur: 0.35,
