@@ -288,32 +288,39 @@ export class GlassFlowRenderer {
           vec4 sharpCore = texture2D(tSharp, screenUv);
 
           // 2. Golden Angle Spiral Blur (Vogel Filter)
-          vec4 blurredCore = vec4(0.0);
-          
-          // 2.39996323 is the Golden Angle in radians
           float goldenAngle = 2.39996323; 
-          float iterations = 32.0; // Higher = smoother blur, lower = better performance
-          
-          // The blur radius grows towards the edges (max 2.0% of screen)
+          float iterations = 32.0; 
           float spread = pow(fresnel, 2.0) * 0.02; 
           
+          vec3 accumulatedRGB = vec3(0.0);
+          float totalAlpha = 0.0;
+          
           for (float i = 0.0; i < 32.0; i++) {
-            // Calculate spiral radius and angle
             float r = sqrt(i / iterations) * spread;
             float theta = i * goldenAngle;
-            
-            // Convert polar to cartesian coordinates
             vec2 offset = vec2(cos(theta), sin(theta)) * r;
             
-            // Sample the texture
-            blurredCore += texture2D(tSharp, screenUv + offset);
+            vec4 sample = texture2D(tSharp, screenUv + offset);
+            
+            // Weight the color by its alpha to prevent black background bleeding
+            accumulatedRGB += sample.rgb * sample.a;
+            totalAlpha += sample.a;
           }
           
-          blurredCore /= iterations;
+          // Normalize the colors to restore pure brightness
+          if (totalAlpha > 0.0) {
+            accumulatedRGB /= totalAlpha; 
+          }
+          
+          // Reconstruct the blurred core
+          vec4 blurredCore = vec4(accumulatedRGB, totalAlpha / iterations);
 
           // 3. Mix sharp center and frosted edges
           float blurMix = pow(fresnel, 1.5);
           vec4 coreComposite = mix(sharpCore, blurredCore, blurMix);
+
+          // VIBRANCY BOOST: Multiply RGB to create a luminous, emissive effect
+          coreComposite.rgb *= 1.35; 
 
           // 4. Optical Additions
           float hazeAlpha = pow(fresnel, 5.0) * 0.3; // White subsurface scattering
