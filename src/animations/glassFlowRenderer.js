@@ -2,24 +2,24 @@ import * as THREE from 'three';
 
 export const GlassFlowConfig = {
   // Geometry parameters
-  tubeRadius: 18,
+  tubeRadius: 20,
   tubularSegments: 400,
   radialSegments: 32,
 
   // Frosted Glass Material
-  glassColor: 0xdbeafe,
-  glassOpacity: 0.45,
-  glassBlur: 0.35,
-  rimGlowIntensity: 1.4,
-  rimWidth: 2.2,
+  glassColor: 0x93c5fd,        // Soft translucent ice/cyan glass tint
+  glassOpacity: 0.45,          // Translucent glass envelope
+  glassBlur: 0.30,             // Soft internal diffusion factor
+  rimGlowIntensity: 0.8,       // Subtle luminous edge highlight
+  rimWidth: 3.0,               // Fresnel edge exponent
 
   // Inner Blue Energy Stream
-  coreRadiusRatio: 0.68,
-  coreColor: 0x1d4ed8,
-  glowColor: 0x60a5fa,
-  flowSpeed: 2.5,
-  flowDirection: 1.0,
-  highlightDensity: 14.0,
+  coreRadiusRatio: 0.65,       // Concentric inner core (65% inside tube volume)
+  coreColor: 0x1d4ed8,         // Vibrant primary blue
+  glowColor: 0x38bdf8,         // Electric cyan highlight
+  flowSpeed: 3.0,              // Continuous internal wave velocity
+  flowDirection: 1.0,          // Flow direction (1 = forward, -1 = reverse)
+  highlightDensity: 16.0,      // Energy pulse frequency
 
   // Animation & Timeline
   progress: 0.0
@@ -182,35 +182,44 @@ export class GlassFlowRenderer {
           vec3 normal = normalize(vNormal);
           vec3 viewDir = normalize(vViewPosition);
 
-          // 1. Fresnel Rim Specular Highlight (Luminous glass edges)
-          float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), uRimWidth);
-          vec3 rimGlow = vec3(1.0) * fresnel * uRimGlowIntensity;
+          // Top key light vector for specular highlights
+          vec3 lightDir = normalize(vec3(0.2, 0.9, 0.4));
 
-          // 2. Outer Frosted Glass Base Body
-          float glassAlpha = mix(uGlassOpacity, 0.95, fresnel);
-          vec3 glassBody = mix(uGlassColor, vec3(1.0), fresnel * 0.4);
+          // 1. Fresnel & Specular Glass Reflections
+          float NdotV = max(dot(normal, viewDir), 0.0);
+          float fresnel = pow(1.0 - NdotV, uRimWidth);
 
-          // 3. Inner Blue Data Stream (Drawing & Moving Highlights inside tube)
-          float distFromCenter = abs(vUv.y - 0.5) * 2.0;
+          vec3 halfVector = normalize(lightDir + viewDir);
+          float NdotH = max(dot(normal, halfVector), 0.0);
+          float specular = pow(NdotH, 24.0) * 0.35;
 
-          // Soft blurred edge falloff inside the glass
-          float coreAlpha = smoothstep(uCoreRadiusRatio, uCoreRadiusRatio - uGlassBlur, distFromCenter);
+          vec3 rimGlow = vec3(0.75, 0.90, 1.0) * fresnel * uRimGlowIntensity;
+          vec3 specGlow = vec3(0.95, 0.98, 1.0) * specular;
 
-          // Smooth self-drawing cutoff along tube length according to uProgress
-          float drawMask = smoothstep(vUv.x - 0.015, vUv.x + 0.005, uProgress);
+          // 2. Translucent Frosted Glass Base Body
+          float glassAlpha = mix(uGlassOpacity * 0.75, uGlassOpacity * 1.25, fresnel);
+          vec3 glassBody = mix(uGlassColor, vec3(0.9, 0.95, 1.0), fresnel * 0.35) + specGlow + rimGlow;
 
-          // Traveling energy waves/pulses
-          float wave = sin(vUv.x * uHighlightDensity - uTime * uFlowSpeed * uFlowDirection) * 0.5 + 0.5;
-          wave = pow(wave, 2.0); // Sharpen highlights
+          // 3. Inner 3D Concentric Energy Core (100% inside tube center)
+          // NdotV is 1.0 at center of cylinder view projection, fading to 0.0 at silhouettes
+          float coreMask = smoothstep(1.0 - uCoreRadiusRatio, 1.0 - uCoreRadiusRatio + uGlassBlur, NdotV);
 
-          vec3 flowEnergy = mix(uCoreColor, uGlowColor, wave);
+          // Self-drawing progress mask along tube length (vUv.x goes 0.0 -> 1.0)
+          float drawMask = smoothstep(vUv.x + 0.015, vUv.x - 0.005, uProgress);
 
-          // Combine inner energy with self-drawing mask and radial core falloff
-          vec3 activeFlow = flowEnergy * coreAlpha * drawMask;
+          // Continuous traveling energy waves (data pipeline pulses)
+          float wave1 = sin(vUv.x * uHighlightDensity - uTime * uFlowSpeed * uFlowDirection) * 0.5 + 0.5;
+          float wave2 = sin(vUv.x * (uHighlightDensity * 1.7) + uTime * (uFlowSpeed * 1.2) * uFlowDirection) * 0.5 + 0.5;
+          float energyPulse = pow(mix(wave1, wave2, 0.5), 1.6);
 
-          // 4. Final Glass & Flow Composite
-          vec3 finalColor = glassBody + rimGlow + activeFlow;
-          float finalAlpha = max(glassAlpha, coreAlpha * drawMask * 0.9);
+          vec3 flowEnergy = mix(uCoreColor, uGlowColor, energyPulse);
+
+          // Inner energy stream is blurred/diffused inside frosted glass envelope
+          vec3 activeFlow = flowEnergy * coreMask * drawMask * 1.35;
+
+          // 4. Final Glass Envelope & Inner Blue Pipeline Composite
+          vec3 finalColor = mix(glassBody, glassBody + activeFlow, drawMask * coreMask);
+          float finalAlpha = max(glassAlpha, coreMask * drawMask * 0.95);
 
           gl_FragColor = vec4(finalColor, finalAlpha);
         }

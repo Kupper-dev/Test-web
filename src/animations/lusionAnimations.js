@@ -725,12 +725,17 @@ export function killLusionAnimations() {
   }
 
   // Dispose WebGL resources
+  if (glassFlowRenderer) {
+    glassFlowRenderer.destroy();
+    glassFlowRenderer = null;
+  }
   if (lineMesh) {
-    lineMesh.geometry.dispose();
-    lineMesh.material.dispose();
-    scene.remove(lineMesh);
+    if (lineMesh.geometry) lineMesh.geometry.dispose();
+    if (lineMesh.material) lineMesh.material.dispose();
+    if (scene) scene.remove(lineMesh);
     lineMesh = null;
   }
+
   if (morphMesh) {
     morphMesh.geometry.dispose();
     morphMesh.material.dispose();
