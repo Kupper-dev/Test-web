@@ -18,7 +18,7 @@ export class GlassFlowRenderer {
     }
     this.canvas = canvasElement;
     this.config = { ...GlassFlowConfig, ...options };
-    
+
     this.scene = this.config.scene || null;
     this.camera = this.config.camera || null;
     this.renderer = this.config.renderer || null;
@@ -36,14 +36,14 @@ export class GlassFlowRenderer {
     this.blurScene = new THREE.Scene();
     this.blurCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 2);
     this.blurCamera.position.z = 1; // Pull camera back to see the quad
-    
+
     this.blurQuad = null;
     this.blurMaterial = null;
 
     // Concentric Dual-Mesh Architecture
     this.coreMesh = null;
     this.glassMesh = null;
-    
+
     // Compatibility hooks for lusionAnimations.js
     this.innerMesh = null;
     this.outerMesh = null;
@@ -51,7 +51,7 @@ export class GlassFlowRenderer {
 
     this.coreMaterial = null;
     this.glassMaterial = null;
-    
+
     this.curve = null;
     this.animationFrameId = null;
     this.startTime = performance.now();
@@ -107,7 +107,7 @@ export class GlassFlowRenderer {
     const width = window.innerWidth;
     const height = window.innerHeight;
     const pixelRatio = this.renderer ? this.renderer.getPixelRatio() : (window.devicePixelRatio || 1);
-    
+
     const targetOptions = {
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
@@ -146,17 +146,26 @@ export class GlassFlowRenderer {
         varying vec2 vUv;
         
         void main() {
-          // Exact size of one pixel on the screen
-          vec2 texel = 1.0 / uResolution; 
+          // Calculate exact physical pixel size
+          vec2 texel = 1.0 / uResolution;
+          vec2 off = uDirection * texel;
           
-          vec2 off1 = vec2(1.3846153846) * uDirection * texel;
-          vec2 off2 = vec2(3.2307692308) * uDirection * texel;
+          vec4 color = vec4(0.0);
           
-          vec4 color = texture2D(tDiffuse, vUv) * 0.2270270270;
-          color += texture2D(tDiffuse, vUv + off1) * 0.3162162162;
-          color += texture2D(tDiffuse, vUv - off1) * 0.3162162162;
-          color += texture2D(tDiffuse, vUv + off2) * 0.0702702703;
-          color += texture2D(tDiffuse, vUv - off2) * 0.0702702703;
+          // 13-Tap Gaussian Blur for massive spread
+          color += texture2D(tDiffuse, vUv - 6.0 * off) * 0.002216;
+          color += texture2D(tDiffuse, vUv - 5.0 * off) * 0.008764;
+          color += texture2D(tDiffuse, vUv - 4.0 * off) * 0.026995;
+          color += texture2D(tDiffuse, vUv - 3.0 * off) * 0.064759;
+          color += texture2D(tDiffuse, vUv - 2.0 * off) * 0.120985;
+          color += texture2D(tDiffuse, vUv - 1.0 * off) * 0.176033;
+          color += texture2D(tDiffuse, vUv) * 0.199471;
+          color += texture2D(tDiffuse, vUv + 1.0 * off) * 0.176033;
+          color += texture2D(tDiffuse, vUv + 2.0 * off) * 0.120985;
+          color += texture2D(tDiffuse, vUv + 3.0 * off) * 0.064759;
+          color += texture2D(tDiffuse, vUv + 4.0 * off) * 0.026995;
+          color += texture2D(tDiffuse, vUv + 5.0 * off) * 0.008764;
+          color += texture2D(tDiffuse, vUv + 6.0 * off) * 0.002216;
           
           gl_FragColor = color;
         }
@@ -280,10 +289,10 @@ export class GlassFlowRenderer {
     this.coreMesh = new THREE.Mesh(coreGeometry, this.coreMaterial);
     this.coreMesh.frustumCulled = false;
     this.coreMesh.renderOrder = 0;
-    
+
     // Assign core to Layer 1 for offscreen rendering isolation
     this.coreMesh.layers.set(1);
-    
+
     if (this.scene) {
       this.scene.add(this.coreMesh);
     }
@@ -304,7 +313,7 @@ export class GlassFlowRenderer {
         tBlurred: { value: this.blurTarget2.texture },
         uResolution: { value: new THREE.Vector2(width * pixelRatio, height * pixelRatio) },
         uProgress: { value: this.config.progress },
-        uDebugMode: { value: 0.0 } // 0=Final, 1=Sharp, 2=Blurred, 3=Fresnel, 4=BlurMix
+        uDebugMode: { value: 4.0 } // 0=Final, 1=Sharp, 2=Blurred, 3=Fresnel, 4=BlurMix
       },
       transparent: true,
       depthWrite: false,
@@ -387,10 +396,10 @@ export class GlassFlowRenderer {
     this.glassMesh = new THREE.Mesh(glassGeometry, this.glassMaterial);
     this.glassMesh.frustumCulled = false;
     this.glassMesh.renderOrder = 1;
-    
+
     // Assign glass to Layer 0 (default)
     this.glassMesh.layers.set(0);
-    
+
     if (this.scene) {
       this.scene.add(this.glassMesh);
     }
@@ -515,17 +524,23 @@ export class GlassFlowRenderer {
     this.renderer.clear();
     this.renderer.render(this.scene, this.camera);
 
+    // Grab the exact physical size of the render target
+    const targetW = this.coreRenderTarget.width;
+    const targetH = this.coreRenderTarget.height;
+
     // STEP 2: Horizontal Blur (Core -> Target 1)
+    this.blurMaterial.uniforms.uResolution.value.set(targetW, targetH);
     this.blurMaterial.uniforms.tDiffuse.value = this.coreRenderTarget.texture;
-    this.blurMaterial.uniforms.uDirection.value.set(8.0, 0.0); // 8.0 spread
+    this.blurMaterial.uniforms.uDirection.value.set(12.0, 0.0); // 12 pixel horizontal radius
     this.blurMaterial.uniformsNeedUpdate = true; // Force update
     this.renderer.setRenderTarget(this.blurTarget1);
     this.renderer.clear();
     this.renderer.render(this.blurScene, this.blurCamera);
 
     // STEP 3: Vertical Blur (Target 1 -> Target 2)
+    this.blurMaterial.uniforms.uResolution.value.set(targetW, targetH);
     this.blurMaterial.uniforms.tDiffuse.value = this.blurTarget1.texture;
-    this.blurMaterial.uniforms.uDirection.value.set(0.0, 8.0); // 8.0 spread
+    this.blurMaterial.uniforms.uDirection.value.set(0.0, 12.0); // 12 pixel vertical radius
     this.blurMaterial.uniformsNeedUpdate = true; // Force update
     this.renderer.setRenderTarget(this.blurTarget2);
     this.renderer.clear();
@@ -554,14 +569,14 @@ export class GlassFlowRenderer {
     if (this.glassMesh) this.glassMesh.geometry.dispose();
     if (this.coreMaterial) this.coreMaterial.dispose();
     if (this.glassMaterial) this.glassMaterial.dispose();
-    
+
     if (this.coreRenderTarget) this.coreRenderTarget.dispose();
     if (this.blurTarget1) this.blurTarget1.dispose();
     if (this.blurTarget2) this.blurTarget2.dispose();
 
     if (this.blurMaterial) this.blurMaterial.dispose();
     if (this.blurQuad) this.blurQuad.geometry.dispose();
-    
+
     if (this.renderer) this.renderer.dispose();
   }
 }
