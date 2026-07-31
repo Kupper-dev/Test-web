@@ -318,6 +318,17 @@ export function initLusionAnimations() {
     renderer.domElement.style.backgroundColor = 'rgba(0,0,0,0)';
 
 
+    // Force container transparency and video container stacking isolation
+    if (containerEl) {
+      containerEl.style.background = 'transparent';
+      containerEl.style.backgroundColor = 'transparent';
+    }
+    const homeReelContainer = document.getElementById('home-reel-container');
+    if (homeReelContainer) {
+      homeReelContainer.style.position = 'relative';
+      homeReelContainer.style.zIndex = '10';
+    }
+
     // Add webgl-active class to hide duplicate HTML placeholder elements
     if (containerEl) {
       containerEl.classList.add('webgl-active');
@@ -327,8 +338,8 @@ export function initLusionAnimations() {
     const fov = 45;
     camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 0.1, 20000);
     camera.updateProjectionMatrix();
-    const depth = window.innerHeight / (2 * Math.tan((fov * Math.PI) / 360));
-    camera.position.set(0, 0, depth);
+    camera.position.set(0, 0, 3000); // Hardcoded safe distance to prevent lens clipping
+
 
 
 
@@ -530,8 +541,7 @@ export function initLusionAnimations() {
     if (camera) {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.far = 20000;
-      const depth = window.innerHeight / (2 * Math.tan((45 * Math.PI) / 360));
-      camera.position.z = depth;
+      camera.position.z = 3000;
       camera.updateProjectionMatrix();
     }
 
