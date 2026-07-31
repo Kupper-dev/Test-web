@@ -28,3 +28,6 @@ superpowers-main/
 
 # Temporary media
 .tempmediaStorage
+
+# Superpowers brainstorming session files
+.superpowers/
