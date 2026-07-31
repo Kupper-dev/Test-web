@@ -202,7 +202,7 @@ export class GlassFlowRenderer {
       transparent: true,
       depthWrite: false, // Prevents transparent self-occlusion
       side: THREE.FrontSide,
-      blending: THREE.AdditiveBlending, // Luminous white overlay highlight
+      blending: THREE.NormalBlending, // Restored for light/dark mode compatibility
       vertexShader: `
         varying vec2 vUv;
         varying vec3 vNormal;
@@ -228,18 +228,32 @@ export class GlassFlowRenderer {
 
           vec3 normal = normalize(vNormal);
           vec3 viewDir = normalize(vViewPosition);
+          
+          // Fresnel calculation (0.0 at center facing camera, 1.0 at extreme edges)
           float viewDot = abs(dot(normal, viewDir));
+          float fresnel = 1.0 - viewDot;
 
-          // Create a sharp, luminous rim highlight
-          float rim = pow(1.0 - viewDot, 2.5); 
-          float alpha = rim * 0.7; // Limit max opacity
+          // 1. The Glass Thickness (Body)
+          // Creates a soft, thick icy tint that fades to 0% opacity at the center
+          float bodyAlpha = pow(fresnel, 1.5) * 0.45; 
+          vec3 bodyColor = vec3(0.55, 0.75, 1.0); // Faint icy blue to complement the core
+
+          // 2. The Glass Reflection (Rim)
+          // Creates a very sharp, bright white highlight on the extreme edges
+          float rimAlpha = pow(fresnel, 4.0) * 0.90; 
+          vec3 rimColor = vec3(1.0, 1.0, 1.0); // Pure White
+
+          // Combine Alphas and Colors
+          float totalAlpha = max(bodyAlpha, rimAlpha);
+          vec3 finalColor = mix(bodyColor, rimColor, pow(fresnel, 3.0));
 
           // Tip fade logic
           float tipFade = clamp((uProgress - vUv.x) / 0.02, 0.0, 1.0);
-          alpha *= tipFade;
+          totalAlpha *= tipFade;
 
-          // Additive blending outputs light color directly
-          gl_FragColor = vec4(1.0 * alpha, 1.0 * alpha, 1.0 * alpha, alpha);
+          // EXPLICIT PREMULTIPLIED OUTPUT
+          // This guarantees no black halos when overlapping on transparent canvases
+          gl_FragColor = vec4(finalColor * totalAlpha, totalAlpha);
         }
       `
     });
