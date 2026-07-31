@@ -629,11 +629,8 @@ function tick() {
     const posX = sectionWebGLX - w * 0.03;
     const posY = sectionWebGLY + h * 0.25;
     const posZ = -5.0;
-    if (glassFlowRenderer.innerMesh) {
-      glassFlowRenderer.innerMesh.position.set(posX, posY, posZ);
-    }
-    if (glassFlowRenderer.outerMesh) {
-      glassFlowRenderer.outerMesh.position.set(posX, posY, posZ);
+    if (glassFlowRenderer.tubeMesh) {
+      glassFlowRenderer.tubeMesh.position.set(posX, posY, posZ);
     }
   }
 
