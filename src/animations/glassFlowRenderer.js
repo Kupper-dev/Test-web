@@ -27,10 +27,14 @@ export const GlassFlowConfig = {
 
 export class GlassFlowRenderer {
   constructor(canvasElement, options = {}) {
+    if (typeof canvasElement === 'object' && !canvasElement.tagName) {
+      options = canvasElement;
+      canvasElement = null;
+    }
     this.canvas = canvasElement;
     this.config = { ...GlassFlowConfig, ...options };
     
-    this.scene = null;
+    this.scene = this.config.scene || null;
     this.camera = null;
     this.renderer = null;
     this.tubeMesh = null;
@@ -50,9 +54,10 @@ export class GlassFlowRenderer {
   }
 
   setupScene() {
+    if (this.scene) return; // Scene provided externally
+
     const width = window.innerWidth;
     const height = window.innerHeight;
-
     this.scene = new THREE.Scene();
 
     const fov = 45;
@@ -60,13 +65,15 @@ export class GlassFlowRenderer {
     const depth = height / (2 * Math.tan((fov * Math.PI) / 360));
     this.camera.position.set(0, 0, depth);
 
-    this.renderer = new THREE.WebGLRenderer({
-      canvas: this.canvas,
-      alpha: true,
-      antialias: true
-    });
-    this.renderer.setSize(width, height);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    if (this.canvas) {
+      this.renderer = new THREE.WebGLRenderer({
+        canvas: this.canvas,
+        alpha: true,
+        antialias: true
+      });
+      this.renderer.setSize(width, height);
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    }
   }
 
   buildCurveFromSvg() {
@@ -214,7 +221,10 @@ export class GlassFlowRenderer {
     });
 
     this.tubeMesh = new THREE.Mesh(geometry, this.material);
-    this.scene.add(this.tubeMesh);
+    this.tubeMesh.renderOrder = 1;
+    if (this.scene) {
+      this.scene.add(this.tubeMesh);
+    }
   }
 
   update(progress) {
@@ -225,7 +235,9 @@ export class GlassFlowRenderer {
       this.material.uniforms.uTime.value = (performance.now() - this.startTime) / 1000;
       this.material.uniforms.uProgress.value = this.config.progress;
     }
-    this.render();
+    if (this.renderer && this.scene && this.camera) {
+      this.render();
+    }
   }
 
   startAnimationLoop() {
@@ -261,13 +273,17 @@ export class GlassFlowRenderer {
     this.onResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
-      this.camera.aspect = width / height;
-      const fov = 45;
-      const depth = height / (2 * Math.tan((fov * Math.PI) / 360));
-      this.camera.position.set(0, 0, depth);
-      this.camera.updateProjectionMatrix();
+      if (this.camera) {
+        this.camera.aspect = width / height;
+        const fov = 45;
+        const depth = height / (2 * Math.tan((fov * Math.PI) / 360));
+        this.camera.position.set(0, 0, depth);
+        this.camera.updateProjectionMatrix();
+      }
 
-      this.renderer.setSize(width, height);
+      if (this.renderer) {
+        this.renderer.setSize(width, height);
+      }
 
       this.buildCurveFromSvg();
       if (this.tubeMesh) {
@@ -294,6 +310,7 @@ export class GlassFlowRenderer {
     this.stopAnimationLoop();
     window.removeEventListener('resize', this.onResize);
     if (this.tubeMesh) {
+      if (this.scene) this.scene.remove(this.tubeMesh);
       this.tubeMesh.geometry.dispose();
       this.tubeMesh.material.dispose();
     }

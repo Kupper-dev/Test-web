@@ -74,16 +74,6 @@ export function initLusionAnimations() {
   canvas.style.zIndex = '2'; // In front of text layer, behind play button
   document.body.insertBefore(canvas, document.body.firstChild); // Insert as first child of body to avoid section transform shifts
 
-  // Initialize 3D Translucent Glass Flow Tube Renderer
-  glassFlowRenderer = new GlassFlowRenderer(canvas, {
-    tubeRadius: 18,
-    glassOpacity: 0.45,
-    glassBlur: 0.35,
-    rimGlowIntensity: 1.4,
-    flowSpeed: 2.5
-  });
-  glassFlowRenderer.startAnimationLoop();
-
 
   // ───────────────────────────────────────────────
   // 1. Text Splitting & GSAP Scroll Animation
@@ -382,18 +372,15 @@ export function initLusionAnimations() {
     // 'centripetal' prevents Frenet frame flipping on tight curves (erratic polygon fix)
     curve = new THREE.CatmullRomCurve3(curvePoints, false, 'centripetal');
 
-    // Setup line geometry and material (Tube Mesh with Vertex Colors)
-    const lineGeom = new THREE.BufferGeometry();
-    const lineMat = new THREE.MeshBasicMaterial({
-      vertexColors: true,
-      transparent: true,
-      opacity: 0.9,
-      side: THREE.DoubleSide,
-      depthWrite: false
+    // 3D Translucent Frosted Glass Tube & Inner Blue Energy Flow Renderer
+    glassFlowRenderer = new GlassFlowRenderer({
+      scene: scene,
+      tubeRadius: 22,
+      glassOpacity: 0.5,
+      glassBlur: 0.35,
+      rimGlowIntensity: 1.5,
+      flowSpeed: 2.8
     });
-    lineMesh = new THREE.Mesh(lineGeom, lineMat);
-    lineMesh.renderOrder = 1; // Render first (behind card)
-    scene.add(lineMesh);
 
     // ───────────────────────────────────────────────
     // 3. Morphing Video Thumbnail Mesh
@@ -575,39 +562,20 @@ function tick() {
   const sectionWebGLX = sectionRect.left - w / 2;
   const sectionWebGLY = h / 2 - sectionRect.top;
 
-  if (lineMesh) {
-    lineMesh.position.set(
-      sectionWebGLX - w * 0.03, // 3% left
-      sectionWebGLY + h * 0.25, // 25% up
-      -5.0
-    );
-  }
-
-  // Draw progress is split into two phases to avoid the mid-scroll freeze:
-  //
-  // PROBLEM: once GSAP pins the section, getBoundingClientRect().top freezes at
-  //          the pin position (h * 0.25) for the entire scroll duration → drawRatio
-  //          gets stuck mid-value and the line stops drawing.
-  //
-  // FIX: Phase 1 (pre-pin) is driven by sectionRect.top  →  drawRatio 0 → prePinWeight
-  //      Phase 2 (during pin) is driven by morphTl progress →  drawRatio prePinWeight → 1.0
-  //
-  //   prePinWeight + pinWeight must sum to 1.0
-  //   Adjust to control how much of the draw happens before vs. during the morph.
-
-  const startY    = h * 0.95; // section-top at which drawing starts
-  const pinStartY = h * 0.25; // must match morphTl ScrollTrigger start ('top 25%')
+  // Draw progress is split into two phases:
+  // Phase 1 (pre-pin) is driven by sectionRect.top (0 -> 0.45)
+  // Phase 2 (during pin) is driven by morphTl progress (0.45 -> 1.0)
+  const startY    = h * 0.95;
+  const pinStartY = h * 0.25;
   const currentY  = sectionRect.top;
 
-  const prePinWeight = 0.45; // fraction of total draw completed before pin
-  const pinWeight    = 0.55; // fraction completed during the pinned morph
+  const prePinWeight = 0.45;
+  const pinWeight    = 0.55;
 
-  // Phase 1: how far we are from startY down to pinStartY (0 → 1)
   const prePinProgress = Math.max(0, Math.min(1,
     (startY - currentY) / (startY - pinStartY)
   ));
 
-  // Phase 2: morphTl.scrollTrigger.progress is 0 → 1 during the pinned scroll
   const pinProgress = (morphTl && morphTl.scrollTrigger)
     ? morphTl.scrollTrigger.progress
     : 0;
@@ -618,57 +586,16 @@ function tick() {
 
   if (glassFlowRenderer) {
     glassFlowRenderer.update(drawRatio);
-  }
-
-  if (curve) {
-    const totalPoints = 300;
-    const currentPointsCount = Math.max(2, Math.floor(drawRatio * totalPoints));
-    const activePoints = curve.getPoints(totalPoints).slice(0, currentPointsCount);
-
-    if (activePoints.length >= 2) {
-      // centripetal prevents Frenet frame flips on tight bends (erratic polygon fix)
-      const subCurve = new THREE.CatmullRomCurve3(activePoints, false, 'centripetal');
-      const tubularSegments = activePoints.length * 2;
-      const radialSegments = 14;
-      const radius = 10.2;
-
-      const newGeom = new THREE.TubeGeometry(subCurve, tubularSegments, radius, radialSegments, false);
-
-      // Generate gradient vertex colors along the path segments
-      const count = newGeom.attributes.position.count;
-      const colors = new Float32Array(count * 3);
-
-      const colorStart = new THREE.Color('#2051FF');
-      const colorMid = new THREE.Color('#1B73F5');
-      const colorEnd = new THREE.Color('#65C2FF');
-
-      let index = 0;
-      for (let i = 0; i <= tubularSegments; i++) {
-        const ratio = i / tubularSegments;
-        let c;
-        if (ratio < 0.5) {
-          // Interpolate start to mid (scale ratio to 0-1)
-          c = colorStart.clone().lerp(colorMid, ratio * 2);
-        } else {
-          // Interpolate mid to end (scale ratio to 0-1)
-          c = colorMid.clone().lerp(colorEnd, (ratio - 0.5) * 2);
-        }
-
-        for (let j = 0; j <= radialSegments; j++) {
-          colors[index++] = c.r;
-          colors[index++] = c.g;
-          colors[index++] = c.b;
-        }
-      }
-
-      newGeom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-      if (lineMesh.geometry) {
-        lineMesh.geometry.dispose();
-      }
-      lineMesh.geometry = newGeom;
+    if (glassFlowRenderer.tubeMesh) {
+      glassFlowRenderer.tubeMesh.position.set(
+        sectionWebGLX - w * 0.03, // 3% left
+        sectionWebGLY + h * 0.25, // 25% up
+        -5.0
+      );
     }
   }
+
+
 
   // 2. Update Thumbnail-to-Video Position and Morph
   if (!thumbEl) {
