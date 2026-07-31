@@ -146,8 +146,11 @@ export class GlassFlowRenderer {
         varying vec2 vUv;
         
         void main() {
-          vec2 off1 = vec2(1.3846153846) * uDirection / uResolution;
-          vec2 off2 = vec2(3.2307692308) * uDirection / uResolution;
+          // Exact size of one pixel on the screen
+          vec2 texel = 1.0 / uResolution; 
+          
+          vec2 off1 = vec2(1.3846153846) * uDirection * texel;
+          vec2 off2 = vec2(3.2307692308) * uDirection * texel;
           
           vec4 color = texture2D(tDiffuse, vUv) * 0.2270270270;
           color += texture2D(tDiffuse, vUv + off1) * 0.3162162162;
@@ -300,7 +303,8 @@ export class GlassFlowRenderer {
         tSharp: { value: this.coreRenderTarget.texture },
         tBlurred: { value: this.blurTarget2.texture },
         uResolution: { value: new THREE.Vector2(width * pixelRatio, height * pixelRatio) },
-        uProgress: { value: this.config.progress }
+        uProgress: { value: this.config.progress },
+        uDebugMode: { value: 0.0 } // 0=Final, 1=Sharp, 2=Blurred, 3=Fresnel, 4=BlurMix
       },
       transparent: true,
       depthWrite: false,
@@ -323,6 +327,7 @@ export class GlassFlowRenderer {
         uniform sampler2D tBlurred;
         uniform vec2 uResolution;
         uniform float uProgress;
+        uniform float uDebugMode;
 
         varying vec2 vUv;
         varying vec3 vNormal;
@@ -335,13 +340,46 @@ export class GlassFlowRenderer {
           }
 
           vec2 screenUv = gl_FragCoord.xy / uResolution;
-          
-          // Sample textures
+
+          vec3 normal = normalize(vNormal);
+          vec3 viewDir = normalize(vViewPosition);
+          float fresnel = 1.0 - abs(dot(normal, viewDir));
+
+          // Sample core render targets in screen-space
+          vec4 sharpCore = texture2D(tSharp, screenUv);
           vec4 blurredCore = texture2D(tBlurred, screenUv);
-          
-          // DIAGNOSTIC OVERRIDE: Output only the blur target
-          // We force alpha to 1.0 so it doesn't blend with the background temporarily
-          gl_FragColor = vec4(blurredCore.rgb, 1.0);
+
+          // 1. Edge-dependent blur mix (Sharp in center, blurred at edges)
+          float blurMix = pow(fresnel, 2.5);
+          vec4 coreComposite = mix(sharpCore, blurredCore, blurMix);
+
+          // 2. White subsurface scattering (Soft haze)
+          float hazeAlpha = pow(fresnel, 5.0) * 0.3;
+
+          // 3. Thin bright rim highlight
+          float rimAlpha = pow(fresnel, 10.0) * 0.9;
+
+          // Final Compositing
+          float finalAlpha = max(max(coreComposite.a, hazeAlpha), rimAlpha);
+          vec3 finalColor = coreComposite.rgb + (vec3(1.0) * hazeAlpha) + (vec3(1.0) * rimAlpha);
+
+          // Tip fade logic
+          float tipFade = clamp((uProgress - vUv.x) / 0.02, 0.0, 1.0);
+          finalAlpha *= tipFade;
+          coreComposite.a *= tipFade;
+
+          // DIAGNOSTIC OUTPUT
+          if (uDebugMode == 1.0) {
+            gl_FragColor = vec4(sharpCore.rgb * coreComposite.a, coreComposite.a); // Mode 1: Show Sharp (premultiplied)
+          } else if (uDebugMode == 2.0) {
+            gl_FragColor = vec4(blurredCore.rgb * coreComposite.a, coreComposite.a); // Mode 2: Show Blurred (premultiplied)
+          } else if (uDebugMode == 3.0) {
+            gl_FragColor = vec4(vec3(fresnel) * tipFade, tipFade); // Mode 3: Show Fresnel Mask
+          } else if (uDebugMode == 4.0) {
+            gl_FragColor = vec4(vec3(blurMix) * tipFade, tipFade); // Mode 4: Show Blur Mix Weight
+          } else {
+            gl_FragColor = vec4(finalColor * finalAlpha, finalAlpha); // Mode 0: Final Pre-multiplied Composite
+          }
         }
       `
     });
@@ -479,14 +517,16 @@ export class GlassFlowRenderer {
 
     // STEP 2: Horizontal Blur (Core -> Target 1)
     this.blurMaterial.uniforms.tDiffuse.value = this.coreRenderTarget.texture;
-    this.blurMaterial.uniforms.uDirection.value.set(16.0, 0.0); // Massive horizontal spread
+    this.blurMaterial.uniforms.uDirection.value.set(8.0, 0.0); // 8.0 spread
+    this.blurMaterial.uniformsNeedUpdate = true; // Force update
     this.renderer.setRenderTarget(this.blurTarget1);
     this.renderer.clear();
     this.renderer.render(this.blurScene, this.blurCamera);
 
     // STEP 3: Vertical Blur (Target 1 -> Target 2)
     this.blurMaterial.uniforms.tDiffuse.value = this.blurTarget1.texture;
-    this.blurMaterial.uniforms.uDirection.value.set(0.0, 16.0); // Massive vertical spread
+    this.blurMaterial.uniforms.uDirection.value.set(0.0, 8.0); // 8.0 spread
+    this.blurMaterial.uniformsNeedUpdate = true; // Force update
     this.renderer.setRenderTarget(this.blurTarget2);
     this.renderer.clear();
     this.renderer.render(this.blurScene, this.blurCamera);
