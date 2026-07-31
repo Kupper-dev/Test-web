@@ -122,9 +122,139 @@ export class GlassFlowRenderer {
       this.config.radialSegments,
       false
     );
-    const material = new THREE.MeshBasicMaterial({ color: 0x2563eb, wireframe: true });
-    this.tubeMesh = new THREE.Mesh(geometry, material);
+
+    this.material = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: { value: 0 },
+        uProgress: { value: this.config.progress },
+        uGlassColor: { value: new THREE.Color(this.config.glassColor) },
+        uGlassOpacity: { value: this.config.glassOpacity },
+        uGlassBlur: { value: this.config.glassBlur },
+        uRimGlowIntensity: { value: this.config.rimGlowIntensity },
+        uRimWidth: { value: this.config.rimWidth },
+        uCoreRadiusRatio: { value: this.config.coreRadiusRatio },
+        uCoreColor: { value: new THREE.Color(this.config.coreColor) },
+        uGlowColor: { value: new THREE.Color(this.config.glowColor) },
+        uFlowSpeed: { value: this.config.flowSpeed },
+        uFlowDirection: { value: this.config.flowDirection },
+        uHighlightDensity: { value: this.config.highlightDensity }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+
+        void main() {
+          vUv = uv;
+          vNormal = normalize(normalMatrix * normal);
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          vViewPosition = -mvPosition.xyz;
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        uniform float uTime;
+        uniform float uProgress;
+        uniform vec3 uGlassColor;
+        uniform float uGlassOpacity;
+        uniform float uGlassBlur;
+        uniform float uRimGlowIntensity;
+        uniform float uRimWidth;
+        uniform float uCoreRadiusRatio;
+        uniform vec3 uCoreColor;
+        uniform vec3 uGlowColor;
+        uniform float uFlowSpeed;
+        uniform float uFlowDirection;
+        uniform float uHighlightDensity;
+
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+
+        void main() {
+          vec3 normal = normalize(vNormal);
+          vec3 viewDir = normalize(vViewPosition);
+
+          // 1. Fresnel Rim Specular Highlight (Luminous glass edges)
+          float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), uRimWidth);
+          vec3 rimGlow = vec3(1.0) * fresnel * uRimGlowIntensity;
+
+          // 2. Outer Frosted Glass Base Body
+          float glassAlpha = mix(uGlassOpacity, 0.95, fresnel);
+          vec3 glassBody = mix(uGlassColor, vec3(1.0), fresnel * 0.4);
+
+          // 3. Inner Blue Data Stream (Drawing & Moving Highlights inside tube)
+          float distFromCenter = abs(vUv.y - 0.5) * 2.0;
+
+          // Soft blurred edge falloff inside the glass
+          float coreAlpha = smoothstep(uCoreRadiusRatio, uCoreRadiusRatio - uGlassBlur, distFromCenter);
+
+          // Smooth self-drawing cutoff along tube length according to uProgress
+          float drawMask = smoothstep(vUv.x - 0.015, vUv.x + 0.005, uProgress);
+
+          // Traveling energy waves/pulses
+          float wave = sin(vUv.x * uHighlightDensity - uTime * uFlowSpeed * uFlowDirection) * 0.5 + 0.5;
+          wave = pow(wave, 2.0); // Sharpen highlights
+
+          vec3 flowEnergy = mix(uCoreColor, uGlowColor, wave);
+
+          // Combine inner energy with self-drawing mask and radial core falloff
+          vec3 activeFlow = flowEnergy * coreAlpha * drawMask;
+
+          // 4. Final Glass & Flow Composite
+          vec3 finalColor = glassBody + rimGlow + activeFlow;
+          float finalAlpha = max(glassAlpha, coreAlpha * drawMask * 0.9);
+
+          gl_FragColor = vec4(finalColor, finalAlpha);
+        }
+      `,
+      transparent: true,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+
+    this.tubeMesh = new THREE.Mesh(geometry, this.material);
     this.scene.add(this.tubeMesh);
+  }
+
+  update(progress) {
+    if (progress !== undefined) {
+      this.config.progress = progress;
+    }
+    if (this.material) {
+      this.material.uniforms.uTime.value = this.clock.getElapsedTime();
+      this.material.uniforms.uProgress.value = this.config.progress;
+    }
+    this.render();
+  }
+
+  startAnimationLoop() {
+    const loop = () => {
+      this.update();
+      this.animationFrameId = requestAnimationFrame(loop);
+    };
+    loop();
+  }
+
+  stopAnimationLoop() {
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+  }
+
+  updateConfig(newOptions = {}) {
+    Object.assign(this.config, newOptions);
+    if (!this.material) return;
+    const u = this.material.uniforms;
+    if (newOptions.glassColor) u.uGlassColor.value.set(newOptions.glassColor);
+    if (newOptions.coreColor) u.uCoreColor.value.set(newOptions.coreColor);
+    if (newOptions.glowColor) u.uGlowColor.value.set(newOptions.glowColor);
+    if (newOptions.glassOpacity !== undefined) u.uGlassOpacity.value = newOptions.glassOpacity;
+    if (newOptions.glassBlur !== undefined) u.uGlassBlur.value = newOptions.glassBlur;
+    if (newOptions.rimGlowIntensity !== undefined) u.uRimGlowIntensity.value = newOptions.rimGlowIntensity;
+    if (newOptions.flowSpeed !== undefined) u.uFlowSpeed.value = newOptions.flowSpeed;
+    if (newOptions.highlightDensity !== undefined) u.uHighlightDensity.value = newOptions.highlightDensity;
   }
 
   addResizeListener() {
@@ -161,7 +291,7 @@ export class GlassFlowRenderer {
   }
 
   destroy() {
-    if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
+    this.stopAnimationLoop();
     window.removeEventListener('resize', this.onResize);
     if (this.tubeMesh) {
       this.tubeMesh.geometry.dispose();
