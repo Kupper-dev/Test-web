@@ -8,11 +8,11 @@ export const GlassFlowConfig = {
 
   // Soft Translucent Glass Conduit Wrapper
   glassColor: 0x2563eb,        // Deep translucent glass base tint
-  glassOpacity: 0.25,          // Light glass opacity (allows vivid blue core to dominate)
+  glassOpacity: 0.30,          // Light glass opacity (allows vivid blue core to dominate)
   glassBlur: 0.25,             // Internal edge diffusion
-  rimGlowIntensity: 0.40,      // Soft cyan edge sheen (no white blowout)
-  rimWidth: 2.0,               // Soft Fresnel exponent
-  wallThicknessRatio: 0.18,    // Glass wall boundary
+  rimGlowIntensity: 0.50,      // Soft cyan edge sheen (no white blowout)
+  rimWidth: 2.2,               // Soft Fresnel exponent
+  wallThicknessRatio: 0.20,    // Glass wall boundary
 
   // Hero Element: Vivid Saturated Blue Energy Stream
   coreColor: 0x024cf8,         // Ultra-vibrant saturated electric blue
@@ -129,6 +129,8 @@ export class GlassFlowRenderer {
       this.config.radialSegments,
       false
     );
+    // Explicitly compute averaged smooth vertex normals to eliminate Frenet frame torsion kinks
+    geometry.computeVertexNormals();
 
     this.material = new THREE.ShaderMaterial({
       uniforms: {
@@ -186,11 +188,17 @@ export class GlassFlowRenderer {
           float NdotV = max(dot(interpolatedNormal, viewDir), 0.0);
           float rimFresnel = pow(1.0 - NdotV, uRimWidth);
 
-          vec3 rimSheen = vec3(0.40, 0.80, 1.0) * rimFresnel * uRimGlowIntensity;
-          vec3 glassBase = mix(uGlassColor, vec3(0.4, 0.75, 1.0), rimFresnel * 0.4) + rimSheen;
-          float glassAlpha = mix(uGlassOpacity, uGlassOpacity * 1.5, rimFresnel);
+          vec3 lightDir = normalize(vec3(0.2, 0.9, 0.4));
+          vec3 halfVector = normalize(lightDir + viewDir);
+          float specular = pow(max(dot(interpolatedNormal, halfVector), 0.0), 16.0) * 0.25;
 
-          // 2. HERO Element: Vivid Blue Data Flow Stream (Full Saturation & Prominence)
+          vec3 rimSheen = vec3(0.40, 0.80, 1.0) * rimFresnel * uRimGlowIntensity;
+          vec3 specSheen = vec3(0.90, 0.95, 1.0) * specular;
+
+          vec3 glassBase = mix(uGlassColor, vec3(0.4, 0.75, 1.0), rimFresnel * 0.4) + specSheen + rimSheen;
+          float glassAlpha = mix(uGlassOpacity, uGlassOpacity * 1.4, rimFresnel);
+
+          // 2. HERO Element: Vivid Saturated Blue Data Flow Stream
           // 1D trigonometric radial profile across 3D tube cross-section (1.0 at center, 0.0 at edges)
           float radialDist = sin(vUv.y * 3.14159265);
 
@@ -198,7 +206,7 @@ export class GlassFlowRenderer {
           float boreMask = smoothstep(uWallThicknessRatio, uWallThicknessRatio + uGlassBlur, radialDist);
 
           // Core volume intensity: bright saturated blue stream in center
-          float coreProfile = pow(radialDist, 1.8);
+          float coreProfile = pow(radialDist, 1.6);
 
           // Smooth self-drawing progress mask along tube length (vUv.x goes 0.0 -> 1.0)
           float drawMask = smoothstep(vUv.x + 0.010, vUv.x - 0.005, uProgress);
@@ -206,17 +214,17 @@ export class GlassFlowRenderer {
           // Procedural traveling wave energy pulses along length
           float wave1 = sin(vUv.x * uHighlightDensity - uTime * uFlowSpeed * uFlowDirection) * 0.5 + 0.5;
           float wave2 = sin(vUv.x * (uHighlightDensity * 1.8) + uTime * (uFlowSpeed * 1.2) * uFlowDirection) * 0.5 + 0.5;
-          float energyPulse = pow(mix(wave1, wave2, 0.5), 1.5);
+          float energyPulse = pow(mix(wave1, wave2, 0.5), 1.4);
 
           // Rich, saturated blue energy color (100% blue saturation preserved)
           vec3 energyColor = mix(uCoreColor, uGlowColor, energyPulse);
 
           // Active blue energy stream
-          vec3 activeBlueFlow = energyColor * coreProfile * boreMask * drawMask * 1.25;
+          vec3 activeBlueFlow = energyColor * coreProfile * boreMask * drawMask * 1.3;
 
           // 3. Composite: Glass Shell wraps around Vivid Blue Energy
           // When drawing (drawMask > 0), the vibrant blue energy is the dominant visual color!
-          vec3 finalColor = mix(glassBase, activeBlueFlow + rimSheen * 0.5, drawMask * boreMask);
+          vec3 finalColor = mix(glassBase, activeBlueFlow + rimSheen * 0.4, drawMask * boreMask);
           float finalAlpha = max(glassAlpha, drawMask * boreMask * 0.95);
 
           gl_FragColor = vec4(finalColor, finalAlpha);
@@ -295,13 +303,15 @@ export class GlassFlowRenderer {
       this.buildCurveFromSvg();
       if (this.tubeMesh) {
         this.tubeMesh.geometry.dispose();
-        this.tubeMesh.geometry = new THREE.TubeGeometry(
+        const newGeom = new THREE.TubeGeometry(
           this.curve,
           this.config.tubularSegments,
           this.config.tubeRadius,
           this.config.radialSegments,
           false
         );
+        newGeom.computeVertexNormals();
+        this.tubeMesh.geometry = newGeom;
       }
     };
     window.addEventListener('resize', this.onResize);
