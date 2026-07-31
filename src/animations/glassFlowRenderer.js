@@ -174,13 +174,13 @@ export class GlassFlowRenderer {
           vec3 finalColor = (coreColor * coreMask) + (frostColor * frostMask * 0.35) + (rimColor * rimMask * 0.7);
           
           // 5. Calculate Final Alpha (preserving glass transparency in the mid-section)
-          float alpha = max(max(coreMask, frostMask * 0.35), rimMask * 0.7);
+          float alpha = max(coreMask, frostMask * 0.4) + (rimMask * 0.5);
 
           // Safe GPU calculation for soft fade at the very tip of the flowing liquid
           float tipFade = clamp((uProgress - vUv.x) / 0.05, 0.0, 1.0);
           alpha *= tipFade;
 
-          gl_FragColor = vec4(finalColor, alpha);
+          gl_FragColor = vec4(finalColor, clamp(alpha, 0.0, 1.0));
         }
       `,
       transparent: true,
@@ -190,7 +190,9 @@ export class GlassFlowRenderer {
     });
 
     this.tubeMesh = new THREE.Mesh(geometry, this.material);
+    this.tubeMesh.frustumCulled = false; // Disable culling so massive tube is not cut off
     this.tubeMesh.renderOrder = 1;
+
 
     if (this.scene) {
       this.scene.add(this.tubeMesh);
