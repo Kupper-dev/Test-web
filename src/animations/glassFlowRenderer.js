@@ -52,13 +52,7 @@ export class GlassFlowRenderer {
 
   setupScene() {
     if (this.scene) {
-      // Inject Scene Lighting directly into the active scene
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-      this.scene.add(ambientLight);
-
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
-      directionalLight.position.set(10, 20, 15);
-      this.scene.add(directionalLight);
+      // Scene lights removed to optimize unlit shader performance
       return;
     }
 
@@ -66,12 +60,7 @@ export class GlassFlowRenderer {
     const height = window.innerHeight;
     this.scene = new THREE.Scene();
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-    this.scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
-    directionalLight.position.set(10, 20, 15);
-    this.scene.add(directionalLight);
+    // Scene lights removed to optimize unlit shader performance
 
     const fov = 45;
     this.camera = new THREE.PerspectiveCamera(fov, width / height, 0.1, 20000);
@@ -156,34 +145,40 @@ export class GlassFlowRenderer {
     );
     coreGeometry.computeVertexNormals();
 
-    this.coreMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(0x000000), // Black base to prevent ambient washout
-      emissive: new THREE.Color('#0f3ce6'), // Vivid Ultramarine Blue
-      emissiveIntensity: 4.0, // High emission intensity to punch through glass transmission
-      roughness: 0.2,
-      metalness: 0.1,
-      transparent: false // Must be false for outer transmission to capture & blur it
+    this.coreMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        uProgress: { value: this.config.progress }
+      },
+      transparent: true,
+      side: THREE.FrontSide,
+      blending: THREE.NormalBlending,
+      depthWrite: false,
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float uProgress;
+        varying vec2 vUv;
+        void main() {
+          // Scroll Draw Logic
+          if (vUv.x > uProgress) {
+            discard;
+          }
+          vec3 color = vec3(0.0588, 0.2353, 0.9020); // Hex #0f3ce6 (Vivid Ultramarine Blue)
+          float alpha = 0.95;
+
+          // Tip fade logic
+          float tipFade = clamp((uProgress - vUv.x) / 0.02, 0.0, 1.0);
+          alpha *= tipFade;
+
+          gl_FragColor = vec4(color * alpha, alpha); // Premultiplied
+        }
+      `
     });
-
-    // Compile-time extension to inject scroll drawing (discard) logic
-    this.coreMaterial.onBeforeCompile = (shader) => {
-      shader.uniforms.uProgress = { value: this.config.progress };
-      this.coreShader = shader;
-
-      shader.fragmentShader = 'uniform float uProgress;\nvarying vec2 vUv;\n' + shader.fragmentShader;
-      shader.vertexShader = 'varying vec2 vUv;\n' + shader.vertexShader.replace(
-        '#include <uv_vertex>',
-        `#include <uv_vertex>
-        vUv = uv;`
-      );
-      shader.fragmentShader = shader.fragmentShader.replace(
-        'void main() {',
-        `void main() {
-        if (vUv.x > uProgress) {
-          discard;
-        }`
-      );
-    };
 
     this.coreMesh = new THREE.Mesh(coreGeometry, this.coreMaterial);
     this.coreMesh.frustumCulled = false;
@@ -200,41 +195,54 @@ export class GlassFlowRenderer {
     );
     glassGeometry.computeVertexNormals();
 
-    this.glassMaterial = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color('#ffffff'),
-      transmission: 1.0, // Glass transparency
-      roughness: 0.25,   // Frosted glass blur effect (less chalky)
-      clearcoat: 1.0,    // Sharp outer reflection layer
-      clearcoatRoughness: 0.1,
-      ior: 1.5,
-      thickness: 2.0,
-      attenuationColor: new THREE.Color('#0f3ce6'), // Volumetric blue bleed
-      attenuationDistance: 5.0,
+    this.glassMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        uProgress: { value: this.config.progress }
+      },
       transparent: true,
-      side: THREE.FrontSide,
       depthWrite: false, // Prevents transparent self-occlusion
-      blending: THREE.NormalBlending
+      side: THREE.FrontSide,
+      blending: THREE.AdditiveBlending, // Luminous white overlay highlight
+      vertexShader: `
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        void main() {
+          vUv = uv;
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          vViewPosition = -mvPosition.xyz;
+          vNormal = normalize(normalMatrix * normal);
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        uniform float uProgress;
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        void main() {
+          // Scroll Draw Logic
+          if (vUv.x > uProgress) {
+            discard;
+          }
+
+          vec3 normal = normalize(vNormal);
+          vec3 viewDir = normalize(vViewPosition);
+          float viewDot = abs(dot(normal, viewDir));
+
+          // Create a sharp, luminous rim highlight
+          float rim = pow(1.0 - viewDot, 2.5); 
+          float alpha = rim * 0.7; // Limit max opacity
+
+          // Tip fade logic
+          float tipFade = clamp((uProgress - vUv.x) / 0.02, 0.0, 1.0);
+          alpha *= tipFade;
+
+          // Additive blending outputs light color directly
+          gl_FragColor = vec4(1.0 * alpha, 1.0 * alpha, 1.0 * alpha, alpha);
+        }
+      `
     });
-
-    // Compile-time extension to inject scroll drawing (discard) logic
-    this.glassMaterial.onBeforeCompile = (shader) => {
-      shader.uniforms.uProgress = { value: this.config.progress };
-      this.glassShader = shader;
-
-      shader.fragmentShader = 'uniform float uProgress;\nvarying vec2 vUv;\n' + shader.fragmentShader;
-      shader.vertexShader = 'varying vec2 vUv;\n' + shader.vertexShader.replace(
-        '#include <uv_vertex>',
-        `#include <uv_vertex>
-        vUv = uv;`
-      );
-      shader.fragmentShader = shader.fragmentShader.replace(
-        'void main() {',
-        `void main() {
-        if (vUv.x > uProgress) {
-          discard;
-        }`
-      );
-    };
 
     this.glassMesh = new THREE.Mesh(glassGeometry, this.glassMaterial);
     this.glassMesh.frustumCulled = false;
@@ -257,11 +265,11 @@ export class GlassFlowRenderer {
       this.config.progress = progress;
     }
 
-    if (this.coreShader) {
-      this.coreShader.uniforms.uProgress.value = this.config.progress;
+    if (this.coreMaterial) {
+      this.coreMaterial.uniforms.uProgress.value = this.config.progress;
     }
-    if (this.glassShader) {
-      this.glassShader.uniforms.uProgress.value = this.config.progress;
+    if (this.glassMaterial) {
+      this.glassMaterial.uniforms.uProgress.value = this.config.progress;
     }
 
     if (this.renderer && this.scene && this.camera) {
@@ -287,8 +295,8 @@ export class GlassFlowRenderer {
   updateConfig(newOptions = {}) {
     Object.assign(this.config, newOptions);
     if (newOptions.progress !== undefined) {
-      if (this.coreShader) this.coreShader.uniforms.uProgress.value = newOptions.progress;
-      if (this.glassShader) this.glassShader.uniforms.uProgress.value = newOptions.progress;
+      if (this.coreMaterial) this.coreMaterial.uniforms.uProgress.value = newOptions.progress;
+      if (this.glassMaterial) this.glassMaterial.uniforms.uProgress.value = newOptions.progress;
     }
   }
 
