@@ -71,19 +71,16 @@ export function initLusionAnimations() {
   // Initialize WebGL Canvas
   canvas = document.createElement('canvas');
   canvas.id = 'lusion-canvas';
-  canvas.style.position = 'absolute';
+  canvas.style.position = 'fixed';
   canvas.style.top = '0';
   canvas.style.left = '0';
-  canvas.style.width = '100%';
-  canvas.style.height = '100%';
+  canvas.style.width = '100vw';
+  canvas.style.height = '100vh';
   canvas.style.zIndex = '-1';
   canvas.style.pointerEvents = 'none';
   canvas.style.backgroundColor = 'transparent';
-  if (containerEl) {
-    containerEl.appendChild(canvas);
-  } else {
-    document.body.insertBefore(canvas, document.body.firstChild);
-  }
+  document.body.insertBefore(canvas, document.body.firstChild);
+
 
 
 
@@ -309,17 +306,16 @@ export function initLusionAnimations() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    // Force Canvas CSS immediately after creation to span the entire viewport behind content
-    renderer.domElement.style.position = 'absolute';
+    // Force Canvas CSS immediately after creation to span the entire viewport behind content as fixed overlay
+    renderer.domElement.style.position = 'fixed';
     renderer.domElement.style.top = '0';
     renderer.domElement.style.left = '0';
-    renderer.domElement.style.width = '100%';
-    renderer.domElement.style.height = '100%';
+    renderer.domElement.style.width = '100vw';
+    renderer.domElement.style.height = '100vh';
     renderer.domElement.style.zIndex = '-1';
     renderer.domElement.style.pointerEvents = 'none';
     renderer.domElement.style.background = 'transparent';
     renderer.domElement.style.backgroundColor = 'rgba(0,0,0,0)';
-
 
 
     // Add webgl-active class to hide duplicate HTML placeholder elements
@@ -332,7 +328,8 @@ export function initLusionAnimations() {
     camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 0.1, 20000);
     camera.updateProjectionMatrix();
     const depth = window.innerHeight / (2 * Math.tan((fov * Math.PI) / 360));
-    camera.position.set(0, 0, depth + 500);
+    camera.position.set(0, 0, depth);
+
 
 
 
@@ -534,7 +531,7 @@ export function initLusionAnimations() {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.far = 20000;
       const depth = window.innerHeight / (2 * Math.tan((45 * Math.PI) / 360));
-      camera.position.z = depth + 500;
+      camera.position.z = depth;
       camera.updateProjectionMatrix();
     }
 

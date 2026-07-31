@@ -170,7 +170,7 @@ export class GlassFlowRenderer {
 
           // Zone B: The Frosted Glass Wall (Mid-radius)
           float frostMask = smoothstep(0.2, 0.7, viewDot) - coreMask;
-          vec3 frostColor = vec3(0.9, 0.95, 1.0); // Semi-transparent icy blue
+          vec3 frostColor = vec3(1.0, 1.0, 1.0); // Pure white frosted wall to prevent gray edges
 
           // Zone C: The Rim Highlight (Grazing edges)
           float rimMask = 1.0 - smoothstep(0.0, 0.3, viewDot);
@@ -181,7 +181,6 @@ export class GlassFlowRenderer {
           
           // 5. Calculate Final Alpha (preserving glass transparency in the mid-section)
           float alpha = max(coreMask, frostMask * 0.4) + (rimMask * 0.5);
-
 
           // Safe GPU calculation for soft fade at the very tip of the flowing liquid
           float tipFade = clamp((uProgress - vUv.x) / 0.05, 0.0, 1.0);
@@ -197,11 +196,13 @@ export class GlassFlowRenderer {
       blending: THREE.NormalBlending
     });
 
+    // Center geometry to origin to align layout coordinates perfectly
+    geometry.computeBoundingBox();
+    geometry.center();
 
     this.tubeMesh = new THREE.Mesh(geometry, this.material);
     this.tubeMesh.frustumCulled = false; // Disable culling so massive tube is not cut off
     this.tubeMesh.renderOrder = 1;
-
 
     if (this.scene) {
       this.scene.add(this.tubeMesh);
@@ -275,6 +276,8 @@ export class GlassFlowRenderer {
           false
         );
         newGeom.computeVertexNormals();
+        newGeom.computeBoundingBox();
+        newGeom.center();
         this.tubeMesh.geometry = newGeom;
       }
     };
