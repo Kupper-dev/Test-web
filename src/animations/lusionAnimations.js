@@ -304,6 +304,10 @@ export function initLusionAnimations() {
       containerEl.appendChild(canvas);
       // Ensure the wrapper itself has position: relative
       containerEl.style.position = 'relative';
+      // Force GSAP ScrollTrigger to recalculate DOM offsets
+      if (typeof ScrollTrigger !== 'undefined') {
+        ScrollTrigger.refresh();
+      }
     }
 
     const containerWidth = containerEl ? containerEl.clientWidth : window.innerWidth;
@@ -329,12 +333,13 @@ export function initLusionAnimations() {
       containerEl.classList.add('webgl-active');
     }
 
-    // Perspective Camera mapping to screen coordinates with Y-offset
+    // Perspective Camera mapping 1:1 to screen pixels at z = 0 with original depth
     const fov = 45;
-    camera = new THREE.PerspectiveCamera(fov, containerWidth / containerHeight, 0.1, 20000);
-    camera.position.set(0, -200, 1000);
+    camera = new THREE.PerspectiveCamera(fov, containerWidth / containerHeight, 1, 2000);
+    const depth = containerHeight / (2 * Math.tan((fov * Math.PI) / 360));
+    camera.position.set(0, 0, depth);
     camera.updateProjectionMatrix();
-    camera.lookAt(0, 0, 0);
+
 
 
 
@@ -546,8 +551,9 @@ export function initLusionAnimations() {
     }
     if (camera) {
       camera.aspect = containerWidth / containerHeight;
-      camera.far = 20000;
-      camera.position.set(0, -200, 1000);
+      camera.far = 2000;
+      const depth = containerHeight / (2 * Math.tan((45 * Math.PI) / 360));
+      camera.position.set(0, 0, depth);
       camera.updateProjectionMatrix();
     }
 

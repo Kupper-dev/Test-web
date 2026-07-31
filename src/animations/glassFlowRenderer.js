@@ -198,10 +198,6 @@ export class GlassFlowRenderer {
       blending: THREE.NormalBlending
     });
 
-    // Center geometry to origin to align layout coordinates perfectly
-    geometry.computeBoundingBox();
-    geometry.center();
-
     this.tubeMesh = new THREE.Mesh(geometry, this.material);
     this.tubeMesh.frustumCulled = false; // Disable culling so massive tube is not cut off
     this.tubeMesh.renderOrder = 1;
@@ -278,8 +274,6 @@ export class GlassFlowRenderer {
           false
         );
         newGeom.computeVertexNormals();
-        newGeom.computeBoundingBox();
-        newGeom.center();
         this.tubeMesh.geometry = newGeom;
       }
     };
