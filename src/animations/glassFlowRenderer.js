@@ -23,8 +23,7 @@ export class GlassFlowRenderer {
     this.camera = this.config.camera || null;
     this.renderer = this.config.renderer || null;
 
-    // Advanced Compositor Architecture Scenes & Render Targets
-    this.coreScene = new THREE.Scene();
+    // Advanced Compositor Architecture Render Targets
     this.coreRenderTarget = null;
     this.blurredRenderTarget = null;
     this.tempRenderTarget = null;
@@ -42,7 +41,7 @@ export class GlassFlowRenderer {
     // Compatibility hooks for lusionAnimations.js
     this.innerMesh = null;
     this.outerMesh = null;
-    this.tubeMesh = null; // Expose as outer shell mesh so positioning matches perfectly
+    this.tubeMesh = null;
 
     this.coreMaterial = null;
     this.glassMaterial = null;
@@ -95,6 +94,8 @@ export class GlassFlowRenderer {
   setupRenderTargets() {
     const width = window.innerWidth;
     const height = window.innerHeight;
+    const pixelRatio = this.renderer ? this.renderer.getPixelRatio() : (window.devicePixelRatio || 1);
+    
     const targetOptions = {
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
@@ -102,17 +103,22 @@ export class GlassFlowRenderer {
       type: THREE.HalfFloatType
     };
 
-    this.coreRenderTarget = new THREE.WebGLRenderTarget(width, height, targetOptions);
-    this.blurredRenderTarget = new THREE.WebGLRenderTarget(width, height, targetOptions);
-    this.tempRenderTarget = new THREE.WebGLRenderTarget(width, height, targetOptions);
+    // Allocate render targets matching physical pixel dimensions
+    this.coreRenderTarget = new THREE.WebGLRenderTarget(width * pixelRatio, height * pixelRatio, targetOptions);
+    this.blurredRenderTarget = new THREE.WebGLRenderTarget(width * pixelRatio, height * pixelRatio, targetOptions);
+    this.tempRenderTarget = new THREE.WebGLRenderTarget(width * pixelRatio, height * pixelRatio, targetOptions);
   }
 
   setupBlurPipeline() {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const pixelRatio = this.renderer ? this.renderer.getPixelRatio() : (window.devicePixelRatio || 1);
+
     this.blurMaterial = new THREE.ShaderMaterial({
       uniforms: {
         tDiffuse: { value: null },
         uDirection: { value: new THREE.Vector2(1.0, 0.0) },
-        uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+        uResolution: { value: new THREE.Vector2(width * pixelRatio, height * pixelRatio) }
       },
       vertexShader: `
         varying vec2 vUv;
@@ -199,6 +205,10 @@ export class GlassFlowRenderer {
   }
 
   createDualMesh() {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const pixelRatio = this.renderer ? this.renderer.getPixelRatio() : (window.devicePixelRatio || 1);
+
     // 1. Generate the Inner Core (Liquid Blue Energy with Radial Gradient)
     const coreGeometry = new THREE.TubeGeometry(
       this.curve,
@@ -260,7 +270,13 @@ export class GlassFlowRenderer {
     this.coreMesh = new THREE.Mesh(coreGeometry, this.coreMaterial);
     this.coreMesh.frustumCulled = false;
     this.coreMesh.renderOrder = 0;
-    this.coreScene.add(this.coreMesh);
+    
+    // Assign core to Layer 1 for offscreen rendering isolation
+    this.coreMesh.layers.set(1);
+    
+    if (this.scene) {
+      this.scene.add(this.coreMesh);
+    }
 
     // 2. Generate the Outer Glass Shell (Screen-space Compositor)
     const glassGeometry = new THREE.TubeGeometry(
@@ -276,7 +292,7 @@ export class GlassFlowRenderer {
       uniforms: {
         tSharp: { value: this.coreRenderTarget.texture },
         tBlurred: { value: this.blurredRenderTarget.texture },
-        uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+        uResolution: { value: new THREE.Vector2(width * pixelRatio, height * pixelRatio) },
         uProgress: { value: this.config.progress }
       },
       transparent: true,
@@ -349,7 +365,9 @@ export class GlassFlowRenderer {
     this.glassMesh.frustumCulled = false;
     this.glassMesh.renderOrder = 1;
     
-    // Add glassMesh to the main scene (where it will composite screen UVs)
+    // Assign glass to Layer 0 (default)
+    this.glassMesh.layers.set(0);
+    
     if (this.scene) {
       this.scene.add(this.glassMesh);
     }
@@ -357,7 +375,7 @@ export class GlassFlowRenderer {
     // Compatibility variables for positioning updates in tick()
     this.innerMesh = this.coreMesh;
     this.outerMesh = this.glassMesh;
-    this.tubeMesh = this.glassMesh; // Points to glassMesh so position matches screen space compositing
+    this.tubeMesh = this.glassMesh;
   }
 
   applyBlur() {
@@ -422,6 +440,7 @@ export class GlassFlowRenderer {
     this.onResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
+      const pixelRatio = this.renderer ? this.renderer.getPixelRatio() : (window.devicePixelRatio || 1);
 
       if (this.camera) {
         this.camera.aspect = width / height;
@@ -436,16 +455,18 @@ export class GlassFlowRenderer {
         this.renderer.setSize(width, height);
       }
 
-      // Resize all offscreen render targets
-      if (this.coreRenderTarget) this.coreRenderTarget.setSize(width, height);
-      if (this.blurredRenderTarget) this.blurredRenderTarget.setSize(width, height);
-      if (this.tempRenderTarget) this.tempRenderTarget.setSize(width, height);
+      // Resize all offscreen render targets matching Retina resolution
+      const targetW = width * pixelRatio;
+      const targetH = height * pixelRatio;
+      if (this.coreRenderTarget) this.coreRenderTarget.setSize(targetW, targetH);
+      if (this.blurredRenderTarget) this.blurredRenderTarget.setSize(targetW, targetH);
+      if (this.tempRenderTarget) this.tempRenderTarget.setSize(targetW, targetH);
 
       if (this.glassMaterial) {
-        this.glassMaterial.uniforms.uResolution.value.set(width, height);
+        this.glassMaterial.uniforms.uResolution.value.set(targetW, targetH);
       }
       if (this.blurMaterial) {
-        this.blurMaterial.uniforms.uResolution.value.set(width, height);
+        this.blurMaterial.uniforms.uResolution.value.set(targetW, targetH);
       }
 
       this.buildCurveFromSvg();
@@ -483,23 +504,33 @@ export class GlassFlowRenderer {
 
     const currentRenderTarget = this.renderer.getRenderTarget();
 
-    // 1. Render Core Scene to Offscreen Render Target
+    // 1. Render Inner Core (Layer 1) to offscreen coreRenderTarget
+    this.camera.layers.set(1);
     this.renderer.setRenderTarget(this.coreRenderTarget);
     this.renderer.clear();
-    this.renderer.render(this.coreScene, this.camera);
+    this.renderer.render(this.scene, this.camera);
 
-    // 2. Perform Ping-Pong horizontal & vertical blur
+    // 2. Perform Ping-Pong Horizontal/Vertical Blur
     this.applyBlur();
 
-    // 3. Render Main Scene (Glass shell compositing screen UVs + video cards) back to Canvas
+    // 3. Render Glass Shell & Website UI (Layer 0) directly to screen Canvas
+    this.camera.layers.set(0);
     this.renderer.setRenderTarget(currentRenderTarget);
     this.renderer.clear();
     this.renderer.render(this.scene, this.camera);
+
+    // Restore camera to default Layer 0 so subsequent ticks read default scene state
+    this.camera.layers.set(0);
   }
 
   destroy() {
     this.stopAnimationLoop();
     window.removeEventListener('resize', this.onResize);
+
+    if (this.scene) {
+      if (this.coreMesh) this.scene.remove(this.coreMesh);
+      if (this.glassMesh) this.scene.remove(this.glassMesh);
+    }
 
     if (this.coreMesh) this.coreMesh.geometry.dispose();
     if (this.glassMesh) this.glassMesh.geometry.dispose();
