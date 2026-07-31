@@ -296,14 +296,22 @@ export function initLusionAnimations() {
       premultipliedAlpha: false
     });
 
-    const debugWrapper = document.createElement('div');
-    debugWrapper.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2147483647; pointer-events: none; background: transparent;';
-    document.body.appendChild(debugWrapper);
+    // Reintegrate canvas and lock dimensions with absolute important inline styles
+    canvas.style.cssText = 'position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; z-index: 0 !important; pointer-events: none !important;';
+    renderer.domElement.style.cssText = 'position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; z-index: 0 !important; pointer-events: none !important;';
 
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0xff0000, 0.3); // High visibility red tint
+    if (containerEl) {
+      containerEl.appendChild(canvas);
+      // Ensure the wrapper itself has position: relative
+      containerEl.style.position = 'relative';
+    }
+
+    const containerWidth = containerEl ? containerEl.clientWidth : window.innerWidth;
+    const containerHeight = containerEl ? containerEl.clientHeight : window.innerHeight;
+
+    renderer.setSize(containerWidth, containerHeight);
+    renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    debugWrapper.appendChild(renderer.domElement);
 
     // Force container transparency and video container stacking isolation
     if (containerEl) {
@@ -321,13 +329,13 @@ export function initLusionAnimations() {
       containerEl.classList.add('webgl-active');
     }
 
-    // Perspective Camera mapping 1:1 to screen pixels at z = 0 with expanded clipping planes
+    // Perspective Camera mapping to screen coordinates with Y-offset
     const fov = 45;
-    camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 0.1, 20000);
+    camera = new THREE.PerspectiveCamera(fov, containerWidth / containerHeight, 0.1, 20000);
+    camera.position.set(0, -200, 1000);
     camera.updateProjectionMatrix();
-    camera.position.set(0, 0, 1500); // Hardcoded safe distance to prevent lens clipping
     camera.lookAt(0, 0, 0);
- // Hardcoded safe distance to prevent lens clipping
+
 
 
 
@@ -529,13 +537,17 @@ export function initLusionAnimations() {
   // 4. Resize Handler
   // ───────────────────────────────────────────────
   resizeHandler = () => {
+    const containerWidth = containerEl ? containerEl.clientWidth : window.innerWidth;
+    const containerHeight = containerEl ? containerEl.clientHeight : window.innerHeight;
+
+
     if (renderer) {
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setSize(containerWidth, containerHeight);
     }
     if (camera) {
-      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.aspect = containerWidth / containerHeight;
       camera.far = 20000;
-      camera.position.z = 3000;
+      camera.position.set(0, -200, 1000);
       camera.updateProjectionMatrix();
     }
 

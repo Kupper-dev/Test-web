@@ -153,10 +153,10 @@ export class GlassFlowRenderer {
         varying vec3 vViewPosition;
 
         void main() {
-          // 1. Scroll Draw Logic: Discard pixels ahead of the scroll progress (TEMPORARILY DISABLED FOR DIAGNOSTICS)
-          // if (vUv.x > uProgress) {
-          //   discard;
-          // }
+          // 1. Scroll Draw Logic: Discard pixels ahead of the scroll progress
+          if (vUv.x > uProgress) {
+            discard;
+          }
 
           // 2. View Angle Calculation
           vec3 normal = normalize(vNormal);
@@ -184,12 +184,12 @@ export class GlassFlowRenderer {
 
           // Safe GPU calculation for soft fade at the very tip of the flowing liquid
           float tipFade = clamp((uProgress - vUv.x) / 0.05, 0.0, 1.0);
-          float finalTipFade = uProgress == 0.0 ? 1.0 : tipFade;
-          alpha *= finalTipFade;
+          alpha *= tipFade;
 
           gl_FragColor = vec4(finalColor, clamp(alpha, 0.0, 1.0));
         }
       `,
+
 
       depthTest: true,
       depthWrite: false,
