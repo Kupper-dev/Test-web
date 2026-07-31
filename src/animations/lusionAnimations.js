@@ -3,10 +3,15 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import SplitType from 'split-type';
 import * as THREE from 'three';
 import { GlassFlowRenderer } from './glassFlowRenderer.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
 let scene, camera, renderer;
+let composer = null;
+let bloomPass = null;
 let canvas = null;
 let animationFrameId = null;
 
@@ -14,6 +19,7 @@ let animationFrameId = null;
 let lineMesh = null;
 let morphMesh = null;
 let glassFlowRenderer = null;
+
 
 // DOM reference elements
 let containerEl = null;
@@ -305,6 +311,19 @@ export function initLusionAnimations() {
     const depth = window.innerHeight / (2 * Math.tan((fov * Math.PI) / 360));
     camera.position.set(0, 0, depth);
 
+    // EffectComposer & UnrealBloomPass for HDR energy bleed through frosted glass
+    composer = new EffectComposer(renderer);
+    const renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
+
+    bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.8,  // bloomStrength (exposing for tuning)
+      0.4,  // bloomRadius
+      0.85  // bloomThreshold (triggers on HDR emission > 1.0)
+    );
+    composer.addPass(bloomPass);
+
     // ───────────────────────────────────────────────
     // 2. Animated Scroll Line (Drawing Spline)
     // ───────────────────────────────────────────────
@@ -492,12 +511,19 @@ export function initLusionAnimations() {
     if (renderer) {
       renderer.setSize(window.innerWidth, window.innerHeight);
     }
+    if (composer) {
+      composer.setSize(window.innerWidth, window.innerHeight);
+    }
+    if (bloomPass) {
+      bloomPass.resolution.set(window.innerWidth, window.innerHeight);
+    }
     if (camera) {
       camera.aspect = window.innerWidth / window.innerHeight;
       const depth = window.innerHeight / (2 * Math.tan((45 * Math.PI) / 360));
       camera.position.z = depth;
       camera.updateProjectionMatrix();
     }
+
 
     // Recompute spline points to keep them aligned on resize
     const wNew = window.innerWidth;
@@ -586,18 +612,19 @@ function tick() {
 
   if (glassFlowRenderer) {
     glassFlowRenderer.update(drawRatio);
-    if (glassFlowRenderer.tubeMesh) {
-      glassFlowRenderer.tubeMesh.position.set(
-        sectionWebGLX - w * 0.03, // 3% left
-        sectionWebGLY + h * 0.25, // 25% up
-        -5.0
-      );
+    const posX = sectionWebGLX - w * 0.03;
+    const posY = sectionWebGLY + h * 0.25;
+    const posZ = -5.0;
+    if (glassFlowRenderer.innerMesh) {
+      glassFlowRenderer.innerMesh.position.set(posX, posY, posZ);
+    }
+    if (glassFlowRenderer.outerMesh) {
+      glassFlowRenderer.outerMesh.position.set(posX, posY, posZ);
     }
   }
 
-
-
   // 2. Update Thumbnail-to-Video Position and Morph
+
   if (!thumbEl) {
     thumbEl = document.getElementById('home-reel-thumb') || document.querySelector('.home-reel-thumb');
   }
@@ -690,9 +717,14 @@ function tick() {
     morphMesh.material.uniforms.u_progress.value = transitionProgress;
   }
 
-  renderer.render(scene, camera);
+  if (composer) {
+    composer.render();
+  } else if (renderer && scene && camera) {
+    renderer.render(scene, camera);
+  }
   animationFrameId = requestAnimationFrame(tick);
 }
+
 
 export function killLusionAnimations() {
   if (containerEl) {
@@ -748,10 +780,17 @@ export function killLusionAnimations() {
     thumbVideoTexture = null;
   }
 
+  if (composer) {
+    composer.dispose();
+    composer = null;
+  }
+  bloomPass = null;
+
   if (renderer) {
     renderer.dispose();
     renderer = null;
   }
+
 
   if (canvas && canvas.parentNode) {
     canvas.parentNode.removeChild(canvas);

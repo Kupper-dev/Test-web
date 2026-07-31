@@ -2,22 +2,24 @@ import * as THREE from 'three';
 
 export const GlassFlowConfig = {
   // Geometry parameters
-  tubeRadius: 22,
-  tubularSegments: 400,
-  radialSegments: 32,
+  outerRadius: 22,             // Outer physical glass shell radius
+  innerRadius: 16,             // Inner glowing liquid core radius
+  tubularSegments: 1000,       // Ultra-dense subdivisions to eliminate quad-split artifacts
+  radialSegments: 32,          // Radial subdivisions for smooth cross-section
 
-  // Frosted Glass Conduit Wrapper (Target Reference Image Match)
-  glassColor: 0x93c5fd,        // Translucent soft ice blue glass tint
-  glassOpacity: 0.45,          // Frosted glass depth & body
-  glassBlur: 0.25,             // Internal diffusion factor
-  rimGlowIntensity: 0.65,      // Soft ice specular rim sheen
-  rimWidth: 2.2,               // Soft Fresnel exponent
+  // Outer Glass Shell (THREE.MeshPhysicalMaterial)
+  transmission: 1.0,
+  roughness: 0.35,
+  thickness: 2.0,
+  ior: 1.5,
+  glassColor: 0xdbeafe,        // Faint ice-blue tint
 
-  // Hero Element: Smooth Continuous Ultramarine Blue Liquid Core (Target Reference Image Match)
-  coreColor: 0x0f3ce6,         // Rich deep ultramarine blue
-  glowColor: 0x1d4ed8,         // Royal blue liquid highlight
-  flowSpeed: 1.8,              // Smooth continuous liquid flow velocity
-  flowDirection: 1.0,          // Flow direction (1 = forward, -1 = reverse)
+  // Inner Liquid Core Emission (HDR Bloom Trigger)
+  coreColor: 0x1040e0,         // Ultramarine blue base
+  glowColor: 0x3b82f6,         // Royal blue highlight
+  hdrIntensity: 2.5,           // Emission intensity > 1.0 for UnrealBloomPass
+  flowSpeed: 1.8,
+  flowDirection: 1.0,
 
   // Animation & Timeline
   progress: 0.0
@@ -35,8 +37,13 @@ export class GlassFlowRenderer {
     this.scene = this.config.scene || null;
     this.camera = null;
     this.renderer = null;
-    this.tubeMesh = null;
-    this.material = null;
+
+    // Dual-Mesh Architecture
+    this.innerMesh = null;     // Inner glowing liquid core
+    this.outerMesh = null;     // Outer physical frosted glass shell (tubeMesh)
+    this.innerMaterial = null;
+    this.outerMaterial = null;
+    
     this.curve = null;
     this.animationFrameId = null;
     this.startTime = performance.now();
@@ -47,8 +54,13 @@ export class GlassFlowRenderer {
   init() {
     this.setupScene();
     this.buildCurveFromSvg();
-    this.createTubeMesh();
+    this.createDualMeshes();
     this.addResizeListener();
+  }
+
+  // Alias for backward compatibility
+  get tubeMesh() {
+    return this.outerMesh;
   }
 
   setupScene() {
@@ -104,9 +116,9 @@ export class GlassFlowRenderer {
       const cp2 = mapSvgPoint(seg.cp2[0], seg.cp2[1]);
       const p1 = mapSvgPoint(seg.p1[0], seg.p1[1]);
 
-      // Uniform spatial sampling based on Bezier chord length to prevent vertex bunching on tight turns
+      // Uniform spatial density proportional to Bezier arc length
       const approxLength = p0.distanceTo(cp1) + cp1.distanceTo(cp2) + cp2.distanceTo(p1);
-      const steps = Math.max(30, Math.round(approxLength / 6));
+      const steps = Math.max(40, Math.round(approxLength / 4));
 
       for (let i = 0; i <= steps; i++) {
         const t = i / steps;
@@ -119,116 +131,109 @@ export class GlassFlowRenderer {
       }
     });
 
+    // Single CatmullRomCurve3 instance shared by both inner and outer meshes
     this.curve = new THREE.CatmullRomCurve3(curvePoints, false, 'centripetal');
   }
 
-  createTubeMesh() {
-    const geometry = new THREE.TubeGeometry(
+  createDualMeshes() {
+    // ───────────────────────────────────────────────────────────────
+    // 1. INNER LIQUID CORE MESH (HDR Emissive Stream)
+    // ───────────────────────────────────────────────────────────────
+    const innerGeometry = new THREE.TubeGeometry(
       this.curve,
       this.config.tubularSegments,
-      this.config.tubeRadius,
+      this.config.innerRadius,
       this.config.radialSegments,
       false
     );
-    geometry.computeVertexNormals();
+    innerGeometry.computeVertexNormals();
 
-    this.material = new THREE.ShaderMaterial({
+    this.innerMaterial = new THREE.ShaderMaterial({
       uniforms: {
         uTime: { value: 0 },
         uProgress: { value: this.config.progress },
-        uGlassColor: { value: new THREE.Color(this.config.glassColor) },
-        uGlassOpacity: { value: this.config.glassOpacity },
-        uGlassBlur: { value: this.config.glassBlur },
-        uRimGlowIntensity: { value: this.config.rimGlowIntensity },
-        uRimWidth: { value: this.config.rimWidth },
         uCoreColor: { value: new THREE.Color(this.config.coreColor) },
         uGlowColor: { value: new THREE.Color(this.config.glowColor) },
+        uHdrIntensity: { value: this.config.hdrIntensity },
         uFlowSpeed: { value: this.config.flowSpeed },
         uFlowDirection: { value: this.config.flowDirection }
       },
       vertexShader: `
         varying vec2 vUv;
         varying vec3 vNormal;
-        varying vec3 vViewPosition;
 
         void main() {
           vUv = uv;
           vNormal = normalize(normalMatrix * normal);
-          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          vViewPosition = -mvPosition.xyz;
-          gl_Position = projectionMatrix * mvPosition;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
       `,
       fragmentShader: `
         uniform float uTime;
         uniform float uProgress;
-        uniform vec3 uGlassColor;
-        uniform float uGlassOpacity;
-        uniform float uGlassBlur;
-        uniform float uRimGlowIntensity;
-        uniform float uRimWidth;
         uniform vec3 uCoreColor;
         uniform vec3 uGlowColor;
+        uniform float uHdrIntensity;
         uniform float uFlowSpeed;
         uniform float uFlowDirection;
 
         varying vec2 vUv;
         varying vec3 vNormal;
-        varying vec3 vViewPosition;
 
         void main() {
-          vec3 normal = normalize(vNormal);
-          vec3 viewDir = normalize(vViewPosition);
-
-          // 1. Surface Orientation & Fresnel (Silk-Smooth C1 Everywhere - Zero Facet Lines!)
-          float NdotV = max(dot(normal, viewDir), 0.0);
-          float fresnel = pow(1.0 - NdotV, uRimWidth);
-
-          // Soft specular top light highlight
-          vec3 lightDir = normalize(vec3(0.25, 0.85, 0.45));
-          vec3 halfVector = normalize(lightDir + viewDir);
-          float specular = pow(max(dot(normal, halfVector), 0.0), 16.0) * 0.30;
-
-          vec3 rimGlow = vec3(0.85, 0.92, 1.0) * fresnel * uRimGlowIntensity;
-          vec3 specGlow = vec3(0.95, 0.98, 1.0) * specular;
-
-          // Frosted Glass Base Shell (soft translucent ice blue body + gentle rim sheen)
-          vec3 glassBody = mix(uGlassColor, vec3(0.85, 0.92, 1.0), fresnel * 0.35) + specGlow + rimGlow;
-          float glassAlpha = mix(uGlassOpacity * 0.8, uGlassOpacity * 1.2, fresnel);
-
-          // 2. 100% Smooth Continuous Ultramarine Blue Liquid Core (ZERO Ladder Lines, ZERO Rib Stripes!)
-          // pow(NdotV, 1.8) gives a smooth volumetric core profile: 1.0 at center axis, 0.0 at tube edges.
-          // Continuous C1 function - ZERO teeth, ZERO ladder lines!
-          float coreVolumetric = pow(NdotV, 1.8);
-
-          // Smooth self-drawing progress mask along tube length (vUv.x goes 0.0 -> 1.0)
+          // GSAP Self-drawing scroll progress mask along path length (vUv.x goes 0 -> 1)
           float drawMask = smoothstep(vUv.x + 0.010, vUv.x - 0.005, uProgress);
 
-          // Smooth subtle continuous flow gradient (NOT periodic sine stripes!)
-          float continuousFlow = sin(vUv.x * 1.2 - uTime * uFlowSpeed * uFlowDirection) * 0.12 + 0.88;
+          // Subtle continuous liquid movement along flow
+          float flow = sin(vUv.x * 1.5 - uTime * uFlowSpeed * uFlowDirection) * 0.15 + 0.85;
 
-          // Pure, rich ultramarine blue core color (matching Target Reference Image 100%)
-          vec3 coreColor = mix(uCoreColor, uGlowColor, continuousFlow * 0.35);
+          // Pure ultramarine blue color mix
+          vec3 baseColor = mix(uCoreColor, uGlowColor, flow * 0.35);
 
-          // Active smooth liquid stream
-          vec3 activeCore = coreColor * coreVolumetric * drawMask * 1.30;
+          // Output HDR color intensity > 1.0 to trigger UnrealBloomPass
+          vec3 hdrEmission = baseColor * uHdrIntensity * drawMask;
 
-          // 3. Composite: Frosted Glass Shell wraps around Inner Ultramarine Blue Liquid
-          vec3 finalColor = mix(glassBody, glassBody * 0.30 + activeCore, drawMask * coreVolumetric * 0.88);
-          float finalAlpha = max(glassAlpha, drawMask * coreVolumetric * 0.95);
-
-          gl_FragColor = vec4(finalColor, finalAlpha);
+          gl_FragColor = vec4(hdrEmission, drawMask * 0.98);
         }
       `,
       transparent: true,
-      side: THREE.DoubleSide,
+      depthWrite: true,
+      side: THREE.FrontSide
+    });
+
+    this.innerMesh = new THREE.Mesh(innerGeometry, this.innerMaterial);
+    this.innerMesh.renderOrder = 1;
+
+    // ───────────────────────────────────────────────────────────────
+    // 2. OUTER FROSTED GLASS SHELL MESH (THREE.MeshPhysicalMaterial)
+    // ───────────────────────────────────────────────────────────────
+    const outerGeometry = new THREE.TubeGeometry(
+      this.curve,
+      this.config.tubularSegments,
+      this.config.outerRadius,
+      this.config.radialSegments,
+      false
+    );
+    outerGeometry.computeVertexNormals();
+
+    this.outerMaterial = new THREE.MeshPhysicalMaterial({
+      transmission: this.config.transmission,
+      roughness: this.config.roughness,
+      thickness: this.config.thickness,
+      ior: this.config.ior,
+      transparent: true,
+      color: new THREE.Color(this.config.glassColor),
+      side: THREE.FrontSide,
       depthWrite: false
     });
 
-    this.tubeMesh = new THREE.Mesh(geometry, this.material);
-    this.tubeMesh.renderOrder = 1;
+    this.outerMesh = new THREE.Mesh(outerGeometry, this.outerMaterial);
+    this.outerMesh.renderOrder = 2; // Renders after inner mesh in depth/alpha order
+
+    // Add both meshes to the scene
     if (this.scene) {
-      this.scene.add(this.tubeMesh);
+      this.scene.add(this.innerMesh);
+      this.scene.add(this.outerMesh);
     }
   }
 
@@ -236,10 +241,13 @@ export class GlassFlowRenderer {
     if (progress !== undefined) {
       this.config.progress = progress;
     }
-    if (this.material) {
-      this.material.uniforms.uTime.value = (performance.now() - this.startTime) / 1000;
-      this.material.uniforms.uProgress.value = this.config.progress;
+
+    // Update inner shader uniforms
+    if (this.innerMaterial) {
+      this.innerMaterial.uniforms.uTime.value = (performance.now() - this.startTime) / 1000;
+      this.innerMaterial.uniforms.uProgress.value = this.config.progress;
     }
+
     if (this.renderer && this.scene && this.camera) {
       this.render();
     }
@@ -262,15 +270,20 @@ export class GlassFlowRenderer {
 
   updateConfig(newOptions = {}) {
     Object.assign(this.config, newOptions);
-    if (!this.material) return;
-    const u = this.material.uniforms;
-    if (newOptions.glassColor) u.uGlassColor.value.set(newOptions.glassColor);
-    if (newOptions.coreColor) u.uCoreColor.value.set(newOptions.coreColor);
-    if (newOptions.glowColor) u.uGlowColor.value.set(newOptions.glowColor);
-    if (newOptions.glassOpacity !== undefined) u.uGlassOpacity.value = newOptions.glassOpacity;
-    if (newOptions.glassBlur !== undefined) u.uGlassBlur.value = newOptions.glassBlur;
-    if (newOptions.rimGlowIntensity !== undefined) u.uRimGlowIntensity.value = newOptions.rimGlowIntensity;
-    if (newOptions.flowSpeed !== undefined) u.uFlowSpeed.value = newOptions.flowSpeed;
+    if (this.innerMaterial) {
+      const u = this.innerMaterial.uniforms;
+      if (newOptions.coreColor) u.uCoreColor.value.set(newOptions.coreColor);
+      if (newOptions.glowColor) u.uGlowColor.value.set(newOptions.glowColor);
+      if (newOptions.hdrIntensity !== undefined) u.uHdrIntensity.value = newOptions.hdrIntensity;
+      if (newOptions.flowSpeed !== undefined) u.uFlowSpeed.value = newOptions.flowSpeed;
+    }
+    if (this.outerMaterial) {
+      if (newOptions.transmission !== undefined) this.outerMaterial.transmission = newOptions.transmission;
+      if (newOptions.roughness !== undefined) this.outerMaterial.roughness = newOptions.roughness;
+      if (newOptions.thickness !== undefined) this.outerMaterial.thickness = newOptions.thickness;
+      if (newOptions.ior !== undefined) this.outerMaterial.ior = newOptions.ior;
+      if (newOptions.glassColor) this.outerMaterial.color.set(newOptions.glassColor);
+    }
   }
 
   addResizeListener() {
@@ -290,17 +303,33 @@ export class GlassFlowRenderer {
       }
 
       this.buildCurveFromSvg();
-      if (this.tubeMesh) {
-        this.tubeMesh.geometry.dispose();
-        const newGeom = new THREE.TubeGeometry(
+
+      // Rebuild inner geometry
+      if (this.innerMesh) {
+        this.innerMesh.geometry.dispose();
+        const newInnerGeom = new THREE.TubeGeometry(
           this.curve,
           this.config.tubularSegments,
-          this.config.tubeRadius,
+          this.config.innerRadius,
           this.config.radialSegments,
           false
         );
-        newGeom.computeVertexNormals();
-        this.tubeMesh.geometry = newGeom;
+        newInnerGeom.computeVertexNormals();
+        this.innerMesh.geometry = newInnerGeom;
+      }
+
+      // Rebuild outer geometry
+      if (this.outerMesh) {
+        this.outerMesh.geometry.dispose();
+        const newOuterGeom = new THREE.TubeGeometry(
+          this.curve,
+          this.config.tubularSegments,
+          this.config.outerRadius,
+          this.config.radialSegments,
+          false
+        );
+        newOuterGeom.computeVertexNormals();
+        this.outerMesh.geometry = newOuterGeom;
       }
     };
     window.addEventListener('resize', this.onResize);
@@ -315,10 +344,16 @@ export class GlassFlowRenderer {
   destroy() {
     this.stopAnimationLoop();
     window.removeEventListener('resize', this.onResize);
-    if (this.tubeMesh) {
-      if (this.scene) this.scene.remove(this.tubeMesh);
-      this.tubeMesh.geometry.dispose();
-      this.tubeMesh.material.dispose();
+
+    if (this.innerMesh) {
+      if (this.scene) this.scene.remove(this.innerMesh);
+      this.innerMesh.geometry.dispose();
+      this.innerMesh.material.dispose();
+    }
+    if (this.outerMesh) {
+      if (this.scene) this.scene.remove(this.outerMesh);
+      this.outerMesh.geometry.dispose();
+      this.outerMaterial.dispose();
     }
     if (this.renderer) this.renderer.dispose();
   }
