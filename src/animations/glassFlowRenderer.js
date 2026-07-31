@@ -13,12 +13,11 @@ export const GlassFlowConfig = {
   rimGlowIntensity: 0.65,      // Soft ice specular rim sheen
   rimWidth: 2.2,               // Soft Fresnel exponent
 
-  // Hero Element: Rich Ultramarine Blue Energy Stream (Target Reference Image Match)
+  // Hero Element: Smooth Continuous Ultramarine Blue Liquid Core (Target Reference Image Match)
   coreColor: 0x0f3ce6,         // Rich deep ultramarine blue
-  glowColor: 0x2563eb,         // Royal blue energy highlight
-  flowSpeed: 2.2,              // Smooth velocity of traveling data pulses
+  glowColor: 0x1d4ed8,         // Royal blue liquid highlight
+  flowSpeed: 1.8,              // Smooth continuous liquid flow velocity
   flowDirection: 1.0,          // Flow direction (1 = forward, -1 = reverse)
-  highlightDensity: 4.0,       // Smooth continuous flow waves (zero tight ribbing)
 
   // Animation & Timeline
   progress: 0.0
@@ -145,8 +144,7 @@ export class GlassFlowRenderer {
         uCoreColor: { value: new THREE.Color(this.config.coreColor) },
         uGlowColor: { value: new THREE.Color(this.config.glowColor) },
         uFlowSpeed: { value: this.config.flowSpeed },
-        uFlowDirection: { value: this.config.flowDirection },
-        uHighlightDensity: { value: this.config.highlightDensity }
+        uFlowDirection: { value: this.config.flowDirection }
       },
       vertexShader: `
         varying vec2 vUv;
@@ -173,7 +171,6 @@ export class GlassFlowRenderer {
         uniform vec3 uGlowColor;
         uniform float uFlowSpeed;
         uniform float uFlowDirection;
-        uniform float uHighlightDensity;
 
         varying vec2 vUv;
         varying vec3 vNormal;
@@ -183,11 +180,11 @@ export class GlassFlowRenderer {
           vec3 normal = normalize(vNormal);
           vec3 viewDir = normalize(vViewPosition);
 
-          // 1. Surface Orientation & Fresnel (Smooth C1 Continuous Everywhere - Zero Teeth!)
+          // 1. Surface Orientation & Fresnel (Silk-Smooth C1 Everywhere - Zero Facet Lines!)
           float NdotV = max(dot(normal, viewDir), 0.0);
           float fresnel = pow(1.0 - NdotV, uRimWidth);
 
-          // Soft specular top highlight
+          // Soft specular top light highlight
           vec3 lightDir = normalize(vec3(0.25, 0.85, 0.45));
           vec3 halfVector = normalize(lightDir + viewDir);
           float specular = pow(max(dot(normal, halfVector), 0.0), 16.0) * 0.30;
@@ -195,32 +192,29 @@ export class GlassFlowRenderer {
           vec3 rimGlow = vec3(0.85, 0.92, 1.0) * fresnel * uRimGlowIntensity;
           vec3 specGlow = vec3(0.95, 0.98, 1.0) * specular;
 
-          // Frosted Glass Base Shell (Soft ice blue translucent body + gentle rim sheen)
+          // Frosted Glass Base Shell (soft translucent ice blue body + gentle rim sheen)
           vec3 glassBody = mix(uGlassColor, vec3(0.85, 0.92, 1.0), fresnel * 0.35) + specGlow + rimGlow;
           float glassAlpha = mix(uGlassOpacity * 0.8, uGlassOpacity * 1.2, fresnel);
 
-          // 2. Rich Ultramarine Blue Inner Core (Soft Volumetric Falloff, ZERO Step Thresholds)
-          // pow(NdotV, 1.8) is 1.0 at center axis facing camera, smoothly fading to 0.0 at tube edges.
-          // Continuous C1 function - ZERO teeth, ZERO step artifacts!
+          // 2. 100% Smooth Continuous Ultramarine Blue Liquid Core (ZERO Ladder Lines, ZERO Rib Stripes!)
+          // pow(NdotV, 1.8) gives a smooth volumetric core profile: 1.0 at center axis, 0.0 at tube edges.
+          // Continuous C1 function - ZERO teeth, ZERO ladder lines!
           float coreVolumetric = pow(NdotV, 1.8);
 
-          // Self-drawing progress mask along tube length (vUv.x goes 0.0 -> 1.0)
+          // Smooth self-drawing progress mask along tube length (vUv.x goes 0.0 -> 1.0)
           float drawMask = smoothstep(vUv.x + 0.010, vUv.x - 0.005, uProgress);
 
-          // Smooth procedural traveling wave highlights
-          float wave1 = sin(vUv.x * uHighlightDensity - uTime * uFlowSpeed * uFlowDirection) * 0.5 + 0.5;
-          float wave2 = sin(vUv.x * (uHighlightDensity * 1.5) + uTime * (uFlowSpeed * 1.2) * uFlowDirection) * 0.5 + 0.5;
-          float energyPulse = pow(mix(wave1, wave2, 0.5), 1.4);
+          // Smooth subtle continuous flow gradient (NOT periodic sine stripes!)
+          float continuousFlow = sin(vUv.x * 1.2 - uTime * uFlowSpeed * uFlowDirection) * 0.12 + 0.88;
 
-          // Rich ultramarine blue energy stream (matching Target Reference Image exactly!)
-          vec3 coreColor = mix(uCoreColor, uGlowColor, energyPulse);
+          // Pure, rich ultramarine blue core color (matching Target Reference Image 100%)
+          vec3 coreColor = mix(uCoreColor, uGlowColor, continuousFlow * 0.35);
 
-          // Active inner blue stream
-          vec3 activeCore = coreColor * coreVolumetric * drawMask * 1.25;
+          // Active smooth liquid stream
+          vec3 activeCore = coreColor * coreVolumetric * drawMask * 1.30;
 
-          // 3. Composite: Frosted Glass Shell wraps around Inner Ultramarine Blue Stream
-          // Blends glass body with inner core seamlessly with zero color blowouts
-          vec3 finalColor = mix(glassBody, glassBody * 0.35 + activeCore, drawMask * coreVolumetric * 0.85);
+          // 3. Composite: Frosted Glass Shell wraps around Inner Ultramarine Blue Liquid
+          vec3 finalColor = mix(glassBody, glassBody * 0.30 + activeCore, drawMask * coreVolumetric * 0.88);
           float finalAlpha = max(glassAlpha, drawMask * coreVolumetric * 0.95);
 
           gl_FragColor = vec4(finalColor, finalAlpha);
@@ -277,7 +271,6 @@ export class GlassFlowRenderer {
     if (newOptions.glassBlur !== undefined) u.uGlassBlur.value = newOptions.glassBlur;
     if (newOptions.rimGlowIntensity !== undefined) u.uRimGlowIntensity.value = newOptions.rimGlowIntensity;
     if (newOptions.flowSpeed !== undefined) u.uFlowSpeed.value = newOptions.flowSpeed;
-    if (newOptions.highlightDensity !== undefined) u.uHighlightDensity.value = newOptions.highlightDensity;
   }
 
   addResizeListener() {
