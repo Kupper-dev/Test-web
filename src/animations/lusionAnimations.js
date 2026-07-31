@@ -2,6 +2,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import SplitType from 'split-type';
 import * as THREE from 'three';
+import { GlassFlowRenderer } from './glassFlowRenderer.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -71,6 +72,16 @@ export function initLusionAnimations() {
   canvas.style.pointerEvents = 'none';
   canvas.style.zIndex = '2'; // In front of text layer, behind play button
   document.body.insertBefore(canvas, document.body.firstChild); // Insert as first child of body to avoid section transform shifts
+
+  // Initialize 3D Translucent Glass Flow Tube Renderer
+  glassFlowRenderer = new GlassFlowRenderer(canvas, {
+    tubeRadius: 18,
+    glassOpacity: 0.45,
+    glassBlur: 0.35,
+    rimGlowIntensity: 1.4,
+    flowSpeed: 2.5
+  });
+  glassFlowRenderer.startAnimationLoop();
 
 
   // ───────────────────────────────────────────────
@@ -603,6 +614,10 @@ function tick() {
   const drawRatio = Math.min(1,
     prePinProgress * prePinWeight + pinProgress * pinWeight
   );
+
+  if (glassFlowRenderer) {
+    glassFlowRenderer.update(drawRatio);
+  }
 
   if (curve) {
     const totalPoints = 300;
