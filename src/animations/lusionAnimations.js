@@ -334,9 +334,10 @@ export function initLusionAnimations() {
       new THREE.Vector2(window.innerWidth, window.innerHeight),
       0.8,  // bloomStrength
       0.4,  // bloomRadius
-      1.5   // bloomThreshold (HIGH threshold: only HDR emission > 1.5 triggers bloom, ignoring UI cards)
+      1.2   // bloomThreshold (exceeds 1.0 white UI cards, catches 3.0x HDR blue liquid core)
     );
     composer.addPass(bloomPass);
+
 
 
 

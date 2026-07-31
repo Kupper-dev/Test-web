@@ -8,18 +8,19 @@ export const GlassFlowConfig = {
   tubularSegments: 1000,       // Ultra-dense subdivisions to eliminate quad-split artifacts
   radialSegments: 32,          // Radial subdivisions for smooth cross-section
 
-  // Outer Glass Shell (THREE.MeshPhysicalMaterial)
+  // Outer Glass Shell (THREE.MeshPhysicalMaterial PBR Transmission & Volumetric Attenuation)
   transmission: 1.0,
-  roughness: 0.20,
-  thickness: 2.0,
+  roughness: 0.38,             // Frosted blur over inner tube
+  thickness: 2.5,              // Glass physical thickness
   ior: 1.5,
-  clearcoat: 1.0,
+  attenuationColor: 0x0f3ce6,  // Ultramarine Blue physical subsurface light scattering
+  attenuationDistance: 4.0,    // Subsurface volume light bleed distance
   glassColor: 0xdbeafe,        // Light translucent ice-blue tint
 
-  // Inner Liquid Core Emission (HDR Bloom Trigger)
+  // Inner Liquid Core Emission (Opaque Transmission Buffer & HDR Bloom Trigger)
   coreColor: 0x0f3ce6,         // Rich ultramarine blue
   glowColor: 0x2563eb,         // Royal blue highlight
-  hdrIntensity: 3.5,           // Emission multiplier > 1.5 to trigger UnrealBloomPass threshold
+  hdrIntensity: 3.0,           // Emission multiplier > 1.2 to trigger UnrealBloomPass threshold
   flowSpeed: 1.8,
   flowDirection: 1.0,
 
@@ -41,7 +42,7 @@ export class GlassFlowRenderer {
     this.renderer = null;
 
     // Dual-Mesh Architecture
-    this.innerMesh = null;     // Inner glowing liquid core
+    this.innerMesh = null;     // Inner glowing liquid core (opaque transmission buffer)
     this.outerMesh = null;     // Outer physical frosted glass shell (tubeMesh)
     this.innerMaterial = null;
     this.outerMaterial = null;
@@ -168,7 +169,7 @@ export class GlassFlowRenderer {
 
   createDualMeshes() {
     // ───────────────────────────────────────────────────────────────
-    // 1. INNER LIQUID CORE MESH (HDR Emissive Stream + Cylindrical Volumetrics)
+    // 1. INNER LIQUID CORE MESH (Opaque Transmission Buffer & Discard)
     // ───────────────────────────────────────────────────────────────
     const innerGeometry = new THREE.TubeGeometry(
       this.curve,
@@ -216,39 +217,45 @@ export class GlassFlowRenderer {
         varying vec3 vViewPosition;
 
         void main() {
+          // GSAP Self-drawing scroll progress mask along path length (vUv.x goes 0 -> 1)
+          float drawMask = smoothstep(vUv.x + 0.005, vUv.x - 0.005, uProgress);
+
+          // GLSL discard: Completely skips rendering un-drawn pixels in opaque transmission pass
+          if (drawMask < 0.01) {
+            discard;
+          }
+
           vec3 normal = normalize(vNormal);
           vec3 viewDir = normalize(vViewPosition);
 
-          // Fresnel-like viewFactor for 3D cylindrical volumetric depth (center is dense, edges fade softly)
+          // Fresnel-like viewFactor for 3D cylindrical volumetric depth
           float viewFactor = max(dot(normal, viewDir), 0.0);
           float centerDensity = pow(viewFactor, 1.5);
 
-          // GSAP Self-drawing scroll progress mask along path length (vUv.x goes 0 -> 1)
-          float drawMask = smoothstep(vUv.x + 0.010, vUv.x - 0.005, uProgress);
-
           // Subtle continuous liquid movement along flow
           float flow = sin(vUv.x * 1.2 - uTime * uFlowSpeed * uFlowDirection) * 0.12 + 0.88;
-
-          // Pure ultramarine blue color mix
           vec3 baseColor = mix(uCoreColor, uGlowColor, flow * 0.35);
 
-          // Output HDR color intensity (3.5x > 1.5 threshold) so ONLY the tube triggers UnrealBloomPass
-          vec3 hdrEmission = baseColor * uHdrIntensity * centerDensity * drawMask;
-          float finalAlpha = centerDensity * drawMask * 0.98;
+          // Color falloff: Interpolates from vibrant HDR blue (center) to very dark near-black blue (edges)
+          vec3 darkEdgeColor = vec3(0.005, 0.02, 0.12);
+          vec3 colorWithFalloff = mix(darkEdgeColor, baseColor, centerDensity);
 
-          gl_FragColor = vec4(hdrEmission, finalAlpha);
+          // Output 3.0x HDR color so inner tube triggers UnrealBloomPass
+          vec3 finalColor = colorWithFalloff * uHdrIntensity;
+
+          gl_FragColor = vec4(finalColor, 1.0);
         }
       `,
-      transparent: true,
+      transparent: false,    // CRITICAL: Opaque pass so outer glass can refract it in transmission buffer!
       depthWrite: true,
       side: THREE.FrontSide
     });
 
     this.innerMesh = new THREE.Mesh(innerGeometry, this.innerMaterial);
-    this.innerMesh.renderOrder = 1;
+    this.innerMesh.renderOrder = 0; // Opaque pass (renders FIRST to transmission buffer!)
 
     // ───────────────────────────────────────────────────────────────
-    // 2. OUTER FROSTED GLASS SHELL MESH (THREE.MeshPhysicalMaterial)
+    // 2. OUTER FROSTED GLASS SHELL MESH (THREE.MeshPhysicalMaterial Volumetric Attenuation)
     // ───────────────────────────────────────────────────────────────
     const outerGeometry = new THREE.TubeGeometry(
       this.curve,
@@ -264,16 +271,16 @@ export class GlassFlowRenderer {
       roughness: this.config.roughness,
       thickness: this.config.thickness,
       ior: this.config.ior,
-      clearcoat: this.config.clearcoat,
+      attenuationColor: new THREE.Color(this.config.attenuationColor),
+      attenuationDistance: this.config.attenuationDistance,
       transparent: true,
-      opacity: 0.60,
       color: new THREE.Color(this.config.glassColor),
       side: THREE.FrontSide,
       depthWrite: false
     });
 
     this.outerMesh = new THREE.Mesh(outerGeometry, this.outerMaterial);
-    this.outerMesh.renderOrder = 2; // Renders after inner mesh in depth/alpha order
+    this.outerMesh.renderOrder = 1; // Transparent PBR transmission pass (refracts & blurs innerMesh!)
 
     // Add both meshes to the scene
     if (this.scene) {
@@ -327,7 +334,8 @@ export class GlassFlowRenderer {
       if (newOptions.roughness !== undefined) this.outerMaterial.roughness = newOptions.roughness;
       if (newOptions.thickness !== undefined) this.outerMaterial.thickness = newOptions.thickness;
       if (newOptions.ior !== undefined) this.outerMaterial.ior = newOptions.ior;
-      if (newOptions.clearcoat !== undefined) this.outerMaterial.clearcoat = newOptions.clearcoat;
+      if (newOptions.attenuationDistance !== undefined) this.outerMaterial.attenuationDistance = newOptions.attenuationDistance;
+      if (newOptions.attenuationColor) this.outerMaterial.attenuationColor.set(newOptions.attenuationColor);
       if (newOptions.glassColor) this.outerMaterial.color.set(newOptions.glassColor);
     }
   }
