@@ -153,37 +153,43 @@ export class GlassFlowRenderer {
         varying vec3 vViewPosition;
 
         void main() {
-          // 1. Scroll Draw Logic: Discard pixels ahead of the scroll progress
+          // Scroll Draw Logic
           if (vUv.x > uProgress) {
             discard;
           }
 
-          // 2. View Angle Calculation
           vec3 normal = normalize(vNormal);
           vec3 viewDir = normalize(vViewPosition);
-          float viewDot = abs(dot(normal, viewDir));
+          float viewDot = abs(dot(normal, viewDir)); // 1.0 is facing camera, 0.0 is edge
 
-          // 3. Define the Three Visual Zones
-          // Zone A: The Liquid Core (Facing camera)
-          float coreMask = smoothstep(0.6, 1.0, viewDot);
-          vec3 coreColor = vec3(0.0, 0.25, 1.0) * 1.5; // Vivid Ultramarine Blue (#0f3ce6)
+          // 1. Define the Masks (Wider thresholds for thicker frost)
+          float coreMask = smoothstep(0.45, 0.95, viewDot);
+          float rimMask = smoothstep(0.0, 0.25, viewDot);
 
-          // Zone B: The Frosted Glass Wall (Mid-radius)
-          float frostMask = smoothstep(0.2, 0.7, viewDot) - coreMask;
-          vec3 frostColor = vec3(1.0, 1.0, 1.0); // Pure white frosted wall to prevent gray edges
+          // 2. Define the Pure Colors (Do not pre-darken these)
+          vec3 coreColor = vec3(0.0, 0.25, 1.0) * 1.5; // Vivid Blue
+          vec3 frostColor = vec3(0.95, 0.98, 1.0);     // Icy White
+          vec3 rimColor = vec3(1.0, 1.0, 1.0);         // Pure White
 
-          // Zone C: The Rim Highlight (Grazing edges)
-          float rimMask = 1.0 - smoothstep(0.0, 0.3, viewDot);
-          vec3 rimColor = vec3(1.0, 1.0, 1.0); // Bright white reflection
+          // 3. Mix the RGB Colors Independently
+          // Start with frost as the base color
+          vec3 finalColor = frostColor; 
+          // Blend in the bright rim on the extreme edges (inverted rimMask)
+          finalColor = mix(finalColor, rimColor, 1.0 - rimMask); 
+          // Blend in the blue core in the center
+          finalColor = mix(finalColor, coreColor, coreMask);
 
-          // 4. Composite the Zones
-          vec3 finalColor = (coreColor * coreMask) + (frostColor * frostMask * 0.6) + (rimColor * rimMask);
-          
-          // 5. Calculate Final Alpha (preserving glass transparency in the mid-section)
-          float alpha = max(coreMask, frostMask * 0.4) + (rimMask * 0.5);
+          // 4. Calculate Alpha (Thickness)
+          // Base frost is 65% opaque. Rim is 85% opaque. Core is 100% opaque.
+          float frostAlpha = 0.65; 
+          float rimAlpha = 0.85;
+
+          float alpha = frostAlpha; // Base glass thickness
+          alpha = max(alpha, (1.0 - rimMask) * rimAlpha); // Add bright edges
+          alpha = max(alpha, coreMask); // Add solid core
 
           // Safe GPU calculation for soft fade at the very tip of the flowing liquid
-          float tipFade = clamp((uProgress - vUv.x) / 0.05, 0.0, 1.0);
+          float tipFade = clamp((uProgress - vUv.x) / 0.02, 0.0, 1.0);
           alpha *= tipFade;
 
           gl_FragColor = vec4(finalColor, clamp(alpha, 0.0, 1.0));
