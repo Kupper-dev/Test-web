@@ -70,59 +70,70 @@
   overflow: visible;
 }
 
-/* Semi-transparent wide track (outer casing like in image) */
+/* -------------------------------------------------------------
+   RICH VOLUMETRIC FLOW ANIMATION STYLES
+   ------------------------------------------------------------- */
+/* 1. Track Casing (Self-drawing background path - KEPT EXACTLY AS AUTHORIZED) */
 .it-network-paths use.track-line {
   fill: none !important;
-  stroke: rgba(37, 99, 235, 0.22) !important;
+  stroke: rgba(37, 99, 235, 0.18) !important;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+.it-network-paths use.track-path-1 { stroke-width: 24px; }
+.it-network-paths use.track-path-2 { stroke-width: 32px; }
+.it-network-paths use.track-path-3 { stroke-width: 26px; }
 
-.it-network-paths use.track-path-1 {
-  stroke-width: 24px;
-}
-.it-network-paths use.track-path-2 {
-  stroke-width: 32px;
-}
-.it-network-paths use.track-path-3 {
-  stroke-width: 26px;
-}
-
-/* WebGL Overlay Canvas */
-#it-webgl-canvas {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  min-width: 740px;
-  height: 100%;
-  pointer-events: none;
-  z-index: 2;
-}
-
-/* Solid core inner line hidden for WebGL 3D tube experiment (SVG kept in DOM as authoring data) */
-.it-network-paths use.core-line {
+/* 2. Soft Luminescent Energy Aura Layer */
+.it-network-paths use.flow-glow-line {
   fill: none !important;
   stroke: url(#itSignalGradient) !important;
   stroke-linecap: round;
   stroke-linejoin: round;
-  display: none !important; /* SVG path is authoring data; WebGL tube renders the path */
+  opacity: 0.85;
+  filter: drop-shadow(0 0 12px rgba(0, 240, 255, 0.75)) drop-shadow(0 0 24px rgba(37, 99, 235, 0.4));
   will-change: stroke-dashoffset;
 }
+.it-network-paths use.flow-glow-path-1 { stroke-width: 16px; stroke-dasharray: 140 180 320 180 140 99999; }
+.it-network-paths use.flow-glow-path-2 { stroke-width: 18px; stroke-dasharray: 180 200 360 200 180 99999; }
+.it-network-paths use.flow-glow-path-3 { stroke-width: 16px; stroke-dasharray: 150 160 300 160 150 99999; }
 
+/* 3. Core Vibrant Energy Wave (Primary Flow Layer) */
+.it-network-paths use.core-line {
+  display: block !important;
+  fill: none !important;
+  stroke: url(#itSignalGradient) !important;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 1 !important;
+  will-change: stroke-dashoffset;
+}
 .it-network-paths use.core-path-1 {
-  stroke-width: 8px;
-  stroke-dasharray: 20 60 140 60 20 60 300 60 20 60 160 60 20 99999;
+  stroke-width: 10px;
+  stroke-dasharray: 40 80 160 80 40 80 320 80 40 80 180 80 40 99999;
 }
 .it-network-paths use.core-path-2 {
-  stroke-width: 10px;
-  stroke-dasharray: 30 70 140 70 30 70 300 70 30 70 160 70 30 99999;
+  stroke-width: 12px;
+  stroke-dasharray: 50 90 180 90 50 90 360 90 50 90 200 90 50 99999;
 }
 .it-network-paths use.core-path-3 {
-  stroke-width: 8px;
-  stroke-dasharray: 24 50 140 50 24 50 260 50 24 50 160 50 24 99999;
+  stroke-width: 10px;
+  stroke-dasharray: 44 70 160 70 44 70 300 70 44 70 180 70 44 99999;
 }
+
+/* 4. High-Speed Luminous Energy Packet Highlights */
+.it-network-paths use.flow-packet-line {
+  fill: none !important;
+  stroke: #ffffff !important;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.95;
+  filter: drop-shadow(0 0 6px #00f0ff) drop-shadow(0 0 14px #ffffff);
+  will-change: stroke-dashoffset;
+}
+.it-network-paths use.flow-packet-path-1 { stroke-width: 5px; stroke-dasharray: 12 480 24 520 16 99999; }
+.it-network-paths use.flow-packet-path-2 { stroke-width: 6px; stroke-dasharray: 16 540 30 580 20 99999; }
+.it-network-paths use.flow-packet-path-3 { stroke-width: 5px; stroke-dasharray: 14 460 22 500 18 99999; }
 
 
 .it-card-wrapper {
