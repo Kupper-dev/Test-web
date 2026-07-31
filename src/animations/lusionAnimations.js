@@ -3,10 +3,15 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import SplitType from 'split-type';
 import * as THREE from 'three';
 import { GlassFlowRenderer } from './glassFlowRenderer.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
 let scene, camera, renderer;
+let composer = null;
+let bloomPass = null;
 let canvas = null;
 let animationFrameId = null;
 
@@ -14,7 +19,6 @@ let animationFrameId = null;
 let lineMesh = null;
 let morphMesh = null;
 let glassFlowRenderer = null;
-
 
 
 // DOM reference elements
@@ -308,10 +312,31 @@ export function initLusionAnimations() {
     const depth = window.innerHeight / (2 * Math.tan((fov * Math.PI) / 360));
     camera.position.set(0, 0, depth);
 
-    // ───────────────────────────────────────────────
-    // 2. Animated Scroll Line (Drawing Spline)
-    // ───────────────────────────────────────────────
+    // EffectComposer & UnrealBloomPass for HDR energy bleed through frosted glass (Transparent Alpha Buffer)
+    const renderTarget = new THREE.WebGLRenderTarget(
+      window.innerWidth,
+      window.innerHeight,
+      {
+        minFilter: THREE.LinearFilter,
+        magFilter: THREE.LinearFilter,
+        format: THREE.RGBAFormat,
+        type: THREE.HalfFloatType,
+        stencilBuffer: false
+      }
+    );
 
+    composer = new EffectComposer(renderer, renderTarget);
+    const renderPass = new RenderPass(scene, camera);
+    renderPass.clearAlpha = 0;
+    composer.addPass(renderPass);
+
+    bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.8,  // bloomStrength
+      0.4,  // bloomRadius
+      1.2   // bloomThreshold (exceeds 1.0 white UI cards, catches 3.0x HDR blue liquid core)
+    );
+    composer.addPass(bloomPass);
 
 
 
@@ -347,12 +372,12 @@ export function initLusionAnimations() {
     // C3553.32,683.771 2913.7,1318.17 2762.48,1452.01
     // C2319.53,1844.05 3276.96,1973.44 3276.96,1973.44
     const svgSegments = [
-      { p0: [52.796, -439.037],  cp1: [308.755, -437.397],  cp2: [1571.89, -207.871],  p1: [878.391, 680.295] },
-      { p0: [878.391, 680.295],  cp1: [358.606, 1345.99],   cp2: [-355.117, 522.324],  p1: [520.344, 117.153] },
-      { p0: [520.344, 117.153],  cp1: [1571.89, -369.513],  cp2: [1036.56, 848.89],    p1: [2006.41, 113.677] },
-      { p0: [2006.41, 113.677],  cp1: [2941.51, -595.185],  cp2: [2030.75, 449.53],    p1: [3169.2, 624.676] },
-      { p0: [3169.2, 624.676],   cp1: [3553.32, 683.771],   cp2: [2913.7, 1318.17],    p1: [2762.48, 1452.01] },
-      { p0: [2762.48, 1452.01],  cp1: [2319.53, 1844.05],   cp2: [3276.96, 1973.44],   p1: [3276.96, 1973.44] }
+      { p0: [52.796, -439.037], cp1: [308.755, -437.397], cp2: [1571.89, -207.871], p1: [878.391, 680.295] },
+      { p0: [878.391, 680.295], cp1: [358.606, 1345.99], cp2: [-355.117, 522.324], p1: [520.344, 117.153] },
+      { p0: [520.344, 117.153], cp1: [1571.89, -369.513], cp2: [1036.56, 848.89], p1: [2006.41, 113.677] },
+      { p0: [2006.41, 113.677], cp1: [2941.51, -595.185], cp2: [2030.75, 449.53], p1: [3169.2, 624.676] },
+      { p0: [3169.2, 624.676], cp1: [3553.32, 683.771], cp2: [2913.7, 1318.17], p1: [2762.48, 1452.01] },
+      { p0: [2762.48, 1452.01], cp1: [2319.53, 1844.05], cp2: [3276.96, 1973.44], p1: [3276.96, 1973.44] }
     ];
 
     curvePoints = [];
@@ -535,12 +560,12 @@ export function initLusionAnimations() {
     };
 
     const svgSegments = [
-      { p0: [52.796, -439.037],  cp1: [308.755, -437.397],  cp2: [1571.89, -207.871],  p1: [878.391, 680.295] },
-      { p0: [878.391, 680.295],  cp1: [358.606, 1345.99],   cp2: [-355.117, 522.324],  p1: [520.344, 117.153] },
-      { p0: [520.344, 117.153],  cp1: [1571.89, -369.513],  cp2: [1036.56, 848.89],    p1: [2006.41, 113.677] },
-      { p0: [2006.41, 113.677],  cp1: [2941.51, -595.185],  cp2: [2030.75, 449.53],    p1: [3169.2, 624.676] },
-      { p0: [3169.2, 624.676],   cp1: [3553.32, 683.771],   cp2: [2913.7, 1318.17],    p1: [2762.48, 1452.01] },
-      { p0: [2762.48, 1452.01],  cp1: [2319.53, 1844.05],   cp2: [3276.96, 1973.44],   p1: [3276.96, 1973.44] }
+      { p0: [52.796, -439.037], cp1: [308.755, -437.397], cp2: [1571.89, -207.871], p1: [878.391, 680.295] },
+      { p0: [878.391, 680.295], cp1: [358.606, 1345.99], cp2: [-355.117, 522.324], p1: [520.344, 117.153] },
+      { p0: [520.344, 117.153], cp1: [1571.89, -369.513], cp2: [1036.56, 848.89], p1: [2006.41, 113.677] },
+      { p0: [2006.41, 113.677], cp1: [2941.51, -595.185], cp2: [2030.75, 449.53], p1: [3169.2, 624.676] },
+      { p0: [3169.2, 624.676], cp1: [3553.32, 683.771], cp2: [2913.7, 1318.17], p1: [2762.48, 1452.01] },
+      { p0: [2762.48, 1452.01], cp1: [2319.53, 1844.05], cp2: [3276.96, 1973.44], p1: [3276.96, 1973.44] }
     ];
 
     curvePoints = [];
@@ -583,12 +608,12 @@ function tick() {
   // Draw progress is split into two phases:
   // Phase 1 (pre-pin) is driven by sectionRect.top (0 -> 0.45)
   // Phase 2 (during pin) is driven by morphTl progress (0.45 -> 1.0)
-  const startY    = h * 0.95;
+  const startY = h * 0.95;
   const pinStartY = h * 0.25;
-  const currentY  = sectionRect.top;
+  const currentY = sectionRect.top;
 
   const prePinWeight = 0.45;
-  const pinWeight    = 0.55;
+  const pinWeight = 0.55;
 
   const prePinProgress = Math.max(0, Math.min(1,
     (startY - currentY) / (startY - pinStartY)
@@ -607,11 +632,13 @@ function tick() {
     const posX = sectionWebGLX - w * 0.03;
     const posY = sectionWebGLY + h * 0.25;
     const posZ = -5.0;
-    if (glassFlowRenderer.tubeMesh) {
-      glassFlowRenderer.tubeMesh.position.set(posX, posY, posZ);
+    if (glassFlowRenderer.innerMesh) {
+      glassFlowRenderer.innerMesh.position.set(posX, posY, posZ);
+    }
+    if (glassFlowRenderer.outerMesh) {
+      glassFlowRenderer.outerMesh.position.set(posX, posY, posZ);
     }
   }
-
 
   // 2. Update Thumbnail-to-Video Position and Morph
 
@@ -770,16 +797,11 @@ export function killLusionAnimations() {
     thumbVideoTexture = null;
   }
 
-  if (composer) {
-    composer.dispose();
-    composer = null;
-  }
-  bloomPass = null;
-
   if (renderer) {
     renderer.dispose();
     renderer = null;
   }
+
 
 
   if (canvas && canvas.parentNode) {

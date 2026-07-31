@@ -44,11 +44,16 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: var(--size-font);
-  background-color: #dfe2e5;
-  /* color intentionally omitted — let Webflow's global.css tokens control body text color */
+  background-color: #dfe2e5 !important;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
+
+#lusion-canvas {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
 
 /* Lenis Scroll Tweaks */
 html.lenis,
