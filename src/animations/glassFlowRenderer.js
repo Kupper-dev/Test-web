@@ -53,7 +53,7 @@ export class GlassFlowRenderer {
   setupScene() {
     if (this.scene) {
       // Inject Scene Lighting directly into the active scene
-      const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
       this.scene.add(ambientLight);
 
       const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
@@ -66,7 +66,7 @@ export class GlassFlowRenderer {
     const height = window.innerHeight;
     this.scene = new THREE.Scene();
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
     this.scene.add(ambientLight);
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
@@ -157,9 +157,9 @@ export class GlassFlowRenderer {
     coreGeometry.computeVertexNormals();
 
     this.coreMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#0f3ce6'), // Vivid Ultramarine Blue
-      emissive: new THREE.Color('#0f3ce6'),
-      emissiveIntensity: 0.4, // Slight inner glow
+      color: new THREE.Color(0x000000), // Black base to prevent ambient washout
+      emissive: new THREE.Color('#0f3ce6'), // Vivid Ultramarine Blue
+      emissiveIntensity: 4.0, // High emission intensity to punch through glass transmission
       roughness: 0.2,
       metalness: 0.1,
       transparent: false // Must be false for outer transmission to capture & blur it
@@ -203,9 +203,13 @@ export class GlassFlowRenderer {
     this.glassMaterial = new THREE.MeshPhysicalMaterial({
       color: new THREE.Color('#ffffff'),
       transmission: 1.0, // Glass transparency
-      roughness: 0.4,    // Frosted glass blur effect
+      roughness: 0.25,   // Frosted glass blur effect (less chalky)
+      clearcoat: 1.0,    // Sharp outer reflection layer
+      clearcoatRoughness: 0.1,
       ior: 1.5,
       thickness: 2.0,
+      attenuationColor: new THREE.Color('#0f3ce6'), // Volumetric blue bleed
+      attenuationDistance: 5.0,
       transparent: true,
       side: THREE.FrontSide,
       depthWrite: false, // Prevents transparent self-occlusion
