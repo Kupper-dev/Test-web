@@ -1,0 +1,37 @@
+<h2>Phase 2: Central Cards Layout in Overwhelming Page</h2>
+<p class="subtitle">Choose the layout approach for integrating the 3D Card Scene into the Message Physics canvas.</p>
+
+<div class="options" data-multiselect="false">
+  <div class="option" data-choice="exact-match" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Exact Copy of Index Layout (Recommended)</h3>
+      <p>Replicate the exact 3D card layout and HTML hierarchy from the home page. The 3D scene will float in the center of the viewport (via <code>overwhelming-sticky</code>), while the Matter.js physics engine spawns message bubbles that fall around and behind it. Parallax mouse movement is retained.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="z-index-isolated" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Isolated Card Deck with Physics Interaction</h3>
+      <p>Place the 3D cards block on a higher z-index overlay layer, completely separating them from the physics container. The falling bubbles will pile up behind/below the cards, keeping the card text clean and readable. The cards themselves won't block the bubbles, but the user is focused on the central cards.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="interactive-colliders" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Card Box as Physical Matter.js Obstacles</h3>
+      <p>Represent the 3D cards in the Matter.js physics world as static rectangular colliders. Falling bubbles will bounce off the top and sides of the 3D card deck, cascading around the center content before piling up on the floor. Adds high visual fidelity but bubbles might pile up on top of the cards and block their content.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 30px;">
+  <h3>Key Goals for Phase 2:</h3>
+  <ul>
+    <li>Swap the static placeholder in <code>overwhelming-center-content</code> with the full 3D card scene.</li>
+    <li>Initialize card GSAP timelines and the 3D perspective mouse parallax.</li>
+    <li>Coordinate the card lifecycle (flips and float animations) with the page transitions.</li>
+  </ul>
+</div>

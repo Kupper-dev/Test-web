@@ -1,3 +1,24 @@
+# Fluent Glassmorphism WebGL Energy Signal Paths Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Transform the 3 signal SVG paths in `ItFlowSection` into 3D Fluent frosted glass tubes with an electric cyan-blue GLSL energy wave and transparent edge falloff on scroll.
+
+**Architecture:** Create `src/animations/itGlassFlowAnimations.js` with Three.js custom `ShaderMaterial` handling Fresnel rim glass lighting and traveling Gaussian opacity waves. Register in `src/animations/index.js`.
+
+**Tech Stack:** JavaScript, Three.js, GLSL Shaders, GSAP ScrollTrigger, Vite.
+
+---
+
+### Task 1: Create GLSL Glass Tube & Electric Wave Animation Module
+
+**Files:**
+- Create: `src/animations/itGlassFlowAnimations.js`
+- Modify: `src/animations/index.js`
+
+- [ ] **Step 1: Write `src/animations/itGlassFlowAnimations.js`**
+
+```javascript
 import * as THREE from 'three';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -159,3 +180,30 @@ export function killItGlassFlowAnimations() {
   renderer = null;
   tubeMeshes = [];
 }
+```
+
+- [ ] **Step 2: Register module in `src/animations/index.js`**
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/animations/itGlassFlowAnimations.js src/animations/index.js
+git commit -m "feat: implement WebGL frosted glass tubes and cyan-blue glow wave animation"
+```
+
+---
+
+### Task 2: Replace CSS SVG Paths with WebGL Container in Component
+
+**Files:**
+- Modify: `src/devlink/ItFlowSection.jsx`
+
+- [ ] **Step 1: Replace raw 2D SVG paths with WebGL initialization**
+- [ ] **Step 2: Run `npm run build` verification**
+- [ ] **Step 3: Commit and Push**
+
+```bash
+git add src/devlink/ItFlowSection.jsx
+git commit -m "feat: replace 2D SVG paths with 3D WebGL glass energy wave in ItFlowSection"
+git push origin main
+```
