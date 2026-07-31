@@ -311,18 +311,32 @@ export function initLusionAnimations() {
     const depth = window.innerHeight / (2 * Math.tan((fov * Math.PI) / 360));
     camera.position.set(0, 0, depth);
 
-    // EffectComposer & UnrealBloomPass for HDR energy bleed through frosted glass
-    composer = new EffectComposer(renderer);
+    // EffectComposer & UnrealBloomPass for HDR energy bleed through frosted glass (Transparent Alpha Buffer)
+    const renderTarget = new THREE.WebGLRenderTarget(
+      window.innerWidth,
+      window.innerHeight,
+      {
+        minFilter: THREE.LinearFilter,
+        magFilter: THREE.LinearFilter,
+        format: THREE.RGBAFormat,
+        type: THREE.HalfFloatType,
+        stencilBuffer: false
+      }
+    );
+
+    composer = new EffectComposer(renderer, renderTarget);
     const renderPass = new RenderPass(scene, camera);
+    renderPass.clearAlpha = 0;
     composer.addPass(renderPass);
 
     bloomPass = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.8,  // bloomStrength (exposing for tuning)
-      0.4,  // bloomRadius
+      0.6,  // bloomStrength
+      0.3,  // bloomRadius
       0.85  // bloomThreshold (triggers on HDR emission > 1.0)
     );
     composer.addPass(bloomPass);
+
 
     // ───────────────────────────────────────────────
     // 2. Animated Scroll Line (Drawing Spline)

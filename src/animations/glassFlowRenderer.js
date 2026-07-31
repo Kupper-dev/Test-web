@@ -3,21 +3,21 @@ import * as THREE from 'three';
 export const GlassFlowConfig = {
   // Geometry parameters
   outerRadius: 22,             // Outer physical glass shell radius
-  innerRadius: 16,             // Inner glowing liquid core radius
+  innerRadius: 15,             // Inner glowing liquid core radius
   tubularSegments: 1000,       // Ultra-dense subdivisions to eliminate quad-split artifacts
   radialSegments: 32,          // Radial subdivisions for smooth cross-section
 
   // Outer Glass Shell (THREE.MeshPhysicalMaterial)
-  transmission: 1.0,
-  roughness: 0.35,
-  thickness: 2.0,
-  ior: 1.5,
-  glassColor: 0xdbeafe,        // Faint ice-blue tint
+  transmission: 0.95,
+  roughness: 0.25,
+  thickness: 1.5,
+  ior: 1.45,
+  glassColor: 0xdbeafe,        // Light translucent ice-blue tint
 
   // Inner Liquid Core Emission (HDR Bloom Trigger)
-  coreColor: 0x1040e0,         // Ultramarine blue base
+  coreColor: 0x0f3ce6,         // Rich ultramarine blue
   glowColor: 0x3b82f6,         // Royal blue highlight
-  hdrIntensity: 2.5,           // Emission intensity > 1.0 for UnrealBloomPass
+  hdrIntensity: 2.2,           // Emission intensity > 1.0 for UnrealBloomPass
   flowSpeed: 1.8,
   flowDirection: 1.0,
 
@@ -53,6 +53,7 @@ export class GlassFlowRenderer {
 
   init() {
     this.setupScene();
+    this.setupLighting();
     this.buildCurveFromSvg();
     this.createDualMeshes();
     this.addResizeListener();
@@ -86,6 +87,24 @@ export class GlassFlowRenderer {
     }
   }
 
+  setupLighting() {
+    if (!this.scene) return;
+
+    // Ensure ambient & directional lights exist for MeshPhysicalMaterial transmission
+    if (!this.scene.getObjectByName('glassFlowAmbientLight')) {
+      const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
+      ambientLight.name = 'glassFlowAmbientLight';
+      this.scene.add(ambientLight);
+    }
+
+    if (!this.scene.getObjectByName('glassFlowDirLight')) {
+      const dirLight = new THREE.DirectionalLight(0xffffff, 2.5);
+      dirLight.name = 'glassFlowDirLight';
+      dirLight.position.set(200, 500, 300);
+      this.scene.add(dirLight);
+    }
+  }
+
   buildCurveFromSvg() {
     const width = window.innerWidth;
     const mapSvgPoint = (svgX, svgY) => {
@@ -116,7 +135,7 @@ export class GlassFlowRenderer {
       const cp2 = mapSvgPoint(seg.cp2[0], seg.cp2[1]);
       const p1 = mapSvgPoint(seg.p1[0], seg.p1[1]);
 
-      // Uniform spatial density proportional to Bezier arc length
+      // Uniform spatial density proportional to Bezier chord length
       const approxLength = p0.distanceTo(cp1) + cp1.distanceTo(cp2) + cp2.distanceTo(p1);
       const steps = Math.max(40, Math.round(approxLength / 4));
 
@@ -185,7 +204,7 @@ export class GlassFlowRenderer {
           float drawMask = smoothstep(vUv.x + 0.010, vUv.x - 0.005, uProgress);
 
           // Subtle continuous liquid movement along flow
-          float flow = sin(vUv.x * 1.5 - uTime * uFlowSpeed * uFlowDirection) * 0.15 + 0.85;
+          float flow = sin(vUv.x * 1.2 - uTime * uFlowSpeed * uFlowDirection) * 0.12 + 0.88;
 
           // Pure ultramarine blue color mix
           vec3 baseColor = mix(uCoreColor, uGlowColor, flow * 0.35);
@@ -222,7 +241,10 @@ export class GlassFlowRenderer {
       thickness: this.config.thickness,
       ior: this.config.ior,
       transparent: true,
+      opacity: 0.50,
       color: new THREE.Color(this.config.glassColor),
+      attenuationColor: new THREE.Color(0x93c5fd),
+      attenuationDistance: 50.0,
       side: THREE.FrontSide,
       depthWrite: false
     });
