@@ -307,7 +307,7 @@ export function initLusionAnimations() {
 
     // Sized to window viewport to preserve exact SVG point projection calculations
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x000000, 0);
+    renderer.setClearColor(0xffffff, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
     // Add webgl-active class to hide duplicate HTML placeholder elements

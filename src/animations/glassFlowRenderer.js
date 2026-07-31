@@ -151,8 +151,13 @@ export class GlassFlowRenderer {
       },
       transparent: true,
       side: THREE.FrontSide,
-      blending: THREE.NormalBlending,
       depthWrite: false,
+      blending: THREE.CustomBlending,
+      blendEquation: THREE.AddEquation,
+      blendSrc: THREE.OneFactor, // Already multiplied in shader
+      blendDst: THREE.OneMinusSrcAlphaFactor,
+      blendSrcAlpha: THREE.OneFactor,
+      blendDstAlpha: THREE.OneMinusSrcAlphaFactor,
       vertexShader: `
         varying vec2 vUv;
         void main() {
@@ -202,7 +207,12 @@ export class GlassFlowRenderer {
       transparent: true,
       depthWrite: false, // Prevents transparent self-occlusion
       side: THREE.FrontSide,
-      blending: THREE.NormalBlending, // Restored for light/dark mode compatibility
+      blending: THREE.CustomBlending,
+      blendEquation: THREE.AddEquation,
+      blendSrc: THREE.OneFactor, // Already multiplied in shader
+      blendDst: THREE.OneMinusSrcAlphaFactor,
+      blendSrcAlpha: THREE.OneFactor,
+      blendDstAlpha: THREE.OneMinusSrcAlphaFactor,
       vertexShader: `
         varying vec2 vUv;
         varying vec3 vNormal;
