@@ -71,15 +71,7 @@ export function initLusionAnimations() {
   // Initialize WebGL Canvas
   canvas = document.createElement('canvas');
   canvas.id = 'lusion-canvas';
-  canvas.style.position = 'fixed';
-  canvas.style.top = '0';
-  canvas.style.left = '0';
-  canvas.style.width = '100vw';
-  canvas.style.height = '100vh';
-  canvas.style.zIndex = '9999';
-  canvas.style.pointerEvents = 'none';
-  canvas.style.backgroundColor = 'transparent';
-  document.body.insertBefore(canvas, document.body.firstChild);
+
 
 
 
@@ -303,21 +295,15 @@ export function initLusionAnimations() {
       antialias: true,
       premultipliedAlpha: false
     });
-    renderer.setClearColor(0xff0000, 0.2);
+
+    const debugWrapper = document.createElement('div');
+    debugWrapper.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2147483647; pointer-events: none; background: transparent;';
+    document.body.appendChild(debugWrapper);
+
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0xff0000, 0.3); // High visibility red tint
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-    // Force Canvas CSS immediately after creation to span the entire viewport behind content as fixed overlay
-    renderer.domElement.style.position = 'fixed';
-    renderer.domElement.style.top = '0';
-    renderer.domElement.style.left = '0';
-    renderer.domElement.style.width = '100vw';
-    renderer.domElement.style.height = '100vh';
-    renderer.domElement.style.zIndex = '-1';
-    renderer.domElement.style.pointerEvents = 'none';
-    renderer.domElement.style.background = 'transparent';
-    renderer.domElement.style.backgroundColor = 'rgba(0,0,0,0)';
-
+    debugWrapper.appendChild(renderer.domElement);
 
     // Force container transparency and video container stacking isolation
     if (containerEl) {
@@ -339,7 +325,9 @@ export function initLusionAnimations() {
     const fov = 45;
     camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 0.1, 20000);
     camera.updateProjectionMatrix();
-    camera.position.set(0, 0, 3000); // Hardcoded safe distance to prevent lens clipping
+    camera.position.set(0, 0, 1500); // Hardcoded safe distance to prevent lens clipping
+    camera.lookAt(0, 0, 0);
+ // Hardcoded safe distance to prevent lens clipping
 
 
 
@@ -525,6 +513,11 @@ export function initLusionAnimations() {
 
     // Start video elements
     videoEl.play().catch(e => console.log('Video auto-play pending interaction'));
+
+    console.log("THREE.JS DIAGNOSTIC:");
+    console.log("Canvas Element:", renderer.domElement);
+    console.log("Canvas Width/Height:", renderer.domElement.width, renderer.domElement.height);
+    console.log("Scene Children:", scene.children);
 
     tick();
   } catch (e) {
