@@ -41,18 +41,24 @@
   padding: 0;
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  font-size: var(--size-font);
+/* Force light gray body background across all pages */
+html, body {
   background-color: #dfe2e5 !important;
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+}
+
+/* Hide Barba page transition overlay that covers viewport with dark background */
+.transition {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 #lusion-canvas {
   background: transparent !important;
   background-color: transparent !important;
 }
+
 
 
 /* Lenis Scroll Tweaks */
