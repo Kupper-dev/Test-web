@@ -628,8 +628,11 @@ function tick() {
     const posX = sectionWebGLX - w * 0.03;
     const posY = sectionWebGLY + h * 0.25;
     const posZ = -5.0;
-    if (glassFlowRenderer.tubeMesh) {
-      glassFlowRenderer.tubeMesh.position.set(posX, posY, posZ);
+    if (glassFlowRenderer.innerMesh) {
+      glassFlowRenderer.innerMesh.position.set(posX, posY, posZ);
+    }
+    if (glassFlowRenderer.outerMesh) {
+      glassFlowRenderer.outerMesh.position.set(posX, posY, posZ);
     }
   }
 
@@ -727,7 +730,9 @@ function tick() {
     morphMesh.material.uniforms.u_progress.value = transitionProgress;
   }
 
-  if (renderer && scene && camera) {
+  if (glassFlowRenderer) {
+    glassFlowRenderer.render();
+  } else if (renderer && scene && camera) {
     renderer.render(scene, camera);
   }
   animationFrameId = requestAnimationFrame(tick);
