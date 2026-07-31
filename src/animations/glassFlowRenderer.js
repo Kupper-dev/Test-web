@@ -272,11 +272,6 @@ export class GlassFlowRenderer {
         varying vec3 vNormal;
         varying vec3 vViewPosition;
 
-        // Pseudo-random noise generator
-        float rand(vec2 n) {
-          return fract(sin(dot(n, vec2(12.9898, 78.233))) * 43758.5453);
-        }
-
         void main() {
           // Scroll Draw Logic
           if (vUv.x > uProgress) {
@@ -292,25 +287,29 @@ export class GlassFlowRenderer {
           // 1. Sharp Center Sample
           vec4 sharpCore = texture2D(tSharp, screenUv);
 
-          // 2. Procedural Acrylic Scatter (The Frosted Blur)
+          // 2. Golden Angle Spiral Blur (Vogel Filter)
           vec4 blurredCore = vec4(0.0);
-          float weight = 0.0;
-
-          // The blur radius grows aggressively towards the edges (max 2.5% of screen)
-          float spread = pow(fresnel, 2.0) * 0.025; 
-
-          // 9-Tap Dithered Scatter
-          for(float x = -1.0; x <= 1.0; x += 1.0) {
-            for(float y = -1.0; y <= 1.0; y += 1.0) {
-              // Add noise to the offset to create a "sandblasted" acrylic texture
-              vec2 noiseOffset = vec2(rand(screenUv + x), rand(screenUv + y)) * 2.0 - 1.0;
-              vec2 offset = (vec2(x, y) * spread) + (noiseOffset * spread * 0.5);
-              
-              blurredCore += texture2D(tSharp, screenUv + offset);
-              weight += 1.0;
-            }
+          
+          // 2.39996323 is the Golden Angle in radians
+          float goldenAngle = 2.39996323; 
+          float iterations = 32.0; // Higher = smoother blur, lower = better performance
+          
+          // The blur radius grows towards the edges (max 2.0% of screen)
+          float spread = pow(fresnel, 2.0) * 0.02; 
+          
+          for (float i = 0.0; i < 32.0; i++) {
+            // Calculate spiral radius and angle
+            float r = sqrt(i / iterations) * spread;
+            float theta = i * goldenAngle;
+            
+            // Convert polar to cartesian coordinates
+            vec2 offset = vec2(cos(theta), sin(theta)) * r;
+            
+            // Sample the texture
+            blurredCore += texture2D(tSharp, screenUv + offset);
           }
-          blurredCore /= weight;
+          
+          blurredCore /= iterations;
 
           // 3. Mix sharp center and frosted edges
           float blurMix = pow(fresnel, 1.5);
