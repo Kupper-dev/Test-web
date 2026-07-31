@@ -71,6 +71,16 @@ export function initLusionAnimations() {
   // Initialize WebGL Canvas
   canvas = document.createElement('canvas');
   canvas.id = 'lusion-canvas';
+  canvas.style.position = 'fixed';
+  canvas.style.top = '0';
+  canvas.style.left = '0';
+  canvas.style.width = '100vw';
+  canvas.style.height = '100vh';
+  canvas.style.pointerEvents = 'none';
+  canvas.style.zIndex = '2'; // In front of text layer, behind play button
+  canvas.style.backgroundColor = 'transparent';
+  document.body.insertBefore(canvas, document.body.firstChild); // Insert as first child of body to avoid section transform shifts
+
 
 
 
@@ -296,49 +306,23 @@ export function initLusionAnimations() {
       premultipliedAlpha: false
     });
 
-    // Reintegrate canvas and lock dimensions with absolute important inline styles
-    canvas.style.cssText = 'position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; z-index: 0 !important; pointer-events: none !important;';
-    renderer.domElement.style.cssText = 'position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; z-index: 0 !important; pointer-events: none !important;';
-
-    if (containerEl) {
-      containerEl.appendChild(canvas);
-      // Ensure the wrapper itself has position: relative
-      containerEl.style.position = 'relative';
-      // Force GSAP ScrollTrigger to recalculate DOM offsets
-      if (typeof ScrollTrigger !== 'undefined') {
-        ScrollTrigger.refresh();
-      }
-    }
-
-    const containerWidth = containerEl ? containerEl.clientWidth : window.innerWidth;
-    const containerHeight = containerEl ? containerEl.clientHeight : window.innerHeight;
-
-    renderer.setSize(containerWidth, containerHeight);
+    // Sized to window viewport to preserve exact SVG point projection calculations
+    renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-    // Force container transparency and video container stacking isolation
-    if (containerEl) {
-      containerEl.style.background = 'transparent';
-      containerEl.style.backgroundColor = 'transparent';
-    }
-    const homeReelContainer = document.getElementById('home-reel-container');
-    if (homeReelContainer) {
-      homeReelContainer.style.position = 'relative';
-      homeReelContainer.style.zIndex = '10';
-    }
 
     // Add webgl-active class to hide duplicate HTML placeholder elements
     if (containerEl) {
       containerEl.classList.add('webgl-active');
     }
 
-    // Perspective Camera mapping 1:1 to screen pixels at z = 0 with original depth
+    // Perspective Camera mapping 1:1 to screen pixels at z = 0
     const fov = 45;
-    camera = new THREE.PerspectiveCamera(fov, containerWidth / containerHeight, 1, 2000);
-    const depth = containerHeight / (2 * Math.tan((fov * Math.PI) / 360));
+    camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 1, 2000);
+    const depth = window.innerHeight / (2 * Math.tan((fov * Math.PI) / 360));
     camera.position.set(0, 0, depth);
     camera.updateProjectionMatrix();
+
 
 
 
@@ -542,17 +526,13 @@ export function initLusionAnimations() {
   // 4. Resize Handler
   // ───────────────────────────────────────────────
   resizeHandler = () => {
-    const containerWidth = containerEl ? containerEl.clientWidth : window.innerWidth;
-    const containerHeight = containerEl ? containerEl.clientHeight : window.innerHeight;
-
-
     if (renderer) {
-      renderer.setSize(containerWidth, containerHeight);
+      renderer.setSize(window.innerWidth, window.innerHeight);
     }
     if (camera) {
-      camera.aspect = containerWidth / containerHeight;
+      camera.aspect = window.innerWidth / window.innerHeight;
       camera.far = 2000;
-      const depth = containerHeight / (2 * Math.tan((45 * Math.PI) / 360));
+      const depth = window.innerHeight / (2 * Math.tan((45 * Math.PI) / 360));
       camera.position.set(0, 0, depth);
       camera.updateProjectionMatrix();
     }
