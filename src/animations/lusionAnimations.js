@@ -128,13 +128,13 @@ export function initLusionAnimations() {
 
       // Create scroll-scrub timeline for choreographed transitions
       titleTl = gsap.timeline({
-        // scrollTrigger: {
-        //   trigger: containerEl,
-        //   start: 'top 85%',
-        //   end: 'top 15%',
-        //   scrub: true,
-        //   invalidateOnRefresh: true
-        // }
+        scrollTrigger: {
+          trigger: containerEl,
+          start: 'top 85%',
+          end: 'top 15%',
+          scrub: true,
+          invalidateOnRefresh: true
+        }
       });
 
       // --- PHASE 1: Vertical Reveal ---
@@ -241,12 +241,12 @@ export function initLusionAnimations() {
       parallaxTween = gsap.to('#home-reel-content-inner', {
         y: () => -containerEl.offsetHeight * 0.08,
         ease: 'none',
-        // scrollTrigger: {
-        //   trigger: containerEl,
-        //   start: 'top bottom',
-        //   end: 'bottom top',
-        //   scrub: true
-        // }
+        scrollTrigger: {
+          trigger: containerEl,
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: true
+        }
       });
 
       // ───────────────────────────────────────────────
@@ -256,15 +256,15 @@ export function initLusionAnimations() {
       gsap.set('#home-reel-video-title-container', { xPercent: -50, yPercent: -50, y: 250, opacity: 0 });
 
       morphTl = gsap.timeline({
-        // scrollTrigger: {
-        //   trigger: containerEl,
-        //   start: 'top 25%',
-        //   end: '+=180%', // scroll distance to complete morph
-        //   scrub: true,
-        //   pin: true,
-        //   pinSpacing: true,
-        //   invalidateOnRefresh: true
-        // }
+        scrollTrigger: {
+          trigger: containerEl,
+          start: 'top 25%',
+          end: '+=180%', // scroll distance to complete morph
+          scrub: true,
+          pin: true,
+          pinSpacing: true,
+          invalidateOnRefresh: true
+        }
       });
 
       // Slide title and description wrapper up and fade out of view continuously over the full timeline duration (1.0)
