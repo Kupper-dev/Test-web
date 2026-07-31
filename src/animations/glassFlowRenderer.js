@@ -18,7 +18,7 @@ export class GlassFlowRenderer {
     }
     this.canvas = canvasElement;
     this.config = { ...GlassFlowConfig, ...options };
-
+    
     this.scene = this.config.scene || null;
     this.camera = this.config.camera || null;
     this.renderer = this.config.renderer || null;
@@ -27,23 +27,13 @@ export class GlassFlowRenderer {
       this.renderer.autoClear = false;
     }
 
-    // Advanced Compositor Architecture Render Targets
+    // Advanced Compositor Architecture - Core Render Target
     this.coreRenderTarget = null;
-    this.blurTarget1 = null;
-    this.blurTarget2 = null;
-
-    // Ping-Pong Blur helper properties
-    this.blurScene = new THREE.Scene();
-    this.blurCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 2);
-    this.blurCamera.position.z = 1; // Pull camera back to see the quad
-
-    this.blurQuad = null;
-    this.blurMaterial = null;
 
     // Concentric Dual-Mesh Architecture
     this.coreMesh = null;
     this.glassMesh = null;
-
+    
     // Compatibility hooks for lusionAnimations.js
     this.innerMesh = null;
     this.outerMesh = null;
@@ -51,7 +41,7 @@ export class GlassFlowRenderer {
 
     this.coreMaterial = null;
     this.glassMaterial = null;
-
+    
     this.curve = null;
     this.animationFrameId = null;
     this.startTime = performance.now();
@@ -62,7 +52,6 @@ export class GlassFlowRenderer {
   init() {
     this.setupScene();
     this.setupRenderTargets();
-    this.setupBlurPipeline();
     this.buildCurveFromSvg();
     this.createDualMesh();
     this.addResizeListener();
@@ -107,7 +96,7 @@ export class GlassFlowRenderer {
     const width = window.innerWidth;
     const height = window.innerHeight;
     const pixelRatio = this.renderer ? this.renderer.getPixelRatio() : (window.devicePixelRatio || 1);
-
+    
     const targetOptions = {
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
@@ -117,63 +106,6 @@ export class GlassFlowRenderer {
 
     // Allocate render targets matching physical pixel dimensions
     this.coreRenderTarget = new THREE.WebGLRenderTarget(width * pixelRatio, height * pixelRatio, targetOptions);
-    this.blurTarget1 = new THREE.WebGLRenderTarget(width * pixelRatio, height * pixelRatio, targetOptions);
-    this.blurTarget2 = new THREE.WebGLRenderTarget(width * pixelRatio, height * pixelRatio, targetOptions);
-  }
-
-  setupBlurPipeline() {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    const pixelRatio = this.renderer ? this.renderer.getPixelRatio() : (window.devicePixelRatio || 1);
-
-    this.blurMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        tDiffuse: { value: null },
-        uDirection: { value: new THREE.Vector2(1.0, 0.0) },
-        uResolution: { value: new THREE.Vector2(width * pixelRatio, height * pixelRatio) }
-      },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv;
-          gl_Position = vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform sampler2D tDiffuse;
-        uniform vec2 uDirection;
-        uniform vec2 uResolution;
-        varying vec2 vUv;
-        
-        void main() {
-          // Calculate exact physical pixel size
-          vec2 texel = 1.0 / uResolution;
-          vec2 off = uDirection * texel;
-          
-          vec4 color = vec4(0.0);
-          
-          // 13-Tap Gaussian Blur for massive spread
-          color += texture2D(tDiffuse, vUv - 6.0 * off) * 0.002216;
-          color += texture2D(tDiffuse, vUv - 5.0 * off) * 0.008764;
-          color += texture2D(tDiffuse, vUv - 4.0 * off) * 0.026995;
-          color += texture2D(tDiffuse, vUv - 3.0 * off) * 0.064759;
-          color += texture2D(tDiffuse, vUv - 2.0 * off) * 0.120985;
-          color += texture2D(tDiffuse, vUv - 1.0 * off) * 0.176033;
-          color += texture2D(tDiffuse, vUv) * 0.199471;
-          color += texture2D(tDiffuse, vUv + 1.0 * off) * 0.176033;
-          color += texture2D(tDiffuse, vUv + 2.0 * off) * 0.120985;
-          color += texture2D(tDiffuse, vUv + 3.0 * off) * 0.064759;
-          color += texture2D(tDiffuse, vUv + 4.0 * off) * 0.026995;
-          color += texture2D(tDiffuse, vUv + 5.0 * off) * 0.008764;
-          color += texture2D(tDiffuse, vUv + 6.0 * off) * 0.002216;
-          
-          gl_FragColor = color;
-        }
-      `
-    });
-
-    this.blurQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.blurMaterial);
-    this.blurScene.add(this.blurQuad);
   }
 
   buildCurveFromSvg() {
@@ -289,15 +221,15 @@ export class GlassFlowRenderer {
     this.coreMesh = new THREE.Mesh(coreGeometry, this.coreMaterial);
     this.coreMesh.frustumCulled = false;
     this.coreMesh.renderOrder = 0;
-
+    
     // Assign core to Layer 1 for offscreen rendering isolation
     this.coreMesh.layers.set(1);
-
+    
     if (this.scene) {
       this.scene.add(this.coreMesh);
     }
 
-    // 2. Generate the Outer Glass Shell (Screen-space Compositor)
+    // 2. Generate the Outer Glass Shell (Screen-space Compositor with Procedural Acrylic Scatter)
     const glassGeometry = new THREE.TubeGeometry(
       this.curve,
       this.config.tubularSegments,
@@ -310,10 +242,9 @@ export class GlassFlowRenderer {
     this.glassMaterial = new THREE.ShaderMaterial({
       uniforms: {
         tSharp: { value: this.coreRenderTarget.texture },
-        tBlurred: { value: this.blurTarget2.texture },
         uResolution: { value: new THREE.Vector2(width * pixelRatio, height * pixelRatio) },
         uProgress: { value: this.config.progress },
-        uDebugMode: { value: 4.0 } // 0=Final, 1=Sharp, 2=Blurred, 3=Fresnel, 4=BlurMix
+        uDebugMode: { value: 0.0 } // 0=Final, 1=Sharp, 2=Blurred
       },
       transparent: true,
       depthWrite: false,
@@ -333,7 +264,6 @@ export class GlassFlowRenderer {
       `,
       fragmentShader: `
         uniform sampler2D tSharp;
-        uniform sampler2D tBlurred;
         uniform vec2 uResolution;
         uniform float uProgress;
         uniform float uDebugMode;
@@ -341,6 +271,11 @@ export class GlassFlowRenderer {
         varying vec2 vUv;
         varying vec3 vNormal;
         varying vec3 vViewPosition;
+
+        // Pseudo-random noise generator
+        float rand(vec2 n) {
+          return fract(sin(dot(n, vec2(12.9898, 78.233))) * 43758.5453);
+        }
 
         void main() {
           // Scroll Draw Logic
@@ -354,19 +289,36 @@ export class GlassFlowRenderer {
           vec3 viewDir = normalize(vViewPosition);
           float fresnel = 1.0 - abs(dot(normal, viewDir));
 
-          // Sample core render targets in screen-space
+          // 1. Sharp Center Sample
           vec4 sharpCore = texture2D(tSharp, screenUv);
-          vec4 blurredCore = texture2D(tBlurred, screenUv);
 
-          // 1. Edge-dependent blur mix (Sharp in center, blurred at edges)
-          float blurMix = pow(fresnel, 2.5);
+          // 2. Procedural Acrylic Scatter (The Frosted Blur)
+          vec4 blurredCore = vec4(0.0);
+          float weight = 0.0;
+
+          // The blur radius grows aggressively towards the edges (max 2.5% of screen)
+          float spread = pow(fresnel, 2.0) * 0.025; 
+
+          // 9-Tap Dithered Scatter
+          for(float x = -1.0; x <= 1.0; x += 1.0) {
+            for(float y = -1.0; y <= 1.0; y += 1.0) {
+              // Add noise to the offset to create a "sandblasted" acrylic texture
+              vec2 noiseOffset = vec2(rand(screenUv + x), rand(screenUv + y)) * 2.0 - 1.0;
+              vec2 offset = (vec2(x, y) * spread) + (noiseOffset * spread * 0.5);
+              
+              blurredCore += texture2D(tSharp, screenUv + offset);
+              weight += 1.0;
+            }
+          }
+          blurredCore /= weight;
+
+          // 3. Mix sharp center and frosted edges
+          float blurMix = pow(fresnel, 1.5);
           vec4 coreComposite = mix(sharpCore, blurredCore, blurMix);
 
-          // 2. White subsurface scattering (Soft haze)
-          float hazeAlpha = pow(fresnel, 5.0) * 0.3;
-
-          // 3. Thin bright rim highlight
-          float rimAlpha = pow(fresnel, 10.0) * 0.9;
+          // 4. Optical Additions
+          float hazeAlpha = pow(fresnel, 5.0) * 0.3; // White subsurface scattering
+          float rimAlpha = pow(fresnel, 10.0) * 0.9; // Thin bright rim
 
           // Final Compositing
           float finalAlpha = max(max(coreComposite.a, hazeAlpha), rimAlpha);
@@ -379,13 +331,9 @@ export class GlassFlowRenderer {
 
           // DIAGNOSTIC OUTPUT
           if (uDebugMode == 1.0) {
-            gl_FragColor = vec4(sharpCore.rgb * coreComposite.a, coreComposite.a); // Mode 1: Show Sharp (premultiplied)
+            gl_FragColor = vec4(sharpCore.rgb * coreComposite.a, coreComposite.a); // Mode 1: Sharp
           } else if (uDebugMode == 2.0) {
-            gl_FragColor = vec4(blurredCore.rgb * coreComposite.a, coreComposite.a); // Mode 2: Show Blurred (premultiplied)
-          } else if (uDebugMode == 3.0) {
-            gl_FragColor = vec4(vec3(fresnel) * tipFade, tipFade); // Mode 3: Show Fresnel Mask
-          } else if (uDebugMode == 4.0) {
-            gl_FragColor = vec4(vec3(blurMix) * tipFade, tipFade); // Mode 4: Show Blur Mix Weight
+            gl_FragColor = vec4(blurredCore.rgb * coreComposite.a, coreComposite.a); // Mode 2: Procedural Blur
           } else {
             gl_FragColor = vec4(finalColor * finalAlpha, finalAlpha); // Mode 0: Final Pre-multiplied Composite
           }
@@ -396,10 +344,10 @@ export class GlassFlowRenderer {
     this.glassMesh = new THREE.Mesh(glassGeometry, this.glassMaterial);
     this.glassMesh.frustumCulled = false;
     this.glassMesh.renderOrder = 1;
-
+    
     // Assign glass to Layer 0 (default)
     this.glassMesh.layers.set(0);
-
+    
     if (this.scene) {
       this.scene.add(this.glassMesh);
     }
@@ -469,18 +417,13 @@ export class GlassFlowRenderer {
         this.renderer.setSize(width, height);
       }
 
-      // Resize all offscreen render targets matching Retina resolution
+      // Resize offscreen render target matching Retina resolution
       const targetW = width * pixelRatio;
       const targetH = height * pixelRatio;
       if (this.coreRenderTarget) this.coreRenderTarget.setSize(targetW, targetH);
-      if (this.blurTarget1) this.blurTarget1.setSize(targetW, targetH);
-      if (this.blurTarget2) this.blurTarget2.setSize(targetW, targetH);
 
       if (this.glassMaterial) {
         this.glassMaterial.uniforms.uResolution.value.set(targetW, targetH);
-      }
-      if (this.blurMaterial) {
-        this.blurMaterial.uniforms.uResolution.value.set(targetW, targetH);
       }
 
       this.buildCurveFromSvg();
@@ -524,29 +467,7 @@ export class GlassFlowRenderer {
     this.renderer.clear();
     this.renderer.render(this.scene, this.camera);
 
-    // Grab the exact physical size of the render target
-    const targetW = this.coreRenderTarget.width;
-    const targetH = this.coreRenderTarget.height;
-
-    // STEP 2: Horizontal Blur (Core -> Target 1)
-    this.blurMaterial.uniforms.uResolution.value.set(targetW, targetH);
-    this.blurMaterial.uniforms.tDiffuse.value = this.coreRenderTarget.texture;
-    this.blurMaterial.uniforms.uDirection.value.set(12.0, 0.0); // 12 pixel horizontal radius
-    this.blurMaterial.uniformsNeedUpdate = true; // Force update
-    this.renderer.setRenderTarget(this.blurTarget1);
-    this.renderer.clear();
-    this.renderer.render(this.blurScene, this.blurCamera);
-
-    // STEP 3: Vertical Blur (Target 1 -> Target 2)
-    this.blurMaterial.uniforms.uResolution.value.set(targetW, targetH);
-    this.blurMaterial.uniforms.tDiffuse.value = this.blurTarget1.texture;
-    this.blurMaterial.uniforms.uDirection.value.set(0.0, 12.0); // 12 pixel vertical radius
-    this.blurMaterial.uniformsNeedUpdate = true; // Force update
-    this.renderer.setRenderTarget(this.blurTarget2);
-    this.renderer.clear();
-    this.renderer.render(this.blurScene, this.blurCamera);
-
-    // STEP 4: Render Glass Compositor to Screen
+    // STEP 2: Render Glass Compositor & Website UI (Layer 0) directly to screen Canvas
     this.camera.layers.set(0);
     this.renderer.setRenderTarget(currentRenderTarget);
     this.renderer.clear();
@@ -569,14 +490,8 @@ export class GlassFlowRenderer {
     if (this.glassMesh) this.glassMesh.geometry.dispose();
     if (this.coreMaterial) this.coreMaterial.dispose();
     if (this.glassMaterial) this.glassMaterial.dispose();
-
+    
     if (this.coreRenderTarget) this.coreRenderTarget.dispose();
-    if (this.blurTarget1) this.blurTarget1.dispose();
-    if (this.blurTarget2) this.blurTarget2.dispose();
-
-    if (this.blurMaterial) this.blurMaterial.dispose();
-    if (this.blurQuad) this.blurQuad.geometry.dispose();
-
     if (this.renderer) this.renderer.dispose();
   }
 }
