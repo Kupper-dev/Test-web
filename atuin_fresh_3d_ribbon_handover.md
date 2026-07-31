@@ -59,3 +59,40 @@ We are abandoning the bloated reverse-engineered WebComponent bundle from the `a
 ## 4. Branch Context
 - **Current Branch**: `experimental-ribbon-new` (Clean branch off `main`).
 - **Archive Branch**: `experimental-ribbon` (Contains all reverse-engineered WebComponent attempt files for reference).
+
+---
+
+## 5. Solving White / Opaque Canvas Background Issues (Reference)
+If the canvas or ribbon container ever displays a solid white or opaque background blocking underlying DOM elements:
+
+1. **Three.js WebGLRenderer Alpha Initialization**:
+   - Ensure the WebGL renderer is created with `alpha: true`:
+     ```javascript
+     const renderer = new THREE.WebGLRenderer({
+       canvas: canvasElement,
+       alpha: true,
+       antialias: true
+     });
+     ```
+   - Clear background color with 0 alpha (fully transparent):
+     ```javascript
+     renderer.setClearColor(0x000000, 0); // Hex 0x000000 with alpha = 0
+     ```
+
+2. **Post-Processing Pass Transparency**:
+   - If using `EffectComposer` or post-processing passes (e.g. pixelation / bloom), set `renderToScreen` and pass alpha clearing explicitly:
+     ```javascript
+     composer.renderTarget1.texture.format = THREE.RGBAFormat;
+     composer.renderTarget2.texture.format = THREE.RGBAFormat;
+     ```
+
+3. **CSS Container Rules**:
+   - Ensure canvas/container has explicit transparent background & overlay pointer passing:
+     ```css
+     #atuin-ribbon-canvas,
+     atuin-ribbon {
+       background: transparent !important;
+       background-color: transparent !important;
+       pointer-events: none;
+     }
+     ```
