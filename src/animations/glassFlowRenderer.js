@@ -166,21 +166,22 @@ export class GlassFlowRenderer {
           // 3. Define the Three Visual Zones
           // Zone A: The Liquid Core (Facing camera)
           float coreMask = smoothstep(0.6, 1.0, viewDot);
-          vec3 coreColor = vec3(0.05, 0.23, 0.90) * 1.2; // Vivid Ultramarine Blue (#0f3ce6)
+          vec3 coreColor = vec3(0.0, 0.25, 1.0) * 1.5; // Vivid Ultramarine Blue (#0f3ce6)
 
           // Zone B: The Frosted Glass Wall (Mid-radius)
           float frostMask = smoothstep(0.2, 0.7, viewDot) - coreMask;
-          vec3 frostColor = vec3(0.70, 0.85, 1.0); // Semi-transparent icy blue
+          vec3 frostColor = vec3(0.9, 0.95, 1.0); // Semi-transparent icy blue
 
           // Zone C: The Rim Highlight (Grazing edges)
           float rimMask = 1.0 - smoothstep(0.0, 0.3, viewDot);
           vec3 rimColor = vec3(1.0, 1.0, 1.0); // Bright white reflection
 
           // 4. Composite the Zones
-          vec3 finalColor = (coreColor * coreMask) + (frostColor * frostMask * 0.35) + (rimColor * rimMask * 0.7);
+          vec3 finalColor = (coreColor * coreMask) + (frostColor * frostMask * 0.6) + (rimColor * rimMask);
           
           // 5. Calculate Final Alpha (preserving glass transparency in the mid-section)
           float alpha = max(coreMask, frostMask * 0.4) + (rimMask * 0.5);
+
 
           // Safe GPU calculation for soft fade at the very tip of the flowing liquid
           float tipFade = clamp((uProgress - vUv.x) / 0.05, 0.0, 1.0);

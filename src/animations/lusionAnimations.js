@@ -304,9 +304,16 @@ export function initLusionAnimations() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    // Force Canvas CSS Transparency immediately after creation
+    // Force Canvas CSS immediately after creation to span the entire viewport
+    renderer.domElement.style.position = 'absolute';
+    renderer.domElement.style.top = '0';
+    renderer.domElement.style.left = '0';
+    renderer.domElement.style.width = '100vw';
+    renderer.domElement.style.height = '100%';
+    renderer.domElement.style.pointerEvents = 'none';
     renderer.domElement.style.background = 'transparent';
     renderer.domElement.style.backgroundColor = 'rgba(0,0,0,0)';
+
 
     // Add webgl-active class to hide duplicate HTML placeholder elements
     if (containerEl) {
