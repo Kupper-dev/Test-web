@@ -37,7 +37,7 @@ export class GlassFlowRenderer {
     this.material = null;
     this.curve = null;
     this.animationFrameId = null;
-    this.clock = new THREE.Clock();
+    this.startTime = performance.now();
 
     this.init();
   }
@@ -222,7 +222,7 @@ export class GlassFlowRenderer {
       this.config.progress = progress;
     }
     if (this.material) {
-      this.material.uniforms.uTime.value = this.clock.getElapsedTime();
+      this.material.uniforms.uTime.value = (performance.now() - this.startTime) / 1000;
       this.material.uniforms.uProgress.value = this.config.progress;
     }
     this.render();

@@ -13,6 +13,7 @@ let animationFrameId = null;
 // Three.js meshes
 let lineMesh = null;
 let morphMesh = null;
+let glassFlowRenderer = null;
 
 // DOM reference elements
 let containerEl = null;
