@@ -300,11 +300,11 @@ export class GlassFlowRenderer {
             float theta = i * goldenAngle;
             vec2 offset = vec2(cos(theta), sin(theta)) * r;
             
-            vec4 sample = texture2D(tSharp, screenUv + offset);
+            vec4 cSample = texture2D(tSharp, screenUv + offset);
             
             // Weight the color by its alpha to prevent black background bleeding
-            accumulatedRGB += sample.rgb * sample.a;
-            totalAlpha += sample.a;
+            accumulatedRGB += cSample.rgb * cSample.a;
+            totalAlpha += cSample.a;
           }
           
           // Normalize the colors to restore pure brightness
