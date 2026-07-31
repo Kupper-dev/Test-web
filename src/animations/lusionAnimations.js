@@ -3,15 +3,10 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import SplitType from 'split-type';
 import * as THREE from 'three';
 import { GlassFlowRenderer } from './glassFlowRenderer.js';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
 let scene, camera, renderer;
-let composer = null;
-let bloomPass = null;
 let canvas = null;
 let animationFrameId = null;
 
@@ -19,6 +14,7 @@ let animationFrameId = null;
 let lineMesh = null;
 let morphMesh = null;
 let glassFlowRenderer = null;
+
 
 
 // DOM reference elements
@@ -312,31 +308,10 @@ export function initLusionAnimations() {
     const depth = window.innerHeight / (2 * Math.tan((fov * Math.PI) / 360));
     camera.position.set(0, 0, depth);
 
-    // EffectComposer & UnrealBloomPass for HDR energy bleed through frosted glass (Transparent Alpha Buffer)
-    const renderTarget = new THREE.WebGLRenderTarget(
-      window.innerWidth,
-      window.innerHeight,
-      {
-        minFilter: THREE.LinearFilter,
-        magFilter: THREE.LinearFilter,
-        format: THREE.RGBAFormat,
-        type: THREE.HalfFloatType,
-        stencilBuffer: false
-      }
-    );
+    // ───────────────────────────────────────────────
+    // 2. Animated Scroll Line (Drawing Spline)
+    // ───────────────────────────────────────────────
 
-    composer = new EffectComposer(renderer, renderTarget);
-    const renderPass = new RenderPass(scene, camera);
-    renderPass.clearAlpha = 0;
-    composer.addPass(renderPass);
-
-    bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.8,  // bloomStrength
-      0.4,  // bloomRadius
-      1.2   // bloomThreshold (exceeds 1.0 white UI cards, catches 3.0x HDR blue liquid core)
-    );
-    composer.addPass(bloomPass);
 
 
 
@@ -632,13 +607,11 @@ function tick() {
     const posX = sectionWebGLX - w * 0.03;
     const posY = sectionWebGLY + h * 0.25;
     const posZ = -5.0;
-    if (glassFlowRenderer.innerMesh) {
-      glassFlowRenderer.innerMesh.position.set(posX, posY, posZ);
-    }
-    if (glassFlowRenderer.outerMesh) {
-      glassFlowRenderer.outerMesh.position.set(posX, posY, posZ);
+    if (glassFlowRenderer.tubeMesh) {
+      glassFlowRenderer.tubeMesh.position.set(posX, posY, posZ);
     }
   }
+
 
   // 2. Update Thumbnail-to-Video Position and Morph
 
