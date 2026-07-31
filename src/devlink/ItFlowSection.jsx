@@ -1,34 +1,49 @@
 import React, { useEffect } from 'react';
 import '../styles/suite-section.css';
+import { SvgTubeRenderer } from '../webgl/SvgTubeRenderer';
 
 export function ItFlowSection() {
   useEffect(() => {
-    // 1. Exact SVG Core Line Dash-Offset Scroll Handler
+    let tubeRenderer = null;
+
+    const container = document.querySelector('.it-flow-cards');
+    const pathEls = document.querySelectorAll('.it-network-paths path');
+
+    if (container && pathEls.length) {
+      tubeRenderer = new SvgTubeRenderer({
+        container,
+        paths: pathEls,
+        options: {
+          radius: 8,
+          tubularSegments: 300,
+          radialSegments: 16,
+          colors: ['#2563eb', '#00f0ff', '#2563eb'],
+        },
+      });
+    }
+
+    // 1. WebGL 3D Tube Scroll Progress Handler
     const handlePathScroll = () => {
-      const container = document.querySelector(".it-flow-cards");
-      const svgPaths = document.querySelector(".it-network-paths");
-      if (!container || !svgPaths) return;
+      if (!container) return;
 
       const rect = container.getBoundingClientRect();
       const vh = window.innerHeight;
       let progress = (vh - rect.top) / (vh + rect.height);
       progress = Math.max(0, Math.min(1, progress));
 
-      const dashOffset = -(3200 * progress);
-      const coreLines = svgPaths.querySelectorAll("use.core-line");
-      coreLines.forEach((u) => {
-        u.style.strokeDashoffset = `${dashOffset}px`;
-      });
+      if (tubeRenderer) {
+        tubeRenderer.setProgress(progress);
+      }
     };
 
     // 2. Ticket Feed Scroll Handler
     const handleFeedScroll = () => {
-      const stacks = document.querySelectorAll("[data-it-feed]");
+      const stacks = document.querySelectorAll('[data-it-feed]');
       if (!stacks.length) return;
       const vh = window.innerHeight;
 
       stacks.forEach((stack) => {
-        const track = stack.querySelector(".it-ticket-track");
+        const track = stack.querySelector('.it-ticket-track');
         if (!track) return;
         const rect = stack.getBoundingClientRect();
         let progress = (vh - rect.top) / (vh + rect.height);
@@ -45,11 +60,14 @@ export function ItFlowSection() {
       });
     };
 
-    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
 
     return () => {
-      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener('scroll', onScroll);
+      if (tubeRenderer) {
+        tubeRenderer.destroy();
+      }
     };
   }, []);
 

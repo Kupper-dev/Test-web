@@ -1,7 +1,8 @@
-<!-- Webflow Custom Code: ticket card vertical (Configurable Test Sandbox with Full Static Background Tracks) -->
+<!-- Webflow Custom Code: ticket card vertical (Configurable Test Sandbox with WebGL 3D Tube Reveal) -->
 <script src="https://unpkg.com/@studio-freight/lenis@1.0.34/dist/lenis.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <style>
   /* -------------------------------------------------------------
@@ -68,81 +69,131 @@
     stroke-width: var(--it-track-width-3) !important;
   }
 
-  /* 2. Inner moving animated core lines (Rendered ON TOP of background tracks) */
+  /* 2. Inner core lines hidden visually for WebGL 3D tube experiment */
   .it-network-paths use.it-core-line {
-    stroke: url(#itSignalGradient) !important;
-    stroke-linecap: round !important;
-    will-change: stroke-dashoffset !important;
-    opacity: 1 !important;
-  }
-
-  .it-network-paths use.it-core-line.it-core-line-1 {
-    stroke-width: var(--it-line-width-1) !important;
-    stroke-dasharray: 20 50 120 50 20 50 300 50 20 50 150 50 20 99999 !important;
-  }
-  .it-network-paths use.it-core-line.it-core-line-2 {
-    stroke-width: var(--it-line-width-2) !important;
-    stroke-dasharray: 34 60 120 60 34 60 300 60 34 60 150 60 34 99999 !important;
-  }
-  .it-network-paths use.it-core-line.it-core-line-3 {
-    stroke-width: var(--it-line-width-3) !important;
-    stroke-dasharray: 25 40 120 40 25 40 250 40 25 40 150 40 25 99999 !important;
+    display: none !important;
   }
 </style>
 
 <script>
   (function initItFlowCode() {
     function runScripts() {
+      var container = document.querySelector(".it-flow-cards");
       var svg = document.querySelector(".it-network-paths svg, svg.it-network-paths");
-      if (svg) {
-        // Automatically inject continuous background track casing <use> elements BEHIND animated core lines
-        var origUses = Array.from(svg.querySelectorAll("use:not(.it-track-bg)"));
-        if (origUses.length >= 3 && !svg.querySelector("use.it-track-bg")) {
-          origUses.slice(0, 3).forEach(function(origUse, idx) {
-            var trackBg = origUse.cloneNode(true);
-            trackBg.removeAttribute("style");
-            trackBg.className.baseVal = "it-track-bg it-track-bg-" + (idx + 1);
-            origUse.className.baseVal = "it-core-line it-core-line-" + (idx + 1);
-            
-            // Insert static track casing BEFORE original <use> element (so it sits underneath)
-            svg.insertBefore(trackBg, origUse);
+      var tubeItems = [];
+      var renderer, scene, camera;
+
+      if (container && svg && window.THREE) {
+        // Build WebGL Canvas
+        var canvas = document.createElement("canvas");
+        canvas.id = "it-webgl-canvas-embed";
+        canvas.style.position = "absolute";
+        canvas.style.top = "0";
+        canvas.style.left = "0";
+        canvas.style.width = "100%";
+        canvas.style.height = "100%";
+        canvas.style.pointerEvents = "none";
+        canvas.style.zIndex = "2";
+
+        if (getComputedStyle(container).position === "static") {
+          container.style.position = "relative";
+        }
+        container.appendChild(canvas);
+
+        scene = new THREE.Scene();
+        renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        var ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+        scene.add(ambientLight);
+        var keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        keyLight.position.set(300, 500, 600);
+        scene.add(keyLight);
+        var rimLight = new THREE.DirectionalLight(0x00f0ff, 0.8);
+        rimLight.position.set(-300, -300, 400);
+        scene.add(rimLight);
+
+        var vbW = 740, vbH = 2000;
+        if (svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width > 0) {
+          vbW = svg.viewBox.baseVal.width;
+          vbH = svg.viewBox.baseVal.height;
+        }
+
+        camera = new THREE.PerspectiveCamera(45, 1, 1, 10000);
+
+        function resizeRenderer() {
+          var rect = container.getBoundingClientRect();
+          var w = rect.width || 740;
+          var h = rect.height || 2000;
+          renderer.setSize(w, h);
+          camera.aspect = w / h;
+          var depth = (vbH / 2) / Math.tan((45 * Math.PI / 180) / 2);
+          camera.position.set(0, 0, depth);
+          camera.lookAt(0, 0, 0);
+          camera.updateProjectionMatrix();
+          renderer.render(scene, camera);
+        }
+
+        var pathEls = svg.querySelectorAll("defs path, path");
+        var colors = ["#2563eb", "#00f0ff", "#2563eb"];
+
+        Array.from(pathEls).slice(0, 3).forEach(function (pathEl, idx) {
+          var totalLen = pathEl.getTotalLength();
+          if (!totalLen) return;
+
+          var curvePoints = [];
+          var samples = 200;
+          for (var i = 0; i <= samples; i++) {
+            var pt = pathEl.getPointAtLength((i / samples) * totalLen);
+            curvePoints.push(new THREE.Vector3(pt.x - vbW / 2, vbH / 2 - pt.y, 0));
+          }
+
+          var curve = new THREE.CatmullRomCurve3(curvePoints, false, "centripetal");
+          var radius = 8 - idx * 1.5;
+          var tubularSegments = 300;
+          var radialSegments = 16;
+
+          var tubeGeometry = new THREE.TubeGeometry(curve, tubularSegments, radius, radialSegments, false);
+          tubeGeometry.setDrawRange(0, 0);
+
+          var mat = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(colors[idx % colors.length]),
+            roughness: 0.15,
+            metalness: 0.2,
+            emissive: new THREE.Color(colors[idx % colors.length]),
+            emissiveIntensity: 0.15
           });
-        }
 
-        // Dynamic SVG linearGradient sync with CSS variables
-        var defs = svg.querySelector("defs");
-        if (!defs) {
-          defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-          svg.insertBefore(defs, svg.firstChild);
-        }
-        var grad = defs.querySelector("#itSignalGradient");
-        if (!grad) {
-          grad = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
-          grad.setAttribute("id", "itSignalGradient");
-          grad.setAttribute("gradientUnits", "objectBoundingBox");
-          grad.setAttribute("x1", "0");
-          grad.setAttribute("y1", "0");
-          grad.setAttribute("x2", "0.2");
-          grad.setAttribute("y2", "1");
-          defs.appendChild(grad);
-        }
-        var cs = getComputedStyle(document.documentElement);
-        var cStart = cs.getPropertyValue('--it-color-start').trim() || '#2563EB';
-        var cMid = cs.getPropertyValue('--it-color-mid').trim() || '#00F0FF';
-        var cEnd = cs.getPropertyValue('--it-color-end').trim() || '#2563EB';
+          var tubeMesh = new THREE.Mesh(tubeGeometry, mat);
+          scene.add(tubeMesh);
 
-        grad.innerHTML =
-          '<stop offset="0%" stop-color="' + cStart + '" stop-opacity="0.25"></stop>' +
-          '<stop offset="25%" stop-color="' + cStart + '" stop-opacity="0.9"></stop>' +
-          '<stop offset="50%" stop-color="' + cMid + '" stop-opacity="1"></stop>' +
-          '<stop offset="75%" stop-color="' + cEnd + '" stop-opacity="0.9"></stop>' +
-          '<stop offset="100%" stop-color="' + cEnd + '" stop-opacity="0.25"></stop>';
+          var sphereGeom = new THREE.SphereGeometry(radius, 16, 16);
+          var startCap = new THREE.Mesh(sphereGeom, mat);
+          startCap.position.copy(curve.getPoint(0));
+          startCap.visible = false;
+          scene.add(startCap);
+
+          var tipCap = new THREE.Mesh(sphereGeom, mat);
+          tipCap.position.copy(curve.getPoint(0));
+          tipCap.visible = false;
+          scene.add(tipCap);
+
+          tubeItems.push({
+            curve: curve,
+            tubeGeometry: tubeGeometry,
+            startCap: startCap,
+            tipCap: tipCap,
+            tubularSegments: tubularSegments,
+            radialSegments: radialSegments
+          });
+        });
+
+        window.addEventListener("resize", resizeRenderer);
+        resizeRenderer();
       }
 
-      // 2. SVG Signal Path Scroll Animation (Only animates the inner core lines)
-      var container = document.querySelector(".it-flow-cards");
-      var svgPaths = document.querySelector(".it-network-paths");
-      if (container && svgPaths) {
+      // 2. SVG Signal Path Scroll Animation (Updates 3D WebGL Tube Reveal)
+      if (container) {
         var tickingPaths = false;
         function updatePathOffset() {
           if (!tickingPaths) {
@@ -153,13 +204,24 @@
               var progress = (vh - rect.top) / (vh + rect.height);
               progress = Math.max(0, Math.min(1, progress));
 
-              var speedMult = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--it-speed-multiplier')) || 3200;
-              var dashOffset = -(speedMult * progress);
-
-              var movingLines = svgPaths.querySelectorAll("use.it-core-line");
-              movingLines.forEach(function (u) {
-                u.style.strokeDashoffset = dashOffset + "px";
+              tubeItems.forEach(function (tItem) {
+                if (progress <= 0.001) {
+                  tItem.tubeGeometry.setDrawRange(0, 0);
+                  tItem.startCap.visible = false;
+                  tItem.tipCap.visible = false;
+                } else {
+                  var ringCount = Math.floor(progress * tItem.tubularSegments);
+                  var drawCount = ringCount * tItem.radialSegments * 6;
+                  tItem.tubeGeometry.setDrawRange(0, drawCount);
+                  tItem.startCap.visible = true;
+                  tItem.tipCap.visible = true;
+                  tItem.tipCap.position.copy(tItem.curve.getPoint(Math.min(1, progress)));
+                }
               });
+
+              if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+              }
               tickingPaths = false;
             });
           }

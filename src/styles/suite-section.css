@@ -88,12 +88,26 @@
   stroke-width: 26px;
 }
 
-/* Solid core inner line with unified blue gradient animation */
+/* WebGL Overlay Canvas */
+#it-webgl-canvas {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  min-width: 740px;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Solid core inner line hidden for WebGL 3D tube experiment (SVG kept in DOM as authoring data) */
 .it-network-paths use.core-line {
   fill: none !important;
   stroke: url(#itSignalGradient) !important;
   stroke-linecap: round;
   stroke-linejoin: round;
+  display: none !important; /* SVG path is authoring data; WebGL tube renders the path */
   will-change: stroke-dashoffset;
 }
 
