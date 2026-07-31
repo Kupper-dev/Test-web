@@ -297,6 +297,7 @@ export function initLusionAnimations() {
       alpha: true,
       antialias: true
     });
+    renderer.setClearColor(0x000000, 0);
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
@@ -331,11 +332,12 @@ export function initLusionAnimations() {
 
     bloomPass = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.6,  // bloomStrength
-      0.3,  // bloomRadius
-      0.85  // bloomThreshold (triggers on HDR emission > 1.0)
+      0.8,  // bloomStrength
+      0.4,  // bloomRadius
+      1.5   // bloomThreshold (HIGH threshold: only HDR emission > 1.5 triggers bloom, ignoring UI cards)
     );
     composer.addPass(bloomPass);
+
 
 
     // ───────────────────────────────────────────────

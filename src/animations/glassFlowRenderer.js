@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 export const GlassFlowConfig = {
   // Geometry parameters
@@ -8,16 +9,17 @@ export const GlassFlowConfig = {
   radialSegments: 32,          // Radial subdivisions for smooth cross-section
 
   // Outer Glass Shell (THREE.MeshPhysicalMaterial)
-  transmission: 0.95,
-  roughness: 0.25,
-  thickness: 1.5,
-  ior: 1.45,
+  transmission: 1.0,
+  roughness: 0.20,
+  thickness: 2.0,
+  ior: 1.5,
+  clearcoat: 1.0,
   glassColor: 0xdbeafe,        // Light translucent ice-blue tint
 
   // Inner Liquid Core Emission (HDR Bloom Trigger)
   coreColor: 0x0f3ce6,         // Rich ultramarine blue
-  glowColor: 0x3b82f6,         // Royal blue highlight
-  hdrIntensity: 2.2,           // Emission intensity > 1.0 for UnrealBloomPass
+  glowColor: 0x2563eb,         // Royal blue highlight
+  hdrIntensity: 3.5,           // Emission multiplier > 1.5 to trigger UnrealBloomPass threshold
   flowSpeed: 1.8,
   flowDirection: 1.0,
 
@@ -53,7 +55,7 @@ export class GlassFlowRenderer {
 
   init() {
     this.setupScene();
-    this.setupLighting();
+    this.setupLightingAndEnvironment();
     this.buildCurveFromSvg();
     this.createDualMeshes();
     this.addResizeListener();
@@ -82,15 +84,25 @@ export class GlassFlowRenderer {
         alpha: true,
         antialias: true
       });
+      this.renderer.setClearColor(0x000000, 0);
       this.renderer.setSize(width, height);
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     }
   }
 
-  setupLighting() {
+  setupLightingAndEnvironment() {
     if (!this.scene) return;
 
-    // Ensure ambient & directional lights exist for MeshPhysicalMaterial transmission
+    // PMREMGenerator & RoomEnvironment for MeshPhysicalMaterial physical glass refraction
+    const activeRenderer = this.renderer || new THREE.WebGLRenderer({ alpha: true });
+    const pmremGenerator = new THREE.PMREMGenerator(activeRenderer);
+    pmremGenerator.compileEquirectangularShader();
+    
+    const roomEnv = new RoomEnvironment();
+    this.scene.environment = pmremGenerator.fromScene(roomEnv).texture;
+    pmremGenerator.dispose();
+
+    // Scene Lights for PBR specular highlights
     if (!this.scene.getObjectByName('glassFlowAmbientLight')) {
       const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
       ambientLight.name = 'glassFlowAmbientLight';
@@ -156,7 +168,7 @@ export class GlassFlowRenderer {
 
   createDualMeshes() {
     // ───────────────────────────────────────────────────────────────
-    // 1. INNER LIQUID CORE MESH (HDR Emissive Stream)
+    // 1. INNER LIQUID CORE MESH (HDR Emissive Stream + Cylindrical Volumetrics)
     // ───────────────────────────────────────────────────────────────
     const innerGeometry = new THREE.TubeGeometry(
       this.curve,
@@ -180,11 +192,14 @@ export class GlassFlowRenderer {
       vertexShader: `
         varying vec2 vUv;
         varying vec3 vNormal;
+        varying vec3 vViewPosition;
 
         void main() {
           vUv = uv;
           vNormal = normalize(normalMatrix * normal);
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          vViewPosition = -mvPosition.xyz;
+          gl_Position = projectionMatrix * mvPosition;
         }
       `,
       fragmentShader: `
@@ -198,8 +213,16 @@ export class GlassFlowRenderer {
 
         varying vec2 vUv;
         varying vec3 vNormal;
+        varying vec3 vViewPosition;
 
         void main() {
+          vec3 normal = normalize(vNormal);
+          vec3 viewDir = normalize(vViewPosition);
+
+          // Fresnel-like viewFactor for 3D cylindrical volumetric depth (center is dense, edges fade softly)
+          float viewFactor = max(dot(normal, viewDir), 0.0);
+          float centerDensity = pow(viewFactor, 1.5);
+
           // GSAP Self-drawing scroll progress mask along path length (vUv.x goes 0 -> 1)
           float drawMask = smoothstep(vUv.x + 0.010, vUv.x - 0.005, uProgress);
 
@@ -209,10 +232,11 @@ export class GlassFlowRenderer {
           // Pure ultramarine blue color mix
           vec3 baseColor = mix(uCoreColor, uGlowColor, flow * 0.35);
 
-          // Output HDR color intensity > 1.0 to trigger UnrealBloomPass
-          vec3 hdrEmission = baseColor * uHdrIntensity * drawMask;
+          // Output HDR color intensity (3.5x > 1.5 threshold) so ONLY the tube triggers UnrealBloomPass
+          vec3 hdrEmission = baseColor * uHdrIntensity * centerDensity * drawMask;
+          float finalAlpha = centerDensity * drawMask * 0.98;
 
-          gl_FragColor = vec4(hdrEmission, drawMask * 0.98);
+          gl_FragColor = vec4(hdrEmission, finalAlpha);
         }
       `,
       transparent: true,
@@ -240,11 +264,10 @@ export class GlassFlowRenderer {
       roughness: this.config.roughness,
       thickness: this.config.thickness,
       ior: this.config.ior,
+      clearcoat: this.config.clearcoat,
       transparent: true,
-      opacity: 0.50,
+      opacity: 0.60,
       color: new THREE.Color(this.config.glassColor),
-      attenuationColor: new THREE.Color(0x93c5fd),
-      attenuationDistance: 50.0,
       side: THREE.FrontSide,
       depthWrite: false
     });
@@ -304,6 +327,7 @@ export class GlassFlowRenderer {
       if (newOptions.roughness !== undefined) this.outerMaterial.roughness = newOptions.roughness;
       if (newOptions.thickness !== undefined) this.outerMaterial.thickness = newOptions.thickness;
       if (newOptions.ior !== undefined) this.outerMaterial.ior = newOptions.ior;
+      if (newOptions.clearcoat !== undefined) this.outerMaterial.clearcoat = newOptions.clearcoat;
       if (newOptions.glassColor) this.outerMaterial.color.set(newOptions.glassColor);
     }
   }
