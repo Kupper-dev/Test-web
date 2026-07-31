@@ -78,7 +78,9 @@ export function initLusionAnimations() {
   canvas.style.height = '100vh';
   canvas.style.pointerEvents = 'none';
   canvas.style.zIndex = '2'; // In front of text layer, behind play button
+  canvas.style.backgroundColor = 'transparent';
   document.body.insertBefore(canvas, document.body.firstChild); // Insert as first child of body to avoid section transform shifts
+
 
 
   // ───────────────────────────────────────────────
@@ -295,9 +297,11 @@ export function initLusionAnimations() {
     renderer = new THREE.WebGLRenderer({
       canvas: canvas,
       alpha: true,
-      antialias: true
+      antialias: true,
+      premultipliedAlpha: false
     });
     renderer.setClearColor(0x000000, 0);
+
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
@@ -489,11 +493,16 @@ export function initLusionAnimations() {
           if (alpha <= 0.0) discard;
           
           vec4 texColor = texture2D(u_texture, v_uv);
+          // Discard empty or black unready video frames to prevent black box on canvas
+          if (texColor.a < 0.01 || length(texColor.rgb) < 0.01) {
+            discard;
+          }
           gl_FragColor = vec4(texColor.rgb, texColor.a * alpha);
         }
       `,
       transparent: true
     });
+
 
     const planeGeom = new THREE.PlaneGeometry(1, 1, 32, 32);
     morphMesh = new THREE.Mesh(planeGeom, shaderMat);
@@ -654,8 +663,8 @@ function tick() {
         // ONLY if it hasn't been set yet to prevent reloading and flashing the poster GIF.
         if (bgVideoEl.crossOrigin !== 'anonymous') {
           bgVideoEl.crossOrigin = 'anonymous';
-          bgVideoEl.load();
         }
+
 
         thumbVideoTexture = new THREE.VideoTexture(bgVideoEl);
         thumbVideoTexture.colorSpace = THREE.SRGBColorSpace;
