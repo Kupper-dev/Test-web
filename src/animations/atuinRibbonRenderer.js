@@ -11,6 +11,7 @@
 
 import GUI from 'lil-gui';
 import * as THREE from 'three';
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 
 // ─── SVG Path Data ───────────────────────────────────────────────────────────
 // 6-segment cubic Bezier from line lusion svg.svg
@@ -92,14 +93,24 @@ export class AtuinRibbonRenderer {
       uGlowSpeed: { value: 1.48 }
     };
 
+    // Textures & Environment Maps
+    this._textures = {};
+    this._hdrEnvMap = null;
+
     // Renderer
     this._renderer = new THREE.WebGLRenderer({
       canvas: this._canvas,
       alpha: true,
       antialias: true
     });
+    this._renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this._renderer.toneMappingExposure = 1.0;
     this._renderer.setSize(window.innerWidth, window.innerHeight);
     this._renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    // Load ANRI Textures and HDR Environment Map
+    this._loadAssets();
+
 
     // Camera (1:1 pixel mapping at Z=0)
     const w = window.innerWidth;
@@ -296,60 +307,55 @@ export class AtuinRibbonRenderer {
     this._ribbonGeometry.setDrawRange(0, 0);
   }
 
+  // ─── Asset Loading ──────────────────────────────────────────────────────────
+
+  _loadAssets() {
+    const texLoader = new THREE.TextureLoader();
+    const rgbeLoader = new RGBELoader();
+
+    // 1. Environment Map (Warehouse HDR)
+    rgbeLoader.load('/env/warehouse.hdr', (envMap) => {
+      envMap.mapping = THREE.EquirectangularReflectionMapping;
+      this._hdrEnvMap = envMap;
+      this._scene.environment = envMap;
+      if (this._ribbonMaterial) {
+        this._ribbonMaterial.envMap = envMap;
+        this._ribbonMaterial.envMapIntensity = 1.0;
+        this._ribbonMaterial.needsUpdate = true;
+      }
+    });
+
+    // 2. Texture Maps
+    const loadTex = (name, url, wrapS = THREE.RepeatWrapping, wrapT = THREE.RepeatWrapping) => {
+      texLoader.load(url, (tex) => {
+        tex.wrapS = wrapS;
+        tex.wrapT = wrapT;
+        this._textures[name] = tex;
+      });
+    };
+
+    loadTex('frosted', '/textures/frosted-glass-normal.webp');
+    loadTex('frostedNorm', '/textures/frosted-normal.webp');
+    loadTex('steel', '/textures/steel-normal.webp');
+    loadTex('noise', '/textures/noise.webp');
+    loadTex('noiseLight', '/textures/noise-light.webp');
+    loadTex('marble', '/textures/marble.webp');
+  }
+
   // ─── Material ──────────────────────────────────────────────────────────────
 
   _buildMaterial() {
+    // Pure THREE.MeshPhysicalMaterial (no custom shader interference)
     this._ribbonMaterial = new THREE.MeshPhysicalMaterial({
       color: 0xffffff,
-      metalness: 0.529,
-      roughness: 0.0,
-      transparent: true,
+      roughness: 0.1,
+      metalness: 0.1,
+      transparent: false,
       opacity: 1.0,
       side: THREE.DoubleSide,
-      depthWrite: true
+      depthWrite: true,
+      envMapIntensity: 1.0
     });
-
-    this._ribbonMaterial.onBeforeCompile = (shader) => {
-      Object.assign(shader.uniforms, this.customUniforms);
-
-      shader.vertexShader = `
-        varying vec2 vCustomUv;
-      ` + shader.vertexShader;
-      shader.vertexShader = shader.vertexShader.replace(
-        '#include <uv_vertex>',
-        `#include <uv_vertex>
-         vCustomUv = uv;`
-      );
-
-      shader.fragmentShader = `
-        varying vec2 vCustomUv;
-        uniform vec3 uCenterColor;
-        uniform vec3 uEdgeColor;
-        uniform float uFresnelPower;
-        uniform float uTime;
-        uniform vec3 uGlowColor;
-        uniform float uGlowSpeed;
-      ` + shader.fragmentShader;
-
-      shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <map_fragment>',
-        `
-        #include <map_fragment>
-        vec3 normalDir = normalize(vNormal);
-        float fresnel = max(0.0, dot(normalDir, vec3(0.0, 0.0, 1.0)));
-        fresnel = pow(fresnel, uFresnelPower);
-        
-        diffuseColor.rgb = mix(uEdgeColor, uCenterColor, fresnel);
-        
-        float wave1 = sin(vCustomUv.x * 15.0 - uTime * uGlowSpeed);
-        float wave2 = sin(vCustomUv.x * 7.0 + uTime * uGlowSpeed * 0.6);
-        float flow = (wave1 + wave2) * 0.5;
-        float lightIntensity = pow(max(0.0, flow), 2.0);
-        
-        diffuseColor.rgb += uGlowColor * lightIntensity;
-        `
-      );
-    };
   }
 
   // ─── Tweak Controls ────────────────────────────────────────────────────────
@@ -359,26 +365,80 @@ export class AtuinRibbonRenderer {
     this._gui.domElement.style.zIndex = '9999';
     
     const params = {
-      centerColor: '#3370ff',
-      edgeColor: '#002aa8',
-      glowColor: '#55aaff',
+      preset: 'ANRI - Matte Granite / Rough Stone (Image 1)',
+      color: '#444444',
+      roughness: 0.7,
+      metalness: 0.1,
+      clearcoat: 0.0,
+      clearcoatRoughness: 0.0,
+      ior: 1.5,
+      transmission: 0.0,
+      thickness: 0.0,
+      envMapIntensity: 1.0,
+      normalScale: 1.5,
+      uvRepeatX: 12.0,
+      uvRepeatY: 2.0,
       keyLightIntensity: this._keyLight.intensity,
       fillLightIntensity: this._fillLight.intensity,
       ambientLightIntensity: this._ambientLight.intensity
     };
 
-    const shaderFolder = this._gui.addFolder('Shader & Color');
-    shaderFolder.addColor(params, 'centerColor').onChange(v => this.customUniforms.uCenterColor.value.set(v));
-    shaderFolder.addColor(params, 'edgeColor').onChange(v => this.customUniforms.uEdgeColor.value.set(v));
-    shaderFolder.addColor(params, 'glowColor').name('Glow Color').onChange(v => this.customUniforms.uGlowColor.value.set(v));
-    shaderFolder.add(this.customUniforms.uGlowSpeed, 'value', 0.0, 10.0).name('Glow Speed');
-    shaderFolder.add(this.customUniforms.uFresnelPower, 'value', 0.1, 5.0).name('Fresnel Power');
+    // ANRI Texture Presets Folder
+    const textureFolder = this._gui.addFolder('ANRI Material Presets');
+    textureFolder.add(params, 'preset', [
+      'ANRI - Matte Granite / Rough Stone (Image 1)',
+      'ANRI - Glossy White Acrylic / Glass (Image 2)',
+      'ANRI - Polished Dark Onyx / Steel (Image 3)',
+      'ANRI - Semi-Translucent Frosted Glass',
+      'ANRI - Organic Marble Swirl',
+      'Pure Physical Material (Manual Controls)'
+    ]).name('Material Preset').onChange((presetName) => {
+      this._applyTexturePreset(presetName, params);
+    });
 
-    const matFolder = this._gui.addFolder('PBR Material');
-    matFolder.add(this._ribbonMaterial, 'metalness', 0, 1);
-    matFolder.add(this._ribbonMaterial, 'roughness', 0, 1);
-    matFolder.add(this._ribbonMaterial, 'opacity', 0, 1);
-    
+    textureFolder.addColor(params, 'color').name('Base Color').onChange(v => {
+      if (this._ribbonMaterial) {
+        this._ribbonMaterial.color.set(v);
+      }
+    });
+
+    textureFolder.add(params, 'envMapIntensity', 0, 5).name('EnvMap Reflection').onChange(v => {
+      if (this._ribbonMaterial) {
+        this._ribbonMaterial.envMapIntensity = v;
+      }
+    });
+
+    textureFolder.add(params, 'normalScale', 0, 5).name('Texture Bump Intensity').onChange(v => {
+      params.normalScale = v;
+      if (this._ribbonMaterial && this._ribbonMaterial.normalMap) {
+        this._ribbonMaterial.normalScale.set(v, v);
+      }
+      if (this._ribbonMaterial && this._ribbonMaterial.bumpMap) {
+        this._ribbonMaterial.bumpScale = 0.05 * v;
+      }
+    });
+
+    textureFolder.add(params, 'uvRepeatX', 1, 50).name('Repeat X').onChange(v => {
+      params.uvRepeatX = v;
+      this._updateTextureRepeat(params);
+    });
+
+    textureFolder.add(params, 'uvRepeatY', 1, 10).name('Repeat Y').onChange(v => {
+      params.uvRepeatY = v;
+      this._updateTextureRepeat(params);
+    });
+
+    const matFolder = this._gui.addFolder('PBR Properties');
+    matFolder.add(params, 'roughness', 0, 1).onChange(v => this._ribbonMaterial.roughness = v);
+    matFolder.add(params, 'metalness', 0, 1).onChange(v => this._ribbonMaterial.metalness = v);
+    matFolder.add(params, 'clearcoat', 0, 1).onChange(v => this._ribbonMaterial.clearcoat = v);
+    matFolder.add(params, 'clearcoatRoughness', 0, 1).onChange(v => this._ribbonMaterial.clearcoatRoughness = v);
+    matFolder.add(params, 'transmission', 0, 1).name('Refraction/Glass').onChange(v => {
+      this._ribbonMaterial.transmission = v;
+      this._ribbonMaterial.transparent = v > 0;
+      this._ribbonMaterial.needsUpdate = true;
+    });
+
     const lightFolder = this._gui.addFolder('Lighting');
     lightFolder.add(params, 'keyLightIntensity', 0, 10).name('Key Light').onChange(v => this._keyLight.intensity = v);
     lightFolder.add(params, 'fillLightIntensity', 0, 10).name('Fill Light').onChange(v => this._fillLight.intensity = v);
@@ -397,6 +457,107 @@ export class AtuinRibbonRenderer {
     geoFolder.add(this.geomParams, 'startTwistEnd', 0.0, 0.5).name('Start Twist End %').onChange(rebuild);
     geoFolder.add(this.geomParams, 'endScale', 0.1, 5.0).name('End Scale').onChange(rebuild);
     geoFolder.add(this.geomParams, 'endScaleStart', 0.5, 1.0).name('End Scale Start %').onChange(rebuild);
+
+    // Initial preset setup
+    setTimeout(() => this._applyTexturePreset(params.preset, params), 200);
+  }
+
+  _applyTexturePreset(presetName, params) {
+    if (!this._ribbonMaterial) return;
+
+    // Reset maps & physical properties
+    this._ribbonMaterial.normalMap = null;
+    this._ribbonMaterial.map = null;
+    this._ribbonMaterial.bumpMap = null;
+    this._ribbonMaterial.transmission = 0;
+    this._ribbonMaterial.transparent = false;
+    this._ribbonMaterial.clearcoat = 0;
+
+    switch (presetName) {
+      case 'ANRI - Matte Granite / Rough Stone (Image 1)':
+        this._ribbonMaterial.color.set('#0d52ec');
+        this._ribbonMaterial.roughness = 0.45;
+        this._ribbonMaterial.metalness = 0.55;
+        this._ribbonMaterial.envMapIntensity = 1.0;
+        if (this._textures.noise) {
+          // Noise map + bump map over vibrant royal blue base
+          this._ribbonMaterial.map = this._textures.noise;
+          this._ribbonMaterial.bumpMap = this._textures.noise;
+          this._ribbonMaterial.bumpScale = 0.04 * params.normalScale;
+        }
+        break;
+
+      case 'ANRI - Glossy White Acrylic / Glass (Image 2)':
+        this._ribbonMaterial.color.set('#2b75ff');
+        this._ribbonMaterial.roughness = 0.08;
+        this._ribbonMaterial.metalness = 0.1;
+        this._ribbonMaterial.clearcoat = 1.0;
+        this._ribbonMaterial.clearcoatRoughness = 0.05;
+        this._ribbonMaterial.envMapIntensity = 1.8;
+        if (this._textures.frosted) {
+          this._ribbonMaterial.normalMap = this._textures.frosted;
+          this._ribbonMaterial.normalScale.set(0.2 * params.normalScale, 0.2 * params.normalScale);
+        }
+        break;
+
+      case 'ANRI - Polished Dark Onyx / Steel (Image 3)':
+        this._ribbonMaterial.color.set('#042488');
+        this._ribbonMaterial.roughness = 0.15;
+        this._ribbonMaterial.metalness = 0.85;
+        this._ribbonMaterial.clearcoat = 0.9;
+        this._ribbonMaterial.clearcoatRoughness = 0.1;
+        this._ribbonMaterial.envMapIntensity = 2.5;
+        if (this._textures.steel) {
+          this._ribbonMaterial.normalMap = this._textures.steel;
+          this._ribbonMaterial.normalScale.set(0.8 * params.normalScale, 0.8 * params.normalScale);
+        }
+        break;
+
+      case 'ANRI - Semi-Translucent Frosted Glass':
+        this._ribbonMaterial.color.set('#1e6eff');
+        this._ribbonMaterial.roughness = 0.22;
+        this._ribbonMaterial.metalness = 0.0;
+        this._ribbonMaterial.transmission = 0.85;
+        this._ribbonMaterial.transparent = true;
+        this._ribbonMaterial.ior = 1.45;
+        this._ribbonMaterial.thickness = 15.0;
+        this._ribbonMaterial.envMapIntensity = 2.2;
+        if (this._textures.frostedNorm) {
+          this._ribbonMaterial.normalMap = this._textures.frostedNorm;
+          this._ribbonMaterial.normalScale.set(params.normalScale, params.normalScale);
+        }
+        break;
+
+      case 'ANRI - Organic Marble Swirl':
+        this._ribbonMaterial.color.set('#1b65fb');
+        this._ribbonMaterial.roughness = 0.12;
+        this._ribbonMaterial.metalness = 0.05;
+        this._ribbonMaterial.clearcoat = 1.0;
+        this._ribbonMaterial.envMapIntensity = 1.4;
+        if (this._textures.marble) {
+          this._ribbonMaterial.map = this._textures.marble;
+        }
+        break;
+
+      case 'Pure Physical Material (Manual Controls)':
+      default:
+        this._ribbonMaterial.color.set(params.color);
+        this._ribbonMaterial.roughness = params.roughness;
+        this._ribbonMaterial.metalness = params.metalness;
+        break;
+    }
+
+    this._updateTextureRepeat(params);
+    this._ribbonMaterial.needsUpdate = true;
+  }
+
+  _updateTextureRepeat(params) {
+    ['frosted', 'frostedNorm', 'steel', 'noise', 'noiseLight', 'marble'].forEach(key => {
+      if (this._textures[key]) {
+        this._textures[key].repeat.set(params.uvRepeatX, params.uvRepeatY);
+        this._textures[key].needsUpdate = true;
+      }
+    });
   }
 
   // ─── Mesh ──────────────────────────────────────────────────────────────────
