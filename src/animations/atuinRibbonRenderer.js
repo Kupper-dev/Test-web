@@ -314,7 +314,19 @@ export class AtuinRibbonRenderer {
   // ─── Asset Loading ──────────────────────────────────────────────────────────
 
   _loadAssets() {
-    const texLoader = new THREE.TextureLoader();
+    const loader = new THREE.TextureLoader();
+    const loadTex = (key, url) => {
+      loader.load(url, (tex) => {
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        this._textures[key] = tex;
+        if (this._ribbonMaterial) this._ribbonMaterial.needsUpdate = true;
+      });
+    };
+
+    // Only load necessary noise grain texture for optimal performance
+    loadTex('noise', '/textures/noise.webp');
+
     const rgbeLoader = new RGBELoader();
 
     // 1. Environment Map (Warehouse HDR)
@@ -650,59 +662,6 @@ export class AtuinRibbonRenderer {
         }
         break;
 
-      case 'ANRI - Glossy White Acrylic / Glass (Image 2)':
-        this._ribbonMaterial.color.set('#2b75ff');
-        this._ribbonMaterial.roughness = 0.08;
-        this._ribbonMaterial.metalness = 0.1;
-        this._ribbonMaterial.clearcoat = 1.0;
-        this._ribbonMaterial.clearcoatRoughness = 0.05;
-        this._ribbonMaterial.envMapIntensity = 1.8;
-        if (this._textures.frosted) {
-          this._ribbonMaterial.normalMap = this._textures.frosted;
-          this._ribbonMaterial.normalScale.set(0.2 * params.normalScale, 0.2 * params.normalScale);
-        }
-        break;
-
-      case 'ANRI - Polished Dark Onyx / Steel (Image 3)':
-        this._ribbonMaterial.color.set('#042488');
-        this._ribbonMaterial.roughness = 0.15;
-        this._ribbonMaterial.metalness = 0.85;
-        this._ribbonMaterial.clearcoat = 0.9;
-        this._ribbonMaterial.clearcoatRoughness = 0.1;
-        this._ribbonMaterial.envMapIntensity = 2.5;
-        if (this._textures.steel) {
-          this._ribbonMaterial.normalMap = this._textures.steel;
-          this._ribbonMaterial.normalScale.set(0.8 * params.normalScale, 0.8 * params.normalScale);
-        }
-        break;
-
-      case 'ANRI - Semi-Translucent Frosted Glass':
-        this._ribbonMaterial.color.set('#1e6eff');
-        this._ribbonMaterial.roughness = 0.22;
-        this._ribbonMaterial.metalness = 0.0;
-        this._ribbonMaterial.transmission = 0.85;
-        this._ribbonMaterial.transparent = true;
-        this._ribbonMaterial.ior = 1.45;
-        this._ribbonMaterial.thickness = 15.0;
-        this._ribbonMaterial.envMapIntensity = 2.2;
-        if (this._textures.frostedNorm) {
-          this._ribbonMaterial.normalMap = this._textures.frostedNorm;
-          this._ribbonMaterial.normalScale.set(params.normalScale, params.normalScale);
-        }
-        break;
-
-      case 'ANRI - Organic Marble Swirl':
-        this._ribbonMaterial.color.set('#1b65fb');
-        this._ribbonMaterial.roughness = 0.12;
-        this._ribbonMaterial.metalness = 0.05;
-        this._ribbonMaterial.clearcoat = 1.0;
-        this._ribbonMaterial.envMapIntensity = 1.4;
-        if (this._textures.marble) {
-          this._ribbonMaterial.map = this._textures.marble;
-        }
-        break;
-
-      case 'Pure Physical Material (Manual Controls)':
       default:
         this._ribbonMaterial.color.set(params.color);
         this._ribbonMaterial.roughness = params.roughness;
