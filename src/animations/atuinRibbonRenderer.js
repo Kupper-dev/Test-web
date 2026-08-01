@@ -227,6 +227,7 @@ export class AtuinRibbonRenderer {
     const positions = new Float32Array(numPoints * verticesPerPoint * 3);
     const normals = new Float32Array(numPoints * verticesPerPoint * 3);
     const uvs = new Float32Array(numPoints * verticesPerPoint * 2);
+    const pathProgresses = new Float32Array(numPoints * verticesPerPoint);
 
     for (let i = 0; i < numPoints; i++) {
       const pt = this._points[i];
@@ -263,6 +264,7 @@ export class AtuinRibbonRenderer {
 
       const baseIdx = i * verticesPerPoint * 3;
       const uvBaseIdx = i * verticesPerPoint * 2;
+      const progBaseIdx = i * verticesPerPoint;
 
       for (let k = 0; k < verticesPerPoint; k++) {
         const cs = crossSection[k];
@@ -274,6 +276,7 @@ export class AtuinRibbonRenderer {
         normals[baseIdx + k * 3 + 2] = normal.z * cs.nu + binormal.z * cs.nv;
         uvs[uvBaseIdx + k * 2 + 0] = uProgress;
         uvs[uvBaseIdx + k * 2 + 1] = k / verticesPerPoint;
+        pathProgresses[progBaseIdx + k] = uProgress;
       }
     }
 
@@ -301,6 +304,7 @@ export class AtuinRibbonRenderer {
     this._ribbonGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     this._ribbonGeometry.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
     this._ribbonGeometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+    this._ribbonGeometry.setAttribute('aPathProgress', new THREE.BufferAttribute(pathProgresses, 1));
     this._ribbonGeometry.setIndex(new THREE.BufferAttribute(indices, 1));
     this._ribbonGeometry.computeVertexNormals();
     this._totalIndexCount = indices.length;
@@ -345,17 +349,78 @@ export class AtuinRibbonRenderer {
   // ─── Material ──────────────────────────────────────────────────────────────
 
   _buildMaterial() {
-    // Pure THREE.MeshPhysicalMaterial (no custom shader interference)
+    this._gradientUniforms = {
+      uColorDark: { value: new THREE.Color('#001054') },   // Deep Shadow Blue
+      uColorMid: { value: new THREE.Color('#004de6') },    // Royal Blue Body
+      uColorLight: { value: new THREE.Color('#00d6ff') },  // Bright Cyan Blue Tip
+      uFresnelColor: { value: new THREE.Color('#80e5ff') } // Edge Light Reflection
+    };
+
     this._ribbonMaterial = new THREE.MeshPhysicalMaterial({
       color: 0xffffff,
-      roughness: 0.1,
-      metalness: 0.1,
+      roughness: 0.35,
+      metalness: 0.4,
       transparent: false,
       opacity: 1.0,
       side: THREE.DoubleSide,
       depthWrite: true,
-      envMapIntensity: 1.0
+      envMapIntensity: 1.2
     });
+
+    this._ribbonMaterial.onBeforeCompile = (shader) => {
+      Object.assign(shader.uniforms, this._gradientUniforms);
+
+      shader.vertexShader = `
+        attribute float aPathProgress;
+        varying float vPathProgress;
+      ` + shader.vertexShader;
+
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
+         vPathProgress = aPathProgress;`
+      );
+
+      shader.fragmentShader = `
+        varying float vPathProgress;
+        uniform vec3 uColorDark;
+        uniform vec3 uColorMid;
+        uniform vec3 uColorLight;
+        uniform vec3 uFresnelColor;
+      ` + shader.fragmentShader;
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <map_fragment>',
+        `
+        #include <map_fragment>
+        // True un-tiled linear path gradient from start (0.0) to end (1.0) of 3D curve
+        float uPos = clamp(vPathProgress, 0.0, 1.0);
+        
+        // Multi-stop color ramp: Deep Cobalt Navy (#001054) -> Vivid Royal Blue (#004de6) -> Bright Cyan Blue (#00d6ff)
+        vec3 gradColor;
+        if (uPos < 0.45) {
+          gradColor = mix(uColorDark, uColorMid, smoothstep(0.0, 0.45, uPos));
+        } else {
+          gradColor = mix(uColorMid, uColorLight, smoothstep(0.45, 1.0, uPos));
+        }
+
+        // Preserve fine noise texture micro-grain overlay while overriding base color
+        #ifdef USE_MAP
+          vec4 texColor = texture2D(map, vMapUv);
+          // High-contrast grain blend (keeps noise texture contrast crisp over vibrant blue gradient)
+          float grainFactor = (texColor.r - 0.5) * 0.25;
+          gradColor += vec3(grainFactor);
+        #endif
+
+        // Rim / Fresnel edge lighting highlight
+        vec3 norm = normalize(vNormal);
+        float fresnel = max(0.0, dot(norm, vec3(0.0, 0.0, 1.0)));
+        fresnel = pow(1.0 - fresnel, 2.0);
+
+        diffuseColor.rgb = gradColor + (uFresnelColor * fresnel * 0.45);
+        `
+      );
+    };
   }
 
   // ─── Tweak Controls ────────────────────────────────────────────────────────
@@ -475,15 +540,30 @@ export class AtuinRibbonRenderer {
 
     switch (presetName) {
       case 'ANRI - Matte Granite / Rough Stone (Image 1)':
-        this._ribbonMaterial.color.set('#0d52ec');
-        this._ribbonMaterial.roughness = 0.45;
-        this._ribbonMaterial.metalness = 0.55;
-        this._ribbonMaterial.envMapIntensity = 1.0;
+        // Rich multi-stop gradient: Deep Cobalt Navy -> Electric Royal Blue -> Bright Sky Cyan
+        if (this._gradientUniforms) {
+          this._gradientUniforms.uColorDark.value.set('#001054');   // Deep Rich Navy Blue
+          this._gradientUniforms.uColorMid.value.set('#004de6');    // Electric Royal Blue Body
+          this._gradientUniforms.uColorLight.value.set('#00d6ff');  // Bright Cyan Blue Tip
+          this._gradientUniforms.uFresnelColor.value.set('#80e5ff');
+        }
+
+        this._ribbonMaterial.roughness = 0.32;
+        this._ribbonMaterial.metalness = 0.45;
+        this._ribbonMaterial.envMapIntensity = 1.8;
+
+        // Dedicated Lighting ecosystem for Granite preset
+        this._keyLight.intensity = 4.2;
+        this._keyLight.color.set('#ffffff');
+        this._fillLight.intensity = 6.0;
+        this._fillLight.color.set('#00b3ff');
+        this._ambientLight.intensity = 1.4;
+
         if (this._textures.noise) {
-          // Noise map + bump map over vibrant royal blue base
+          this._textures.noise.repeat.set(22, 2);
           this._ribbonMaterial.map = this._textures.noise;
           this._ribbonMaterial.bumpMap = this._textures.noise;
-          this._ribbonMaterial.bumpScale = 0.04 * params.normalScale;
+          this._ribbonMaterial.bumpScale = 0.05;
         }
         break;
 
