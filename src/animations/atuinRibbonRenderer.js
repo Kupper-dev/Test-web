@@ -644,7 +644,10 @@ export class AtuinRibbonRenderer {
         this._ribbonMaterial.roughness = 0.0;
         this._ribbonMaterial.metalness = 0.6;
         this._ribbonMaterial.transmission = 0.312;
+        this._ribbonMaterial.thickness = 5.0;
+        this._ribbonMaterial.ior = 1.45;
         this._ribbonMaterial.transparent = true;
+        this._ribbonMaterial.opacity = 1.0;
         this._ribbonMaterial.envMapIntensity = 0.0;
 
         // Dedicated Lighting ecosystem
@@ -674,7 +677,7 @@ export class AtuinRibbonRenderer {
   }
 
   _updateTextureRepeat(params) {
-    ['frosted', 'frostedNorm', 'steel', 'noise', 'noiseLight', 'marble'].forEach(key => {
+    Object.keys(this._textures).forEach(key => {
       if (this._textures[key]) {
         this._textures[key].repeat.set(params.uvRepeatX, params.uvRepeatY);
         this._textures[key].needsUpdate = true;
