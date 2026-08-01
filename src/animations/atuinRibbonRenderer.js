@@ -643,10 +643,8 @@ export class AtuinRibbonRenderer {
 
         this._ribbonMaterial.roughness = 0.0;
         this._ribbonMaterial.metalness = 0.6;
-        this._ribbonMaterial.transmission = 0.312;
-        this._ribbonMaterial.thickness = 5.0;
-        this._ribbonMaterial.ior = 1.45;
-        this._ribbonMaterial.transparent = true;
+        this._ribbonMaterial.transmission = 0.0;
+        this._ribbonMaterial.transparent = false;
         this._ribbonMaterial.opacity = 1.0;
         this._ribbonMaterial.envMapIntensity = 0.0;
 
