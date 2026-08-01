@@ -350,21 +350,24 @@ export class AtuinRibbonRenderer {
 
   _buildMaterial() {
     this._gradientUniforms = {
-      uColorDark: { value: new THREE.Color('#001054') },   // Deep Shadow Blue
-      uColorMid: { value: new THREE.Color('#004de6') },    // Royal Blue Body
-      uColorLight: { value: new THREE.Color('#00d6ff') },  // Bright Cyan Blue Tip
-      uFresnelColor: { value: new THREE.Color('#80e5ff') } // Edge Light Reflection
+      uColorDark: { value: new THREE.Color('#000424') },   // Color 1
+      uPosDark: { value: 0.0 },                            // Position % for Color 1
+      uColorMid: { value: new THREE.Color('#003be6') },    // Color 2
+      uPosMid: { value: 0.45 },                            // Position % for Color 2
+      uColorLight: { value: new THREE.Color('#00e5ff') },  // Color 3
+      uPosLight: { value: 1.0 },                           // Position % for Color 3
+      uFresnelColor: { value: new THREE.Color('#50d0ff') } // Fresnel Rim Light Color
     };
 
     this._ribbonMaterial = new THREE.MeshPhysicalMaterial({
       color: 0xffffff,
-      roughness: 0.35,
-      metalness: 0.4,
+      roughness: 0.32,
+      metalness: 0.45,
       transparent: false,
       opacity: 1.0,
       side: THREE.DoubleSide,
       depthWrite: true,
-      envMapIntensity: 1.2
+      envMapIntensity: 1.8
     });
 
     this._ribbonMaterial.onBeforeCompile = (shader) => {
@@ -384,40 +387,51 @@ export class AtuinRibbonRenderer {
       shader.fragmentShader = `
         varying float vPathProgress;
         uniform vec3 uColorDark;
+        uniform float uPosDark;
         uniform vec3 uColorMid;
+        uniform float uPosMid;
         uniform vec3 uColorLight;
+        uniform float uPosLight;
         uniform vec3 uFresnelColor;
       ` + shader.fragmentShader;
 
       shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <map_fragment>',
+        '#include <color_fragment>',
         `
-        #include <map_fragment>
-        // True un-tiled linear path gradient from start (0.0) to end (1.0) of 3D curve
+        #include <color_fragment>
+        // True un-tiled linear path progress from start (0.0) to end (1.0) of 3D curve
         float uPos = clamp(vPathProgress, 0.0, 1.0);
         
-        // Multi-stop color ramp: Deep Cobalt Navy (#001054) -> Vivid Royal Blue (#004de6) -> Bright Cyan Blue (#00d6ff)
+        // Multi-stop color ramp with independent position controls per color stop
         vec3 gradColor;
-        if (uPos < 0.45) {
-          gradColor = mix(uColorDark, uColorMid, smoothstep(0.0, 0.45, uPos));
+        if (uPos <= uPosDark) {
+          gradColor = uColorDark;
+        } else if (uPos <= uPosMid) {
+          float t = (uPos - uPosDark) / max(0.001, (uPosMid - uPosDark));
+          gradColor = mix(uColorDark, uColorMid, smoothstep(0.0, 1.0, t));
+        } else if (uPos <= uPosLight) {
+          float t = (uPos - uPosMid) / max(0.001, (uPosLight - uPosMid));
+          gradColor = mix(uColorMid, uColorLight, smoothstep(0.0, 1.0, t));
         } else {
-          gradColor = mix(uColorMid, uColorLight, smoothstep(0.45, 1.0, uPos));
+          gradColor = uColorLight;
         }
 
-        // Preserve fine noise texture micro-grain overlay while overriding base color
+        // Apply gradient directly as material base color
+        diffuseColor.rgb = gradColor;
+
+        // Overlay high-contrast noise texture micro-grain
         #ifdef USE_MAP
           vec4 texColor = texture2D(map, vMapUv);
-          // High-contrast grain blend (keeps noise texture contrast crisp over vibrant blue gradient)
-          float grainFactor = (texColor.r - 0.5) * 0.25;
-          gradColor += vec3(grainFactor);
+          // High-contrast grain blend: amplifies dark and light speckles over blue gradient
+          float grainFactor = (texColor.r - 0.5) * 0.55;
+          diffuseColor.rgb = clamp(diffuseColor.rgb + vec3(grainFactor), 0.0, 1.0);
         #endif
 
-        // Rim / Fresnel edge lighting highlight
+        // Rim / Fresnel edge highlight
         vec3 norm = normalize(vNormal);
         float fresnel = max(0.0, dot(norm, vec3(0.0, 0.0, 1.0)));
         fresnel = pow(1.0 - fresnel, 2.0);
-
-        diffuseColor.rgb = gradColor + (uFresnelColor * fresnel * 0.45);
+        diffuseColor.rgb += uFresnelColor * fresnel * 0.4;
         `
       );
     };
@@ -431,21 +445,27 @@ export class AtuinRibbonRenderer {
     
     const params = {
       preset: 'ANRI - Matte Granite / Rough Stone (Image 1)',
-      color: '#444444',
-      roughness: 0.7,
-      metalness: 0.1,
+      colorDark: '#000424',
+      posDark: 0.0,
+      colorMid: '#003be6',
+      posMid: 0.45,
+      colorLight: '#00e5ff',
+      posLight: 1.0,
+      fresnelColor: '#50d0ff',
+      roughness: 0.32,
+      metalness: 0.45,
       clearcoat: 0.0,
       clearcoatRoughness: 0.0,
-      ior: 1.5,
       transmission: 0.0,
-      thickness: 0.0,
-      envMapIntensity: 1.0,
-      normalScale: 1.5,
-      uvRepeatX: 12.0,
+      envMapIntensity: 1.8,
+      bumpScale: 0.05,
+      normalScale: 1.0,
+      uvRepeatX: 22.0,
       uvRepeatY: 2.0,
       keyLightIntensity: this._keyLight.intensity,
       fillLightIntensity: this._fillLight.intensity,
-      ambientLightIntensity: this._ambientLight.intensity
+      ambientLightIntensity: this._ambientLight.intensity,
+      exportConfig: () => this._exportCurrentConfig(params)
     };
 
     // ANRI Texture Presets Folder
@@ -455,62 +475,62 @@ export class AtuinRibbonRenderer {
       'ANRI - Glossy White Acrylic / Glass (Image 2)',
       'ANRI - Polished Dark Onyx / Steel (Image 3)',
       'ANRI - Semi-Translucent Frosted Glass',
-      'ANRI - Organic Marble Swirl',
-      'Pure Physical Material (Manual Controls)'
+      'ANRI - Organic Marble Swirl'
     ]).name('Material Preset').onChange((presetName) => {
       this._applyTexturePreset(presetName, params);
     });
 
-    textureFolder.addColor(params, 'color').name('Base Color').onChange(v => {
-      if (this._ribbonMaterial) {
-        this._ribbonMaterial.color.set(v);
-      }
-    });
+    // 1. Dedicated Gradient & Stop Positions Folder
+    const gradientFolder = this._gui.addFolder('Gradient & Stop Positions');
+    gradientFolder.addColor(params, 'colorDark').name('Stop 1 Color (Start)').onChange(v => this._gradientUniforms.uColorDark.value.set(v));
+    gradientFolder.add(params, 'posDark', 0.0, 1.0, 0.01).name('Stop 1 Position %').onChange(v => this._gradientUniforms.uPosDark.value = v);
+    
+    gradientFolder.addColor(params, 'colorMid').name('Stop 2 Color (Mid)').onChange(v => this._gradientUniforms.uColorMid.value.set(v));
+    gradientFolder.add(params, 'posMid', 0.0, 1.0, 0.01).name('Stop 2 Position %').onChange(v => this._gradientUniforms.uPosMid.value = v);
+    
+    gradientFolder.addColor(params, 'colorLight').name('Stop 3 Color (End)').onChange(v => this._gradientUniforms.uColorLight.value.set(v));
+    gradientFolder.add(params, 'posLight', 0.0, 1.0, 0.01).name('Stop 3 Position %').onChange(v => this._gradientUniforms.uPosLight.value = v);
+    
+    gradientFolder.addColor(params, 'fresnelColor').name('Fresnel Rim Light').onChange(v => this._gradientUniforms.uFresnelColor.value.set(v));
 
-    textureFolder.add(params, 'envMapIntensity', 0, 5).name('EnvMap Reflection').onChange(v => {
-      if (this._ribbonMaterial) {
-        this._ribbonMaterial.envMapIntensity = v;
-      }
+    // 2. Texture & UV Repeat Folder
+    const texControlFolder = this._gui.addFolder('Texture Tiling & Normal');
+    texControlFolder.add(params, 'bumpScale', 0, 0.2, 0.005).name('Grain Bump Scale').onChange(v => {
+      if (this._ribbonMaterial.bumpMap) this._ribbonMaterial.bumpScale = v;
     });
-
-    textureFolder.add(params, 'normalScale', 0, 5).name('Texture Bump Intensity').onChange(v => {
-      params.normalScale = v;
-      if (this._ribbonMaterial && this._ribbonMaterial.normalMap) {
-        this._ribbonMaterial.normalScale.set(v, v);
-      }
-      if (this._ribbonMaterial && this._ribbonMaterial.bumpMap) {
-        this._ribbonMaterial.bumpScale = 0.05 * v;
-      }
+    texControlFolder.add(params, 'normalScale', 0, 5).name('Normal Intensity').onChange(v => {
+      if (this._ribbonMaterial.normalMap) this._ribbonMaterial.normalScale.set(v, v);
     });
-
-    textureFolder.add(params, 'uvRepeatX', 1, 50).name('Repeat X').onChange(v => {
+    texControlFolder.add(params, 'uvRepeatX', 1, 50).name('Repeat X (Length)').onChange(v => {
       params.uvRepeatX = v;
       this._updateTextureRepeat(params);
     });
-
-    textureFolder.add(params, 'uvRepeatY', 1, 10).name('Repeat Y').onChange(v => {
+    texControlFolder.add(params, 'uvRepeatY', 1, 10).name('Repeat Y (Width)').onChange(v => {
       params.uvRepeatY = v;
       this._updateTextureRepeat(params);
     });
 
-    const matFolder = this._gui.addFolder('PBR Properties');
-    matFolder.add(params, 'roughness', 0, 1).onChange(v => this._ribbonMaterial.roughness = v);
-    matFolder.add(params, 'metalness', 0, 1).onChange(v => this._ribbonMaterial.metalness = v);
-    matFolder.add(params, 'clearcoat', 0, 1).onChange(v => this._ribbonMaterial.clearcoat = v);
-    matFolder.add(params, 'clearcoatRoughness', 0, 1).onChange(v => this._ribbonMaterial.clearcoatRoughness = v);
-    matFolder.add(params, 'transmission', 0, 1).name('Refraction/Glass').onChange(v => {
+    // 3. PBR Surface Properties Folder
+    const pbrFolder = this._gui.addFolder('PBR Surface Properties');
+    pbrFolder.add(params, 'roughness', 0, 1).onChange(v => this._ribbonMaterial.roughness = v);
+    pbrFolder.add(params, 'metalness', 0, 1).onChange(v => this._ribbonMaterial.metalness = v);
+    pbrFolder.add(params, 'clearcoat', 0, 1).onChange(v => this._ribbonMaterial.clearcoat = v);
+    pbrFolder.add(params, 'clearcoatRoughness', 0, 1).onChange(v => this._ribbonMaterial.clearcoatRoughness = v);
+    pbrFolder.add(params, 'transmission', 0, 1).name('Transmission (Glass)').onChange(v => {
       this._ribbonMaterial.transmission = v;
       this._ribbonMaterial.transparent = v > 0;
       this._ribbonMaterial.needsUpdate = true;
     });
+    pbrFolder.add(params, 'envMapIntensity', 0, 5).name('EnvMap Reflectivity').onChange(v => this._ribbonMaterial.envMapIntensity = v);
 
+    // 4. Lighting Controls Folder
     const lightFolder = this._gui.addFolder('Lighting');
     lightFolder.add(params, 'keyLightIntensity', 0, 10).name('Key Light').onChange(v => this._keyLight.intensity = v);
     lightFolder.add(params, 'fillLightIntensity', 0, 10).name('Fill Light').onChange(v => this._fillLight.intensity = v);
     lightFolder.add(params, 'ambientLightIntensity', 0, 5).name('Ambient Light').onChange(v => this._ambientLight.intensity = v);
 
+    // 5. 3D Shape & Geometry Controls Folder
     const rebuild = () => this._rebuildGeometry();
-
     const shapeFolder = this._gui.addFolder('Ribbon Prism Shape');
     shapeFolder.add(this.geomParams, 'ribbonWidth', 5, 100).name('Width').onChange(rebuild);
     shapeFolder.add(this.geomParams, 'ribbonThickness', 1, 50).name('Thickness').onChange(rebuild);
@@ -523,8 +543,46 @@ export class AtuinRibbonRenderer {
     geoFolder.add(this.geomParams, 'endScale', 0.1, 5.0).name('End Scale').onChange(rebuild);
     geoFolder.add(this.geomParams, 'endScaleStart', 0.5, 1.0).name('End Scale Start %').onChange(rebuild);
 
+    // 6. Config Exporter Button
+    const exportFolder = this._gui.addFolder('Save & Export Config');
+    exportFolder.add(params, 'exportConfig').name('📋 Export Config');
+
     // Initial preset setup
     setTimeout(() => this._applyTexturePreset(params.preset, params), 200);
+  }
+
+  _exportCurrentConfig(params) {
+    const config = {
+      colorDark: '#' + this._gradientUniforms.uColorDark.value.getHexString(),
+      posDark: this._gradientUniforms.uPosDark.value,
+      colorMid: '#' + this._gradientUniforms.uColorMid.value.getHexString(),
+      posMid: this._gradientUniforms.uPosMid.value,
+      colorLight: '#' + this._gradientUniforms.uColorLight.value.getHexString(),
+      posLight: this._gradientUniforms.uPosLight.value,
+      fresnelColor: '#' + this._gradientUniforms.uFresnelColor.value.getHexString(),
+      roughness: this._ribbonMaterial.roughness,
+      metalness: this._ribbonMaterial.metalness,
+      clearcoat: this._ribbonMaterial.clearcoat || 0,
+      transmission: this._ribbonMaterial.transmission || 0,
+      envMapIntensity: this._ribbonMaterial.envMapIntensity,
+      bumpScale: this._ribbonMaterial.bumpScale || 0.05,
+      normalScale: params.normalScale || 1.0,
+      uvRepeatX: params.uvRepeatX || 22.0,
+      uvRepeatY: params.uvRepeatY || 2.0,
+      keyLightIntensity: this._keyLight.intensity,
+      fillLightIntensity: this._fillLight.intensity,
+      ambientLightIntensity: this._ambientLight.intensity
+    };
+
+    const jsonString = JSON.stringify(config, null, 2);
+    console.log('=== RIBBON MATERIAL CONFIG ===\n', jsonString);
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(jsonString);
+      alert('Config copied to clipboard & logged in browser console!\n\n' + jsonString);
+    } else {
+      prompt('Copy your current tweaked config:', jsonString);
+    }
   }
 
   _applyTexturePreset(presetName, params) {
@@ -540,27 +598,52 @@ export class AtuinRibbonRenderer {
 
     switch (presetName) {
       case 'ANRI - Matte Granite / Rough Stone (Image 1)':
-        // Rich multi-stop gradient: Deep Cobalt Navy -> Electric Royal Blue -> Bright Sky Cyan
+        // Exact user-tweaked configuration
         if (this._gradientUniforms) {
-          this._gradientUniforms.uColorDark.value.set('#001054');   // Deep Rich Navy Blue
-          this._gradientUniforms.uColorMid.value.set('#004de6');    // Electric Royal Blue Body
-          this._gradientUniforms.uColorLight.value.set('#00d6ff');  // Bright Cyan Blue Tip
-          this._gradientUniforms.uFresnelColor.value.set('#80e5ff');
+          this._gradientUniforms.uColorDark.value.set('#012eff');
+          this._gradientUniforms.uPosDark.value = 0.0;
+          this._gradientUniforms.uColorMid.value.set('#0062ff');
+          this._gradientUniforms.uPosMid.value = 0.07;
+          this._gradientUniforms.uColorLight.value.set('#47b9ff');
+          this._gradientUniforms.uPosLight.value = 0.7;
+          this._gradientUniforms.uFresnelColor.value.set('#ade9ff');
         }
 
-        this._ribbonMaterial.roughness = 0.32;
-        this._ribbonMaterial.metalness = 0.45;
-        this._ribbonMaterial.envMapIntensity = 1.8;
+        if (params) {
+          params.colorDark = '#012eff';
+          params.posDark = 0.0;
+          params.colorMid = '#0062ff';
+          params.posMid = 0.07;
+          params.colorLight = '#47b9ff';
+          params.posLight = 0.7;
+          params.fresnelColor = '#ade9ff';
+          params.roughness = 0.0;
+          params.metalness = 0.6;
+          params.transmission = 0.312;
+          params.envMapIntensity = 0.0;
+          params.bumpScale = 0.05;
+          params.uvRepeatX = 15.7;
+          params.uvRepeatY = 2.1;
+          params.keyLightIntensity = 7.0;
+          params.fillLightIntensity = 6.3;
+          params.ambientLightIntensity = 0.9;
+        }
 
-        // Dedicated Lighting ecosystem for Granite preset
-        this._keyLight.intensity = 4.2;
+        this._ribbonMaterial.roughness = 0.0;
+        this._ribbonMaterial.metalness = 0.6;
+        this._ribbonMaterial.transmission = 0.312;
+        this._ribbonMaterial.transparent = true;
+        this._ribbonMaterial.envMapIntensity = 0.0;
+
+        // Dedicated Lighting ecosystem
+        this._keyLight.intensity = 7.0;
         this._keyLight.color.set('#ffffff');
-        this._fillLight.intensity = 6.0;
+        this._fillLight.intensity = 6.3;
         this._fillLight.color.set('#00b3ff');
-        this._ambientLight.intensity = 1.4;
+        this._ambientLight.intensity = 0.9;
 
         if (this._textures.noise) {
-          this._textures.noise.repeat.set(22, 2);
+          this._textures.noise.repeat.set(15.7, 2.1);
           this._ribbonMaterial.map = this._textures.noise;
           this._ribbonMaterial.bumpMap = this._textures.noise;
           this._ribbonMaterial.bumpScale = 0.05;
