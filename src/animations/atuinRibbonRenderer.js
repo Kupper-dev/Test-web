@@ -333,6 +333,7 @@ export class AtuinRibbonRenderer {
       this._scene.environment = envMap;
       if (this._ribbonMaterial) {
         this._ribbonMaterial.envMap = envMap;
+        this._ribbonMaterial.envMapIntensity = 1.0;
         this._ribbonMaterial.needsUpdate = true;
       }
     });
@@ -624,12 +625,12 @@ export class AtuinRibbonRenderer {
           params.ambientLightIntensity = 0.9;
         }
 
-        this._ribbonMaterial.roughness = 0.0;
-        this._ribbonMaterial.metalness = 0.6;
+        this._ribbonMaterial.roughness = params ? params.roughness : 0.0;
+        this._ribbonMaterial.metalness = params ? params.metalness : 0.6;
         this._ribbonMaterial.transmission = 0.0;
         this._ribbonMaterial.transparent = false;
         this._ribbonMaterial.opacity = 1.0;
-        this._ribbonMaterial.envMapIntensity = 0.0;
+        this._ribbonMaterial.envMapIntensity = params ? params.envMapIntensity : 1.0;
 
         // Dedicated Lighting ecosystem
         this._keyLight.intensity = 7.0;
