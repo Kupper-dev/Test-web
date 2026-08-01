@@ -11,7 +11,7 @@ export default defineConfig({
         about: resolve(__dirname, 'about.html'),
         services: resolve(__dirname, 'services.html'),
         devlink: resolve(__dirname, 'devlink.html'),
-        lusion: resolve(__dirname, 'lusion.html'),
+        heroReel: resolve(__dirname, 'hero-reel.html'),
         ticketsSandbox: resolve(__dirname, 'tickets-sandbox/index.html'),
         overwhelming: resolve(__dirname, 'overwhelming.html'),
         resourcesSlider: resolve(__dirname, 'resources-slider.html'),

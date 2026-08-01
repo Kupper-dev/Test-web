@@ -2,7 +2,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import SplitType from 'split-type';
 import * as THREE from 'three';
-import { AtuinRibbonRenderer } from './atuinRibbonRenderer.js';
+import { KupperRibbonRenderer } from './kupperRibbonRenderer.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -40,7 +40,7 @@ let paragraphTl = null;
 let parallaxTween = null;
 let resizeHandler = null;
 
-export function initLusionAnimations() {
+export function initHeroRibbonAnimations() {
   containerEl = document.getElementById('home-reel');
   if (!containerEl) return;
 
@@ -63,7 +63,7 @@ export function initLusionAnimations() {
 
   // Initialize WebGL Canvas
   canvas = document.createElement('canvas');
-  canvas.id = 'lusion-canvas';
+  canvas.id = 'hero-ribbon-canvas';
   canvas.style.position = 'fixed';
   canvas.style.top = '0';
   canvas.style.left = '0';
@@ -305,9 +305,9 @@ export function initLusionAnimations() {
     camera.position.set(0, 0, depth);
 
     // ───────────────────────────────────────────────
-    // 2. 3D Ribbon Renderer (replaces old TubeGeometry line)
+    // 2. 3D Ribbon Renderer
     // ───────────────────────────────────────────────
-    ribbonRenderer = new AtuinRibbonRenderer(containerEl);
+    ribbonRenderer = new KupperRibbonRenderer(containerEl);
     ribbonRenderer.setOpacity(0);
     ribbonRenderer.setScrollProgress(0);
 
@@ -588,7 +588,7 @@ function tick() {
   animationFrameId = requestAnimationFrame(tick);
 }
 
-export function killLusionAnimations() {
+export function killHeroRibbonAnimations() {
   if (containerEl) {
     containerEl.classList.remove('webgl-active');
   }

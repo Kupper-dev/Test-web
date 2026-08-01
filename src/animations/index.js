@@ -3,7 +3,7 @@ import { initWhatsappGlow, killWhatsappGlow } from './whatsappGlow';
 import { initCardAnimations, killCardAnimations } from './cardAnimations';
 import { initBranchAnimations, killBranchAnimations, resetToDefaultBranch } from './branchAnimations';
 import { initDynamicText, killDynamicText } from './dynamicText';
-import { initLusionAnimations, killLusionAnimations } from './lusionAnimations';
+import { initHeroRibbonAnimations, killHeroRibbonAnimations } from './heroRibbonAnimations';
 import { initNavAnimations, killNavAnimations } from './navAnimations';
 import { initHeroAnimations, killHeroAnimations } from './heroAnimations';
 import { initOverwhelmingAnimations, killOverwhelmingAnimations } from './overwhelmingAnimations';
@@ -16,7 +16,7 @@ export function initAnimations(isNavTriggered = false) {
   initCardAnimations();
   initBranchAnimations();
   initDynamicText();
-  initLusionAnimations();
+  initHeroRibbonAnimations();
   initNavAnimations(false, isNavTriggered);
   initHeroAnimations();
   
@@ -34,7 +34,7 @@ export function killAnimations() {
   killCardAnimations();
   killBranchAnimations();
   killDynamicText();
-  killLusionAnimations();
+  killHeroRibbonAnimations();
   killNavAnimations();
   killHeroAnimations();
   killOverwhelmingAnimations();

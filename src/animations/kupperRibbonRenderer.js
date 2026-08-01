@@ -1,12 +1,9 @@
 /**
- * AtuinRibbonRenderer — Custom Three.js 3D Ribbon Strip Renderer
+ * KupperRibbonRenderer — Custom Three.js 3D Ribbon Strip Renderer
  *
  * Draws a flat, extruded ribbon with rectangular cross-section along a 6-segment
- * cubic Bezier path (sourced from line lusion svg.svg). The ribbon has metallic/glossy
- * MeshPhysicalMaterial shading and is scroll-driven via setScrollProgress().
- *
- * This module creates its own dedicated canvas, scene, camera, and render loop,
- * completely isolated from the existing lusion WebGL canvas.
+ * cubic Bezier path. The ribbon has metallic/glossy MeshPhysicalMaterial shading
+ * and is scroll-driven via setScrollProgress().
  */
 
 import GUI from 'lil-gui';
@@ -14,8 +11,6 @@ import * as THREE from 'three';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 
 // ─── SVG Path Data ───────────────────────────────────────────────────────────
-// 6-segment cubic Bezier from line lusion svg.svg
-// SVG group transform: matrix(0.575343, 0, 0, 0.575343, -1.37604, 282.597)
 const SVG_SEGMENTS = [
   { p0: [52.796, -439.037],  cp1: [308.755, -437.397],  cp2: [1571.89, -207.871],  p1: [878.391, 680.295] },
   { p0: [878.391, 680.295],  cp1: [358.606, 1345.99],   cp2: [-355.117, 522.324],  p1: [520.344, 117.153] },
@@ -38,7 +33,7 @@ const PATH_SAMPLES = 600;    // Number of sample points along the curve
 // ─── Camera ──────────────────────────────────────────────────────────────────
 const FOV = 45;
 
-export class AtuinRibbonRenderer {
+export class KupperRibbonRenderer {
   constructor(sectionEl) {
     this._sectionEl = sectionEl;
     this._progress = 0;
@@ -47,7 +42,7 @@ export class AtuinRibbonRenderer {
 
     // Create dedicated canvas
     this._canvas = document.createElement('canvas');
-    this._canvas.id = 'atuin-ribbon-canvas';
+    this._canvas.id = 'kupper-ribbon-canvas';
     this._canvas.style.cssText = `
       position: fixed;
       top: 0;
