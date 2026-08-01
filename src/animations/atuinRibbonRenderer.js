@@ -615,8 +615,8 @@ export class AtuinRibbonRenderer {
           params.fresnelColor = '#ade9ff';
           params.roughness = 0.0;
           params.metalness = 0.6;
-          params.transmission = 0.312;
-          params.envMapIntensity = 0.0;
+          params.transmission = 0.4;
+          params.envMapIntensity = 1.0;
           params.bumpScale = 0.05;
           params.uvRepeatX = 15.7;
           params.uvRepeatY = 2.1;
@@ -625,12 +625,14 @@ export class AtuinRibbonRenderer {
           params.ambientLightIntensity = 0.9;
         }
 
-        this._ribbonMaterial.roughness = params ? params.roughness : 0.0;
-        this._ribbonMaterial.metalness = params ? params.metalness : 0.6;
-        this._ribbonMaterial.transmission = 0.0;
-        this._ribbonMaterial.transparent = false;
+        this._ribbonMaterial.roughness = 0.0;
+        this._ribbonMaterial.metalness = 0.6;
+        this._ribbonMaterial.transmission = 0.4;
+        this._ribbonMaterial.thickness = 8.0;
+        this._ribbonMaterial.ior = 1.45;
+        this._ribbonMaterial.transparent = true;
         this._ribbonMaterial.opacity = 1.0;
-        this._ribbonMaterial.envMapIntensity = params ? params.envMapIntensity : 1.0;
+        this._ribbonMaterial.envMapIntensity = 1.0;
 
         // Dedicated Lighting ecosystem
         this._keyLight.intensity = 7.0;
