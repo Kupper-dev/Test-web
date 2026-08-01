@@ -1,58 +1,59 @@
-We are building a clean, lightweight, custom Three.js 3D Ribbon Renderer from scratch directly inside `home reel` section.
+# Handoff Documentation: Network Signal Paths 3D Render & Multi-Texture Preset Setup
+
+This document serves as the official handoff context for the upcoming development session.
 
 ---
 
-## 1. Core Requirements
+## 1. Accomplished Work & Active Baseline
 
-### A. Trajectory & Path (`line lusion svg.svg`)
-- **Source**: Use the exact curve defined in [`line lusion svg.svg`](file:///Users/usuario/Desktop/Kupper/Dev/test%202%20web%20osmo/line%20lusion%20svg.svg).
-- **Control Points**: 6-segment cubic Bezier curve:
-  1. `p0: [52.796, -439.037]` $\rightarrow$ `cp1: [308.755, -437.397]`, `cp2: [1571.89, -207.871]`, `p1: [878.391, 680.295]`
-  2. `p0: [878.391, 680.295]` $\rightarrow$ `cp1: [358.606, 1345.99]`, `cp2: [-355.117, 522.324]`, `p1: [520.344, 117.153]`
-  3. `p0: [520.344, 117.153]` $\rightarrow$ `cp1: [1571.89, -369.513]`, `cp2: [1036.56, 848.89]`, `p1: [2006.41, 113.677]`
-  4. `p0: [2006.41, 113.677]` $\rightarrow$ `cp1: [2941.51, -595.185]`, `cp2: [2030.75, 449.53]`, `p1: [3169.2, 624.676]`
-  5. `p0: [3169.2, 624.676]` $\rightarrow$ `cp1: [3553.32, 683.771]`, `cp2: [2913.7, 1318.17]`, `p1: [2762.48, 1452.01]`
-  6. `p0: [2762.48, 1452.01]` $\rightarrow$ `cp1: [2319.53, 1844.05]`, `cp2: [3276.96, 1973.44]`, `p1: [3276.96, 1973.44]`
-- **Plane Constraint**: The path trajectory must lie 100% flat in a 2D plane ($Z = 0$), matching the screen layout of the SVG line.
+- **Repository Branch:** `experimental-ribbon-new` on `https://github.com/Kupper-dev/Test-web.git`.
+- **Checkpoint Commit:** `functioning ribbon blue grain` (`f7b9112` / `fb493a6`).
+- **Core Renderer:** [`kupperRibbonRenderer.js`](file:///Users/usuario/Desktop/Kupper/Dev/test%202%20web%20osmo/src/animations/kupperRibbonRenderer.js).
+- **Core Animation Driver:** [`heroRibbonAnimations.js`](file:///Users/usuario/Desktop/Kupper/Dev/test%202%20web%20osmo/src/animations/heroRibbonAnimations.js).
 
-### B. What to Borrow from `atuin blue`
-1. **3D Rectangular Mesh Shape**: An extruded ribbon strip with rectangular cross-section thickness (not a thin 2D line or round tube).
-2. **Surface Shader & Texture**: Metallic/glossy 3D shading, specular highlights, and ambient/directional light response.
-
-### C. What NOT to Include (Exclusions)
-- ❌ NO 3D camera rotation around X/Y/Z as you scroll down.
-- ❌ NO spring decay, idle timers, spherical point normalization, or auto-resetting path logic.
-- ❌ NO internal global window scroll listeners.
-
----
-
-## 2. Scroll & Visibility Integration
-
-1. **Scroll-Driven Draw**:
-   - The ribbon self-draws from progress `0.0` to `1.0` as the user scrolls through the `#home-reel` section.
-   - Progress is controlled directly by GSAP / Lenis in `src/animations/lusionAnimations.js`.
-
-2. **Hero Section Visibility**:
-   - While the user is in the Hero section (above `#home-reel`), the ribbon canvas is completely hidden (`opacity: 0`, progress `0.0`).
-   - The ribbon fades in (`opacity: 1`) smoothly as `#home-reel` comes into view.
-   - If the user scrolls back UP into the Hero section, the ribbon fades out (`opacity: 0`) and resets progress to `0.0`.
+### Current "Blue Grain" Ribbon Material Parameters (DO NOT ALTER):
+- **Base Shader:** Custom GLSL multi-stop gradient hook on `MeshPhysicalMaterial`.
+- **Gradient Ramp:**
+  - **Start Color (`0.0`):** `#012eff`
+  - **Mid Color (`0.07`):** `#0062ff`
+  - **End Color (`0.70`):** `#47b9ff`
+  - **Fresnel Rim Light:** `#ade9ff`
+- **PBR Surface Properties:**
+  - **Roughness:** `0.0`
+  - **Metalness:** `0.6`
+  - **Transmission (Glass Refraction):** `0.4` (Thickness `8.0`, IOR `1.45`, Opacity `1.0`, Transparent `true`)
+  - **EnvMap Reflectivity:** `1.0` (Warehouse HDR Environment Map `/env/warehouse.hdr`)
+- **Texture Map:**
+  - **Noise Micro-grain:** `/textures/noise.webp` tiled at `15.7 x 2.1` with `bumpScale = 0.05`.
+- **Lighting Setup:**
+  - **Key Light:** `7.0` (White)
+  - **Fill Light:** `6.3` (`#00b3ff`)
+  - **Ambient Light:** `0.9`
 
 ---
 
-## 3. Recommended Implementation Architecture
+## 2. Next Session Requirements & Specifications
 
-- **Renderer File**: `src/animations/atuinRibbonRenderer.js`
-- **Class**: `AtuinRibbonRenderer`
-- **Geometry**: Extruded flat ribbon strip mesh generated along a `THREE.CurvePath` composed of the 6 Bezier curve segments.
-- **Shader Material**: `THREE.MeshStandardMaterial` or `THREE.MeshPhysicalMaterial` with metallic, roughness, and custom gradient map.
-- **Lifecycle Methods**:
-  - `constructor(canvasContainer)`
-  - `setScrollProgress(progress)` (Updates extruded geometry draw range or shader `uDrawProgress` uniform)
-  - `resize()` (Handles window aspect ratio & pixel-ratio updates)
-  - `destroy()` (Disposes geometries and materials)
+### A. Remove SVG Path Stroke (Prerequisite)
+- Locate the SVG path element for the **3 network signal paths**.
+- Remove the existing stroke/gradient CSS stroke attributes (`stroke="url(#...)"`, `stroke-width`, etc.) so only the raw vector paths remain as 3D trajectories without visual SVG overlap or confusion.
+
+### B. 3D Ribbon Extrusion Along Network Signal Paths (3 Paths)
+- Extrude 3 separate 3D ribbons following the 3 SVG network paths.
+- **No Twists:** Unlike the hero main ribbon, these signal paths will **NOT** have rotational twisting (`startTwist = 0`). They must cleanly follow the 3D curves.
+
+### C. Multi-Texture & Preset Setup
+1. **Middle Path (Locked):**
+   - Must use the **exact** "Blue Grain" material configuration defined above without any changes.
+2. **Left & Right Paths (Configurable with Tweak Panel):**
+   - Must be instantiated with dedicated material instances.
+   - Re-enable the `lil-gui` Tweak Panel specifically for the **Left** and **Right** paths.
+   - Provide interactive dropdowns to swap material presets (Granite, Steel, Frosted Glass, Marble, Glossy Acrylic) and fine-tune color gradients, PBR properties, transmission, and texture tiling so the user can compare and select the best look.
 
 ---
 
-## 4. Branch Context
-- **Current Branch**: `experimental-ribbon-new` (Clean branch off `main`).
-- **Archive Branch**: `experimental-ribbon` (Contains all reverse-engineered WebComponent attempt files for reference).
+## 3. Key Files for Next Session
+
+- [`kupperRibbonRenderer.js`](file:///Users/usuario/Desktop/Kupper/Dev/test%202%20web%20osmo/src/animations/kupperRibbonRenderer.js) — 3D Renderer module.
+- [`heroRibbonAnimations.js`](file:///Users/usuario/Desktop/Kupper/Dev/test%202%20web%20osmo/src/animations/heroRibbonAnimations.js) — Main GSAP ScrollTrigger timeline controller.
+- [`hero-reel.html`](file:///Users/usuario/Desktop/Kupper/Dev/test%202%20web%20osmo/hero-reel.html) — HTML markup containing section elements & SVG paths.
