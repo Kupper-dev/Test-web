@@ -314,18 +314,15 @@ export class AtuinRibbonRenderer {
   // ─── Asset Loading ──────────────────────────────────────────────────────────
 
   _loadAssets() {
-    const loader = new THREE.TextureLoader();
-    const loadTex = (key, url) => {
-      loader.load(url, (tex) => {
-        tex.wrapS = THREE.RepeatWrapping;
-        tex.wrapT = THREE.RepeatWrapping;
-        this._textures[key] = tex;
+    const texLoader = new THREE.TextureLoader();
+    const loadTex = (name, url, wrapS = THREE.RepeatWrapping, wrapT = THREE.RepeatWrapping) => {
+      texLoader.load(url, (tex) => {
+        tex.wrapS = wrapS;
+        tex.wrapT = wrapT;
+        this._textures[name] = tex;
         if (this._ribbonMaterial) this._ribbonMaterial.needsUpdate = true;
       });
     };
-
-    // Only load necessary noise grain texture for optimal performance
-    loadTex('noise', '/textures/noise.webp');
 
     const rgbeLoader = new RGBELoader();
 
@@ -336,26 +333,12 @@ export class AtuinRibbonRenderer {
       this._scene.environment = envMap;
       if (this._ribbonMaterial) {
         this._ribbonMaterial.envMap = envMap;
-        this._ribbonMaterial.envMapIntensity = 1.0;
         this._ribbonMaterial.needsUpdate = true;
       }
     });
 
     // 2. Texture Maps
-    const loadTex = (name, url, wrapS = THREE.RepeatWrapping, wrapT = THREE.RepeatWrapping) => {
-      texLoader.load(url, (tex) => {
-        tex.wrapS = wrapS;
-        tex.wrapT = wrapT;
-        this._textures[name] = tex;
-      });
-    };
-
-    loadTex('frosted', '/textures/frosted-glass-normal.webp');
-    loadTex('frostedNorm', '/textures/frosted-normal.webp');
-    loadTex('steel', '/textures/steel-normal.webp');
     loadTex('noise', '/textures/noise.webp');
-    loadTex('noiseLight', '/textures/noise-light.webp');
-    loadTex('marble', '/textures/marble.webp');
   }
 
   // ─── Material ──────────────────────────────────────────────────────────────
