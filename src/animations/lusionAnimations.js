@@ -2,6 +2,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import SplitType from 'split-type';
 import * as THREE from 'three';
+import { AtuinRibbonRenderer } from './atuinRibbonRenderer.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -10,8 +11,10 @@ let canvas = null;
 let animationFrameId = null;
 
 // Three.js meshes
-let lineMesh = null;
 let morphMesh = null;
+
+// Ribbon renderer (separate canvas + scene)
+let ribbonRenderer = null;
 
 // DOM reference elements
 let containerEl = null;
@@ -27,9 +30,7 @@ let line1Split = null;
 let line2Split = null;
 let descSplit = null;
 
-// Curves points and definitions
-let curve = null;
-let curvePoints = [];
+
 
 // Scroll listeners and GSAP timelines
 let scrollTriggerInstance = null;
@@ -304,84 +305,11 @@ export function initLusionAnimations() {
     camera.position.set(0, 0, depth);
 
     // ───────────────────────────────────────────────
-    // 2. Animated Scroll Line (Drawing Spline)
+    // 2. 3D Ribbon Renderer (replaces old TubeGeometry line)
     // ───────────────────────────────────────────────
-    // SVG viewBox: 0 0 1920 1480
-    // Group matrix: matrix(0.575343,0,0,0.575343,-1.37604,282.597)
-    // We map 2D SVG canvas coordinate space to our WebGL NDC space:
-    // WebGL space: x goes from -w/2 to +w/2, y goes from -h/2 to +h/2 (top is positive, bottom is negative)
-    const mapSvgPoint = (svgX, svgY) => {
-      const matScale = 0.575343;
-      const tx = -1.37604;
-      const ty = 282.597;
-
-      const xTransformed = svgX * matScale + tx;
-      const yTransformed = svgY * matScale + ty;
-
-      // Scale proportionally to preserve original SVG viewBox aspect ratio (1920 wide)
-      const scale = w / 1920;
-
-      const glX = xTransformed * scale;
-      const glY = -yTransformed * scale;
-      return new THREE.Vector3(glX, glY, 0);
-    };
-
-    // Parse path d attribute:
-    // M52.796,-439.037 C308.755,-437.397 1571.89,-207.871 878.391,680.295
-    // C358.606,1345.99 -355.117,522.324 520.344,117.153
-    // C1571.89,-369.513 1036.56,848.89 2006.41,113.677
-    // C2941.51,-595.185 2030.75,449.53 3169.2,624.676
-    // C3553.32,683.771 2913.7,1318.17 2762.48,1452.01
-    // C2319.53,1844.05 3276.96,1973.44 3276.96,1973.44
-    const svgSegments = [
-      { p0: [52.796, -439.037],  cp1: [308.755, -437.397],  cp2: [1571.89, -207.871],  p1: [878.391, 680.295] },
-      { p0: [878.391, 680.295],  cp1: [358.606, 1345.99],   cp2: [-355.117, 522.324],  p1: [520.344, 117.153] },
-      { p0: [520.344, 117.153],  cp1: [1571.89, -369.513],  cp2: [1036.56, 848.89],    p1: [2006.41, 113.677] },
-      { p0: [2006.41, 113.677],  cp1: [2941.51, -595.185],  cp2: [2030.75, 449.53],    p1: [3169.2, 624.676] },
-      { p0: [3169.2, 624.676],   cp1: [3553.32, 683.771],   cp2: [2913.7, 1318.17],    p1: [2762.48, 1452.01] },
-      { p0: [2762.48, 1452.01],  cp1: [2319.53, 1844.05],   cp2: [3276.96, 1973.44],   p1: [3276.96, 1973.44] }
-    ];
-
-    curvePoints = [];
-
-    // Evaluate cubic Bezier equations to generate smooth interpolation points
-    svgSegments.forEach(seg => {
-      const p0 = mapSvgPoint(seg.p0[0], seg.p0[1]);
-      const cp1 = mapSvgPoint(seg.cp1[0], seg.cp1[1]);
-      const cp2 = mapSvgPoint(seg.cp2[0], seg.cp2[1]);
-      const p1 = mapSvgPoint(seg.p1[0], seg.p1[1]);
-
-      const steps = 80; // 80 points per segment for smooth curve representation
-      for (let i = 0; i <= steps; i++) {
-        const t = i / steps;
-        const mt = 1 - t;
-
-        // Cubic Bezier formula: P(t) = (1-t)^3 * P0 + 3*t*(1-t)^2 * CP1 + 3*t^2*(1-t) * CP2 + t^3 * P1
-        const x = mt * mt * mt * p0.x + 3 * t * mt * mt * cp1.x + 3 * t * t * mt * cp2.x + t * t * t * p1.x;
-        const y = mt * mt * mt * p0.y + 3 * t * mt * mt * cp1.y + 3 * t * t * mt * cp2.y + t * t * t * p1.y;
-
-        // Prevent duplicate segment end/start points
-        if (i === 0 && curvePoints.length > 0) continue;
-
-        curvePoints.push(new THREE.Vector3(x, y, 0));
-      }
-    });
-
-    // 'centripetal' prevents Frenet frame flipping on tight curves (erratic polygon fix)
-    curve = new THREE.CatmullRomCurve3(curvePoints, false, 'centripetal');
-
-    // Setup line geometry and material (Tube Mesh with Vertex Colors)
-    const lineGeom = new THREE.BufferGeometry();
-    const lineMat = new THREE.MeshBasicMaterial({
-      vertexColors: true,
-      transparent: true,
-      opacity: 0.9,
-      side: THREE.DoubleSide,
-      depthWrite: false
-    });
-    lineMesh = new THREE.Mesh(lineGeom, lineMat);
-    lineMesh.renderOrder = 1; // Render first (behind card)
-    scene.add(lineMesh);
+    ribbonRenderer = new AtuinRibbonRenderer(containerEl);
+    ribbonRenderer.setOpacity(0);
+    ribbonRenderer.setScrollProgress(0);
 
     // ───────────────────────────────────────────────
     // 3. Morphing Video Thumbnail Mesh
@@ -500,55 +428,10 @@ export function initLusionAnimations() {
       camera.updateProjectionMatrix();
     }
 
-    // Recompute spline points to keep them aligned on resize
-    const wNew = window.innerWidth;
-    const mapSvgPoint = (svgX, svgY) => {
-      const matScale = 0.575343;
-      const tx = -1.37604;
-      const ty = 282.597;
-
-      const xTransformed = svgX * matScale + tx;
-      const yTransformed = svgY * matScale + ty;
-
-      const scale = wNew / 1920;
-
-      const glX = xTransformed * scale;
-      const glY = -yTransformed * scale;
-      return new THREE.Vector3(glX, glY, 0);
-    };
-
-    const svgSegments = [
-      { p0: [52.796, -439.037],  cp1: [308.755, -437.397],  cp2: [1571.89, -207.871],  p1: [878.391, 680.295] },
-      { p0: [878.391, 680.295],  cp1: [358.606, 1345.99],   cp2: [-355.117, 522.324],  p1: [520.344, 117.153] },
-      { p0: [520.344, 117.153],  cp1: [1571.89, -369.513],  cp2: [1036.56, 848.89],    p1: [2006.41, 113.677] },
-      { p0: [2006.41, 113.677],  cp1: [2941.51, -595.185],  cp2: [2030.75, 449.53],    p1: [3169.2, 624.676] },
-      { p0: [3169.2, 624.676],   cp1: [3553.32, 683.771],   cp2: [2913.7, 1318.17],    p1: [2762.48, 1452.01] },
-      { p0: [2762.48, 1452.01],  cp1: [2319.53, 1844.05],   cp2: [3276.96, 1973.44],   p1: [3276.96, 1973.44] }
-    ];
-
-    curvePoints = [];
-
-    svgSegments.forEach(seg => {
-      const p0 = mapSvgPoint(seg.p0[0], seg.p0[1]);
-      const cp1 = mapSvgPoint(seg.cp1[0], seg.cp1[1]);
-      const cp2 = mapSvgPoint(seg.cp2[0], seg.cp2[1]);
-      const p1 = mapSvgPoint(seg.p1[0], seg.p1[1]);
-
-      const steps = 80;
-      for (let i = 0; i <= steps; i++) {
-        const t = i / steps;
-        const mt = 1 - t;
-
-        const x = mt * mt * mt * p0.x + 3 * t * mt * mt * cp1.x + 3 * t * t * mt * cp2.x + t * t * t * p1.x;
-        const y = mt * mt * mt * p0.y + 3 * t * mt * mt * cp1.y + 3 * t * t * mt * cp2.y + t * t * t * p1.y;
-
-        if (i === 0 && curvePoints.length > 0) continue;
-
-        curvePoints.push(new THREE.Vector3(x, y, 0));
-      }
-    });
-
-    curve = new THREE.CatmullRomCurve3(curvePoints, false, 'centripetal');
+    // Resize ribbon renderer
+    if (ribbonRenderer) {
+      ribbonRenderer.resize();
+    }
   };
   window.addEventListener('resize', resizeHandler);
 }
@@ -556,20 +439,10 @@ export function initLusionAnimations() {
 function tick() {
   if (!renderer) return;
 
-  // 1. Update Drawing Spline Line Based on Scroll
+  // 1. Update 3D Ribbon Draw Progress & Visibility
   const w = window.innerWidth;
   const h = window.innerHeight;
   const sectionRect = containerEl ? containerEl.getBoundingClientRect() : { left: 0, top: 0, height: 1000 };
-  const sectionWebGLX = sectionRect.left - w / 2;
-  const sectionWebGLY = h / 2 - sectionRect.top;
-
-  if (lineMesh) {
-    lineMesh.position.set(
-      sectionWebGLX - w * 0.03, // 3% left
-      sectionWebGLY + h * 0.25, // 25% up
-      -5.0
-    );
-  }
 
   // Draw progress is split into two phases to avoid the mid-scroll freeze:
   //
@@ -604,54 +477,18 @@ function tick() {
     prePinProgress * prePinWeight + pinProgress * pinWeight
   );
 
-  if (curve) {
-    const totalPoints = 300;
-    const currentPointsCount = Math.max(2, Math.floor(drawRatio * totalPoints));
-    const activePoints = curve.getPoints(totalPoints).slice(0, currentPointsCount);
+  // Update ribbon renderer progress and visibility
+  if (ribbonRenderer) {
+    ribbonRenderer.setScrollProgress(drawRatio);
 
-    if (activePoints.length >= 2) {
-      // centripetal prevents Frenet frame flips on tight bends (erratic polygon fix)
-      const subCurve = new THREE.CatmullRomCurve3(activePoints, false, 'centripetal');
-      const tubularSegments = activePoints.length * 2;
-      const radialSegments = 14;
-      const radius = 10.2;
-
-      const newGeom = new THREE.TubeGeometry(subCurve, tubularSegments, radius, radialSegments, false);
-
-      // Generate gradient vertex colors along the path segments
-      const count = newGeom.attributes.position.count;
-      const colors = new Float32Array(count * 3);
-
-      const colorStart = new THREE.Color('#2051FF');
-      const colorMid = new THREE.Color('#1B73F5');
-      const colorEnd = new THREE.Color('#65C2FF');
-
-      let index = 0;
-      for (let i = 0; i <= tubularSegments; i++) {
-        const ratio = i / tubularSegments;
-        let c;
-        if (ratio < 0.5) {
-          // Interpolate start to mid (scale ratio to 0-1)
-          c = colorStart.clone().lerp(colorMid, ratio * 2);
-        } else {
-          // Interpolate mid to end (scale ratio to 0-1)
-          c = colorMid.clone().lerp(colorEnd, (ratio - 0.5) * 2);
-        }
-
-        for (let j = 0; j <= radialSegments; j++) {
-          colors[index++] = c.r;
-          colors[index++] = c.g;
-          colors[index++] = c.b;
-        }
-      }
-
-      newGeom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-      if (lineMesh.geometry) {
-        lineMesh.geometry.dispose();
-      }
-      lineMesh.geometry = newGeom;
-    }
+    // Ribbon visibility: hidden while in hero (section above viewport),
+    // fades in as #home-reel enters view
+    const fadeStart = h * 1.1;  // section top position where fade begins
+    const fadeEnd   = h * 0.85; // section top position where fully visible
+    const ribbonOpacity = Math.max(0, Math.min(1,
+      (fadeStart - currentY) / (fadeStart - fadeEnd)
+    ));
+    ribbonRenderer.setOpacity(ribbonOpacity);
   }
 
   // 2. Update Thumbnail-to-Video Position and Morph
@@ -781,12 +618,10 @@ export function killLusionAnimations() {
     resizeHandler = null;
   }
 
-  // Dispose WebGL resources
-  if (lineMesh) {
-    lineMesh.geometry.dispose();
-    lineMesh.material.dispose();
-    scene.remove(lineMesh);
-    lineMesh = null;
+  // Dispose ribbon renderer
+  if (ribbonRenderer) {
+    ribbonRenderer.destroy();
+    ribbonRenderer = null;
   }
   if (morphMesh) {
     morphMesh.geometry.dispose();

@@ -1,0 +1,45 @@
+<h2>Design Spec: 3D Frosted-Glass Track with Animated Internal Blue Flow</h2>
+<p class="subtitle">WebGL Custom Shader Architecture for the Home Reel Section</p>
+
+<div class="mockup">
+  <div class="mockup-header">Visual Language & Shader Pipeline Overview</div>
+  <div class="mockup-body" style="background: #0f172a; color: #f8fafc; padding: 24px; border-radius: 8px;">
+    <div style="display: flex; gap: 20px; align-items: center; justify-content: center; min-height: 180px;">
+      <div style="flex: 1; border: 1px dashed #38bdf8; padding: 16px; border-radius: 8px; text-align: center;">
+        <h4 style="color: #38bdf8; margin-bottom: 8px;">1. Outer Frosted Tube Envelope</h4>
+        <p style="font-size: 0.85em; opacity: 0.85;">Physical 3D TubeGeometry with Fresnel rim lighting, specular highlights, and translucent frosted glass scattering.</p>
+      </div>
+      <div style="font-size: 24px; color: #38bdf8;">+</div>
+      <div style="flex: 1; border: 1px dashed #60a5fa; padding: 16px; border-radius: 8px; text-align: center;">
+        <h4 style="color: #60a5fa; margin-bottom: 8px;">2. Inner Animated Blue Data Stream</h4>
+        <p style="font-size: 0.85em; opacity: 0.85;">100% enclosed within tube wall. Dynamic GLSL line-drawing, moving highlights, animated gradients, and frosted internal blur.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 24px;">
+  <h3>Configuration Options Exposed (Modular Architecture)</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+    <div style="background: var(--bg-surface); padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+      <strong>Glass & Track Parameters</strong>
+      <ul style="font-size: 0.85em; margin-top: 8px; line-height: 1.6;">
+        <li><code>tubeRadius</code>: Outer tube diameter</li>
+        <li><code>glassBlur</code>: Internal blur/frost level</li>
+        <li><code>glassOpacity</code>: Translucency level (0.0 - 1.0)</li>
+        <li><code>rimGlowIntensity</code>: Edge luminous highlight intensity</li>
+        <li><code>glassColor</code>: Base frosted tint color</li>
+      </ul>
+    </div>
+    <div style="background: var(--bg-surface); padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+      <strong>Flow Stream & Animation Parameters</strong>
+      <ul style="font-size: 0.85em; margin-top: 8px; line-height: 1.6;">
+        <li><code>coreColor</code> / <code>glowColor</code>: Vibrant blue & cyan energy colors</li>
+        <li><code>flowSpeed</code>: Internal highlight pulse velocity</li>
+        <li><code>direction</code>: Forward (1) or Reverse (-1)</li>
+        <li><code>highlightDensity</code>: Density of gradient highlights</li>
+        <li><code>progress</code>: Timeline draw progress (0.0 - 1.0)</li>
+      </ul>
+    </div>
+  </div>
+</div>

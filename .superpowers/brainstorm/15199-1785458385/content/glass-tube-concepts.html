@@ -1,0 +1,47 @@
+<h2>SVG Flow Animation Redesign — Frosted Glass Track &amp; Blue Flow</h2>
+<p class="subtitle">Select the architectural &amp; visual rendering approach for the 3D translucent track and internal pipeline data flow</p>
+
+<div class="options">
+  <div class="option" data-choice="webgl-custom-shader" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Custom WebGL Shaders (Three.js TubeGeometry + Custom Shader Material)</h3>
+      <p><strong>Primary Recommended Approach.</strong> Renders a 3D <code>TubeGeometry</code> following the existing SVG path. Uses custom GLSL shaders for real-time physical glass transmission, rim lighting, fresnel highlights, internal light refractions, and a multi-layered animated blue energy core that flows inside the tube wall boundary with smooth depth blurring.</p>
+      <div style="margin-top: 10px; font-size: 0.85em; opacity: 0.8;">
+        <strong>Pros:</strong> Full 3D volumetric depth, authentic physical frosted glass reflections, customizable GLSL uniforms for blur/glow/speed, ultra-smooth 60 FPS.<br>
+        <strong>Cons:</strong> Requires WebGL context management.
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="svg-multi-layer-filter" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>SVG Multi-Layer Composite with SVG Filters (feGaussianBlur, feSpecularLighting, feBlend)</h3>
+      <p>Uses layered SVG strokes over the exact path with SVG filters for blur, inner glow, stroke-dashoffset drawing animation, and pseudo-3D gradients to simulate a frosted tube envelope.</p>
+      <div style="margin-top: 10px; font-size: 0.85em; opacity: 0.8;">
+        <strong>Pros:</strong> Pure SVG footprint.<br>
+        <strong>Cons:</strong> Heavy SVG filter performance on high-DPI/mobile screens, flatter 2D depth appearance compared to 3D tube geometry.
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="canvas2d-layered-renderer" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>2D Canvas Layered Path Renderer with Radial Gradient Pipeline</h3>
+      <p>Uses 2D HTML5 Canvas rendering engine tracing path coordinates with multiple composite operations (<code>destination-over</code>, <code>filter: blur()</code>, layered stroke gradient travel).</p>
+      <div style="margin-top: 10px; font-size: 0.85em; opacity: 0.8;">
+        <strong>Pros:</strong> No WebGL fallback required.<br>
+        <strong>Cons:</strong> Canvas 2D stroke blur can be expensive; lacks volumetric specular lighting and refraction.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 30px;">
+  <h3>Configurable Parameters Exposed to Engine</h3>
+  <ul style="line-height: 1.8;">
+    <td><code>tubeRadius</code>, <code>glassBlur</code>, <code>glassOpacity</code>, <code>rimGlowIntensity</code>, <code>coreColor</code>, <code>glowColor</code>, <code>flowSpeed</code>, <code>flowDirection</code>, <code>highlightDensity</code></td>
+  </ul>
+</div>
