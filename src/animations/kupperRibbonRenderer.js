@@ -2,7 +2,9 @@
  * KupperRibbonRenderer — Custom Three.js 3D Ribbon Strip Renderer
  *
  * Renders hero ribbon and extruded 3D Network Signal Path ribbons in .it-flow-section
- * with customizable multi-texture PBR materials and GLSL gradient shaders.
+ * with customizable multi-texture PBR materials, GLSL gradient shaders, and real 3D
+ * instanced micro-cube data package streams (THREE.InstancedMesh) traveling inside the
+ * semi-translucent frosted glass tracks.
  */
 
 import GUI from 'lil-gui';
@@ -40,19 +42,19 @@ const MATERIAL_PRESETS = {
     gradient: {
       uColorDark: '#ffffff',
       uPosDark: 0.0,
-      uColorMid: '#d4f0ff',
+      uColorMid: '#2e74ff',
       uPosMid: 0.30,
       uColorLight: '#a6e3ff',
       uPosLight: 1.00,
       uFresnelColor: '#ffffff'
     },
     pbr: {
-      roughness: 0.25,
-      metalness: 0.1,
-      transmission: 0.0,
-      thickness: 12.0,
-      ior: 1.45,
-      bumpScale: 0.03,
+      roughness: 0.38,
+      metalness: 0.05,
+      transmission: 0.87,
+      thickness: 0.0,
+      ior: 1.34,
+      bumpScale: 0.04,
       repeatX: 10.0,
       repeatY: 2.0
     }
@@ -70,7 +72,7 @@ const MATERIAL_PRESETS = {
     pbr: {
       roughness: 0.0,
       metalness: 0.6,
-      transmission: 0.4, // Restored 0.4 baseline transmission
+      transmission: 0.4,
       thickness: 8.0,
       ior: 1.45,
       bumpScale: 0.05,
@@ -172,7 +174,7 @@ export class KupperRibbonRenderer {
     this._opacity = 1.0;
     this._animationFrameId = null;
 
-    // Create dedicated canvas with z-index 3 to ensure visibility in front of section backgrounds
+    // Create dedicated canvas with z-index 1
     this._canvas = document.createElement('canvas');
     this._canvas.id = 'kupper-ribbon-canvas';
     this._canvas.style.cssText = `
@@ -215,7 +217,7 @@ export class KupperRibbonRenderer {
     this._renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this._renderer.toneMappingExposure = 1.0;
     this._renderer.setSize(window.innerWidth, window.innerHeight);
-    this._renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this._renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 
     // Camera (1:1 pixel mapping at Z=0)
     const w = window.innerWidth;
@@ -249,10 +251,11 @@ export class KupperRibbonRenderer {
     this._buildMaterial();
     this._createMesh();
 
-    // Build 3D Network Signal Ribbons
+    // Build 3D Network Signal Ribbons & Instanced 3D Micro-Cube Streams
     this._signalMeshes = [];
     this._signalMaterials = [];
     this._signalGeometries = [];
+    this._cubeStreams = [];
     this._signalIndexCounts = [0, 0, 0];
 
     this._buildSignalRibbons();
@@ -294,15 +297,8 @@ export class KupperRibbonRenderer {
       envMap.mapping = THREE.EquirectangularReflectionMapping;
       this._hdrEnvMap = envMap;
 
-      this._scene.environment = envMap;
-
-      if (this._ribbonMaterial) {
-        this._ribbonMaterial.envMap = envMap;
-        this._ribbonMaterial.envMapIntensity = 1.0;
-        this._ribbonMaterial.needsUpdate = true;
-      }
-      this._signalMaterials.forEach((mat) => {
-        if (mat) {
+      this._signalMaterials.forEach((mat, idx) => {
+        if (mat && idx !== 1) {
           mat.envMap = envMap;
           mat.envMapIntensity = 1.0;
           mat.needsUpdate = true;
@@ -465,9 +461,119 @@ export class KupperRibbonRenderer {
     this._group.add(this._ribbonMesh);
   }
 
+  // ─── Real 3D Instanced Micro-Cube Streams (THREE.InstancedMesh) ───────────
+
+  _buildInstancedCubeStreams(rawPath) {
+    const curve = new THREE.CatmullRomCurve3(rawPath);
+    const boxGeom = new THREE.BoxGeometry(3.6, 3.6, 2.5);
+
+    // Single unified material with emitting light / glow for all micro cubes
+    const boxMat = new THREE.MeshStandardMaterial({
+      color: 0x40d8ff,
+      emissive: 0x00a2ff,
+      emissiveIntensity: 2.0,
+      roughness: 0.2,
+      metalness: 0.8,
+      transparent: true,
+      opacity: 0.95
+    });
+
+    const cubeUniforms = {
+      uFlutedDistortion: { value: 1.05 }
+    };
+
+    boxMat.userData.uniforms = cubeUniforms;
+
+    boxMat.onBeforeCompile = (shader) => {
+      Object.assign(shader.uniforms, cubeUniforms);
+
+      shader.vertexShader = `
+        uniform float uFlutedDistortion;
+      ` + shader.vertexShader;
+
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <begin_vertex>',
+        `
+        #include <begin_vertex>
+        // Option A: Vertex Fluted Refraction Distortion
+        float wave = sin(position.x * 2.5 + position.y * 1.5);
+        transformed.x += wave * uFlutedDistortion * 1.6;
+        transformed.y += cos(wave * 2.0) * uFlutedDistortion * 0.8;
+        `
+      );
+    };
+
+    const totalCubes = 140;
+    const instancedMesh = new THREE.InstancedMesh(boxGeom, boxMat, totalCubes);
+    instancedMesh.renderRenderOrder = 1;
+    instancedMesh.renderOrder = 1;
+
+    const instancesData = [];
+    const dummy = new THREE.Object3D();
+
+    for (let i = 0; i < totalCubes; i++) {
+      const isLeftLane = i % 2 === 0;
+      const laneOffset = isLeftLane ? -5.2 : 5.2;
+
+      // Randomized staggered particle distribution along length (0.0 to 1.0)
+      const rawT = (i / totalCubes) + (Math.random() * 0.04 - 0.02);
+      const startT = (rawT + 1.0) % 1.0;
+      const scale = 0.75 + Math.random() * 0.4;
+
+      instancesData.push({
+        t: startT,
+        laneOffset: laneOffset,
+        scale: scale,
+        speedMultiplier: 0.85 + Math.random() * 0.3
+      });
+
+      dummy.position.set(0, 0, -2.0);
+      dummy.scale.setScalar(scale);
+      dummy.updateMatrix();
+      instancedMesh.setMatrixAt(i, dummy.matrix);
+    }
+
+    instancedMesh.instanceMatrix.needsUpdate = true;
+
+    // Pre-sample Curve LUT for 0 CPU spline calculation overhead in tick loop
+    const lutSize = 1000;
+    const lutPoints = [];
+    const lutTangents = [];
+    const lutNormals = [];
+    const up = new THREE.Vector3(0, 0, 1);
+
+    for (let i = 0; i < lutSize; i++) {
+      const t = i / (lutSize - 1);
+      const pt = curve.getPointAt(t);
+      const tan = curve.getTangentAt(t);
+      const norm = new THREE.Vector3().crossVectors(up, tan).normalize();
+      lutPoints.push(pt);
+      lutTangents.push(tan);
+      lutNormals.push(norm);
+    }
+
+    return {
+      instancedMesh,
+      instancesData,
+      curve,
+      lutSize,
+      lutPoints,
+      lutTangents,
+      lutNormals,
+      material: boxMat,
+      config: {
+        speed: 0.025,
+        cubeScale: 0.65,
+        enable: true,
+        color: '#40d8ff',
+        emissiveIntensity: 5.0
+      }
+    };
+  }
+
   // ─── Shared Custom GLSL Physical Material Factory ─────────────────────────
 
-  _createCustomMaterial(gradientConfig, pbrConfig) {
+  _createCustomMaterial(gradientConfig, pbrConfig, isSignalGlass = true) {
     const uniforms = {
       uColorDark: { value: new THREE.Color(gradientConfig.uColorDark) },
       uPosDark: { value: gradientConfig.uPosDark },
@@ -475,8 +581,14 @@ export class KupperRibbonRenderer {
       uPosMid: { value: gradientConfig.uPosMid },
       uColorLight: { value: new THREE.Color(gradientConfig.uColorLight) },
       uPosLight: { value: gradientConfig.uPosLight },
-      uFresnelColor: { value: new THREE.Color(gradientConfig.uFresnelColor) }
+      uFresnelColor: { value: new THREE.Color(gradientConfig.uFresnelColor) },
+      uIsSignalGlass: { value: isSignalGlass ? 1.0 : 0.0 },
+      uGlassTint: { value: new THREE.Color('#2e74ff') },
+      uFlutedFreq: { value: 6.0 },
+      uFlutedStrength: { value: 1.0 }
     };
+
+    const isTranslucent = pbrConfig.transmission > 0.0;
 
     const mat = new THREE.MeshPhysicalMaterial({
       color: 0xffffff,
@@ -486,13 +598,13 @@ export class KupperRibbonRenderer {
       thickness: pbrConfig.thickness,
       ior: pbrConfig.ior,
       transparent: true,
-      opacity: 1.0,
+      opacity: isTranslucent ? 0.75 : 1.0,
       side: THREE.DoubleSide,
-      depthWrite: true,
+      depthWrite: !isTranslucent,
       envMapIntensity: 1.0
     });
 
-    if (this._hdrEnvMap) {
+    if (isSignalGlass && this._hdrEnvMap) {
       mat.envMap = this._hdrEnvMap;
     }
     if (this._textures.noise) {
@@ -527,6 +639,10 @@ export class KupperRibbonRenderer {
         uniform vec3 uColorLight;
         uniform float uPosLight;
         uniform vec3 uFresnelColor;
+        uniform float uIsSignalGlass;
+        uniform vec3 uGlassTint;
+        uniform float uFlutedFreq;
+        uniform float uFlutedStrength;
       ` + shader.fragmentShader;
 
       shader.fragmentShader = shader.fragmentShader.replace(
@@ -557,9 +673,25 @@ export class KupperRibbonRenderer {
         #endif
 
         vec3 norm = normalize(vNormal);
-        float fresnel = max(0.0, dot(norm, vec3(0.0, 0.0, 1.0)));
-        fresnel = pow(1.0 - fresnel, 2.0);
-        diffuseColor.rgb += uFresnelColor * fresnel * 0.4;
+
+        if (uIsSignalGlass > 0.5) {
+          // 1. Procedural Fluted Glass Ribbed Distortion
+          float flutedRibs = sin(vMapUv.y * uFlutedFreq * 3.14159 * 2.0);
+          vec3 flutedNorm = normalize(norm + vec3(flutedRibs * uFlutedStrength, 0.0, 0.0));
+
+          // 2. Glass Tint Color Blend
+          diffuseColor.rgb = mix(diffuseColor.rgb, uGlassTint, 0.35);
+
+          // 3. Fluted Specular & Fresnel Edge Highlights
+          float flutedFresnel = max(0.0, dot(flutedNorm, vec3(0.0, 0.0, 1.0)));
+          flutedFresnel = pow(1.0 - flutedFresnel, 2.5);
+          diffuseColor.rgb += uFresnelColor * flutedFresnel * 0.55;
+        } else {
+          // Middle Ribbon Path 2: Baseline Fresnel highlight ONLY
+          float fresnel = max(0.0, dot(norm, vec3(0.0, 0.0, 1.0)));
+          fresnel = pow(1.0 - fresnel, 2.0);
+          diffuseColor.rgb += uFresnelColor * fresnel * 0.4;
+        }
         `
       );
     };
@@ -578,36 +710,69 @@ export class KupperRibbonRenderer {
     const startTwistEnd = opts.startTwistEnd || 0.4;
     const endScale = opts.endScale || 1.0;
     const endScaleStart = opts.endScaleStart || 0.9;
+    const isFluted = opts.isFluted || false;
 
     const safeRadius = Math.max(0.01, Math.min(cornerRadius, thickness / 2.0));
-    const numPointsPerCorner = 4;
-    const verticesPerPoint = 4 * numPointsPerCorner;
-
-    const crossSection = [];
     const wInner = width / 2 - safeRadius;
     const hInner = thickness / 2 - safeRadius;
-    const corners = [
-      { cx: wInner, cy: hInner },
-      { cx: -wInner, cy: hInner },
-      { cx: -wInner, cy: -hInner },
-      { cx: wInner, cy: -hInner }
-    ];
 
-    for (let c = 0; c < 4; c++) {
-      const cx = corners[c].cx;
-      const cy = corners[c].cy;
-      const startAngle = c * (Math.PI / 2);
-      for (let i = 0; i < numPointsPerCorner; i++) {
-        const angle = startAngle + (i / numPointsPerCorner) * (Math.PI / 2);
-        crossSection.push({
-          x: cx + Math.cos(angle) * safeRadius,
-          y: cy + Math.sin(angle) * safeRadius,
-          nu: Math.cos(angle),
-          nv: Math.sin(angle)
-        });
+    const crossSection = [];
+
+    if (isFluted) {
+      // Real 3D Physical Fluted/Corrugated Glass Geometry (10 Physical Ridges)
+      const numRibs = 10;
+      const ribDepth = 2.2; // 2.2px physical 3D ridge height!
+      const samples = 36;
+
+      // Top Fluted Face (facing front)
+      for (let i = 0; i <= samples; i++) {
+        const t = i / samples;
+        const x = wInner - t * (wInner * 2.0);
+        const ribOffset = Math.sin(t * Math.PI * numRibs) * ribDepth;
+        const y = hInner + safeRadius + ribOffset;
+
+        const dRib = Math.cos(t * Math.PI * numRibs) * ribDepth * (Math.PI * numRibs / (wInner * 2.0));
+        const norm = new THREE.Vector2(-dRib, 1.0).normalize();
+
+        crossSection.push({ x: x, y: y, nu: norm.x, nv: norm.y });
+      }
+
+      // Smooth Rounded Edges & Back Face
+      const backSamples = 16;
+      for (let i = 0; i <= backSamples; i++) {
+        const t = i / backSamples;
+        const angle = Math.PI * (1.0 + t);
+        const x = Math.cos(angle) * (wInner + safeRadius);
+        const y = -hInner - safeRadius;
+        crossSection.push({ x: x, y: y, nu: Math.cos(angle), nv: -1.0 });
+      }
+    } else {
+      // Standard Smooth Rounded Rectangle Cross Section
+      const numPointsPerCorner = 4;
+      const corners = [
+        { cx: wInner, cy: hInner },
+        { cx: -wInner, cy: hInner },
+        { cx: -wInner, cy: -hInner },
+        { cx: wInner, cy: -hInner }
+      ];
+
+      for (let c = 0; c < 4; c++) {
+        const cx = corners[c].cx;
+        const cy = corners[c].cy;
+        const startAngle = c * (Math.PI / 2);
+        for (let i = 0; i < numPointsPerCorner; i++) {
+          const angle = startAngle + (i / numPointsPerCorner) * (Math.PI / 2);
+          crossSection.push({
+            x: cx + Math.cos(angle) * safeRadius,
+            y: cy + Math.sin(angle) * safeRadius,
+            nu: Math.cos(angle),
+            nv: Math.sin(angle)
+          });
+        }
       }
     }
 
+    const verticesPerPoint = crossSection.length;
     const numPoints = points.length;
     const positions = new Float32Array(numPoints * verticesPerPoint * 3);
     const normals = new Float32Array(numPoints * verticesPerPoint * 3);
@@ -736,7 +901,7 @@ export class KupperRibbonRenderer {
     const rawPath2 = this._sampleSvgPath("itSignalPath2", SIGNAL_PATHS_D.itSignalPath2);
     const rawPath3 = this._sampleSvgPath("itSignalPath3", SIGNAL_PATHS_D.itSignalPath3);
 
-    // 2. Extrude 3D geometries (width 24px, thickness 6px)
+    // 2. Extrude Outer 3D Glass Geometries (width 24px, thickness 6px)
     const geomOpts = {
       width: 24.0,
       thickness: 6.0,
@@ -747,22 +912,30 @@ export class KupperRibbonRenderer {
     };
 
     this._signalGeometries = [
-      this._extrudePointsToGeometry(rawPath1, geomOpts),
+      this._extrudePointsToGeometry(rawPath1, { ...geomOpts, isFluted: true }),
       this._extrudePointsToGeometry(rawPath2, geomOpts),
-      this._extrudePointsToGeometry(rawPath3, geomOpts)
+      this._extrudePointsToGeometry(rawPath3, { ...geomOpts, isFluted: true })
     ];
 
-    // 3. Instantiate Materials
+    // 3. Instantiate Outer Ribbon Materials
     const anriPreset = MATERIAL_PRESETS['ANRI Frosted Glass'];
     const blueGrainPreset = MATERIAL_PRESETS['Blue Grain'];
 
-    const mat1 = this._createCustomMaterial(anriPreset.gradient, anriPreset.pbr);
-    const mat2 = this._createCustomMaterial(blueGrainPreset.gradient, blueGrainPreset.pbr);
-    const mat3 = this._createCustomMaterial(anriPreset.gradient, anriPreset.pbr);
+    const mat1 = this._createCustomMaterial(anriPreset.gradient, anriPreset.pbr, true);
+    const mat2 = this._createCustomMaterial(blueGrainPreset.gradient, blueGrainPreset.pbr, false);
+    const mat3 = this._createCustomMaterial(anriPreset.gradient, anriPreset.pbr, true);
 
     this._signalMaterials = [mat1, mat2, mat3];
 
-    // 4. Create Meshes
+    // 4. Build Real 3D Instanced Micro-Cube Data Streams (Path 1 Left & Path 3 Right)
+    const cubeStream1 = this._buildInstancedCubeStreams(rawPath1);
+    const cubeStream3 = this._buildInstancedCubeStreams(rawPath3);
+
+    this._cubeStreams = [cubeStream1, cubeStream3];
+    this._signalGroup.add(cubeStream1.instancedMesh);
+    this._signalGroup.add(cubeStream3.instancedMesh);
+
+    // 5. Create Outer Glass Meshes (renderOrder = 2, Z = 0.0)
     for (let i = 0; i < 3; i++) {
       const geom = this._signalGeometries[i];
       const mat = this._signalMaterials[i];
@@ -784,11 +957,6 @@ export class KupperRibbonRenderer {
     this._gui.domElement.style.cssText += 'position: fixed; top: 10px; right: 10px; z-index: 10000;';
 
     const presetNames = Object.keys(MATERIAL_PRESETS);
-
-    const guiConfig = {
-      leftPreset: 'ANRI Frosted Glass',
-      rightPreset: 'ANRI Frosted Glass'
-    };
 
     const applyPresetToMaterial = (mat, presetName) => {
       const preset = MATERIAL_PRESETS[presetName];
@@ -814,31 +982,85 @@ export class KupperRibbonRenderer {
       mat.needsUpdate = true;
     };
 
-    // Left Path (Signal Path 1) Controls
-    const leftFolder = this._gui.addFolder('Left Ribbon (Path 1)');
-    leftFolder.add(guiConfig, 'leftPreset', presetNames).name('Preset').onChange((val) => {
+    // Unified Signal Paths (Left & Right) Controls
+    const signalFolder = this._gui.addFolder('Signal Paths (Left & Right)');
+    const guiConfig = {
+      preset: 'ANRI Frosted Glass'
+    };
+
+    signalFolder.add(guiConfig, 'preset', presetNames).name('Preset Swapper').onChange((val) => {
       applyPresetToMaterial(this._signalMaterials[0], val);
-    });
-
-    const leftPbr = leftFolder.addFolder('PBR Properties');
-    leftPbr.add(this._signalMaterials[0], 'roughness', 0, 1, 0.01);
-    leftPbr.add(this._signalMaterials[0], 'metalness', 0, 1, 0.01);
-    leftPbr.add(this._signalMaterials[0], 'transmission', 0, 1, 0.01);
-    leftPbr.add(this._signalMaterials[0], 'thickness', 0, 20, 0.1);
-    leftPbr.add(this._signalMaterials[0], 'ior', 1.0, 2.5, 0.01);
-
-    // Right Path (Signal Path 3) Controls
-    const rightFolder = this._gui.addFolder('Right Ribbon (Path 3)');
-    rightFolder.add(guiConfig, 'rightPreset', presetNames).name('Preset').onChange((val) => {
       applyPresetToMaterial(this._signalMaterials[2], val);
     });
 
-    const rightPbr = rightFolder.addFolder('PBR Properties');
-    rightPbr.add(this._signalMaterials[2], 'roughness', 0, 1, 0.01);
-    rightPbr.add(this._signalMaterials[2], 'metalness', 0, 1, 0.01);
-    rightPbr.add(this._signalMaterials[2], 'transmission', 0, 1, 0.01);
-    rightPbr.add(this._signalMaterials[2], 'thickness', 0, 20, 0.1);
-    rightPbr.add(this._signalMaterials[2], 'ior', 1.0, 2.5, 0.01);
+    const flutedFolder = signalFolder.addFolder('Fluted Glass & Refraction');
+    const u0 = this._signalMaterials[0].userData.uniforms;
+    const u2 = this._signalMaterials[2].userData.uniforms;
+
+    flutedFolder.add(u0.uFlutedStrength, 'value', 0.0, 1.0, 0.01).name('Fluted Distortion').onChange((v) => {
+      u2.uFlutedStrength.value = v;
+    });
+    flutedFolder.add(u0.uFlutedFreq, 'value', 5.0, 60.0, 1.0).name('Fluted Frequency').onChange((v) => {
+      u2.uFlutedFreq.value = v;
+    });
+    flutedFolder.addColor({ color: '#' + u0.uGlassTint.value.getHexString() }, 'color').name('Glass Tint Color').onChange((v) => {
+      u0.uGlassTint.value.set(v);
+      u2.uGlassTint.value.set(v);
+    });
+
+    const pbrFolder = signalFolder.addFolder('Frosted Glass PBR Controls');
+    pbrFolder.add(this._signalMaterials[0], 'roughness', 0, 1, 0.01).name('Frosted Roughness').onChange((v) => {
+      this._signalMaterials[2].roughness = v;
+    });
+    pbrFolder.add(this._signalMaterials[0], 'transmission', 0, 1, 0.01).name('Translucency').onChange((v) => {
+      this._signalMaterials[2].transmission = v;
+      const isTranslucent = v > 0;
+      this._signalMaterials[0].depthWrite = !isTranslucent;
+      this._signalMaterials[2].depthWrite = !isTranslucent;
+    });
+    pbrFolder.add(this._signalMaterials[0], 'thickness', 0, 30, 0.5).name('Glass Thickness').onChange((v) => {
+      this._signalMaterials[2].thickness = v;
+    });
+    pbrFolder.add(this._signalMaterials[0], 'ior', 1.0, 2.5, 0.01).name('Refraction IOR').onChange((v) => {
+      this._signalMaterials[2].ior = v;
+    });
+
+    const cubeFolder = signalFolder.addFolder('3D Micro-Cube Particles');
+    const c1 = this._cubeStreams[0].config;
+    const c3 = this._cubeStreams[1].config;
+
+    cubeFolder.add(c1, 'enable').name('Enable Cubes').onChange((v) => {
+      c3.enable = v;
+      this._cubeStreams[0].instancedMesh.visible = v;
+      this._cubeStreams[1].instancedMesh.visible = v;
+    });
+    cubeFolder.addColor(c1, 'color').name('Cube Color').onChange((val) => {
+      c3.color = val;
+      this._cubeStreams[0].material.color.set(val);
+      this._cubeStreams[0].material.emissive.set(val);
+      this._cubeStreams[1].material.color.set(val);
+      this._cubeStreams[1].material.emissive.set(val);
+    });
+    cubeFolder.add(c1, 'emissiveIntensity', 0.0, 5.0, 0.1).name('Emissive Glow').onChange((v) => {
+      c3.emissiveIntensity = v;
+      this._cubeStreams[0].material.emissiveIntensity = v;
+      this._cubeStreams[1].material.emissiveIntensity = v;
+    });
+    const cu0 = this._cubeStreams[0].material.userData.uniforms;
+    const cu1 = this._cubeStreams[1].material.userData.uniforms;
+
+    if (cu0 && cu1) {
+      cubeFolder.add(cu0.uFlutedDistortion, 'value', 0.0, 3.0, 0.05).name('Cube Distortion').onChange((v) => {
+        cu1.uFlutedDistortion.value = v;
+      });
+    }
+
+    cubeFolder.add(c1, 'cubeScale', 0.3, 2.5, 0.05).name('Cube Scale').onChange((v) => {
+      c3.cubeScale = v;
+    });
+    cubeFolder.add(c1, 'speed', 0.01, 0.25, 0.005).name('Cube Speed').onChange((v) => {
+      c3.speed = v;
+    });
 
     // Middle Path (Path 2) Info (Locked)
     const midFolder = this._gui.addFolder('Middle Ribbon (Path 2)');
@@ -917,6 +1139,12 @@ export class KupperRibbonRenderer {
     if (this._ribbonMaterial) this._ribbonMaterial.dispose();
     this._signalGeometries.forEach((g) => g && g.dispose());
     this._signalMaterials.forEach((m) => m && m.dispose());
+    this._cubeStreams.forEach((cs) => {
+      if (cs && cs.instancedMesh) {
+        cs.instancedMesh.geometry.dispose();
+        cs.instancedMesh.material.dispose();
+      }
+    });
 
     if (this._renderer) {
       this._renderer.dispose();
@@ -932,6 +1160,7 @@ export class KupperRibbonRenderer {
     this._camera = null;
     this._ribbonMesh = null;
     this._signalMeshes = [];
+    this._cubeStreams = [];
   }
 
   // ─── Render Loop ───────────────────────────────────────────────────────────
@@ -941,6 +1170,41 @@ export class KupperRibbonRenderer {
 
     const w = window.innerWidth;
     const h = window.innerHeight;
+    const dt = 0.016; // Smooth 60 FPS tick step
+
+    // Update Real 3D Instanced Micro-Cube Transformations via Fast LUT Lookups
+    this._cubeStreams.forEach((stream) => {
+      if (!stream || !stream.config.enable) return;
+
+      const { instancedMesh, instancesData, lutSize, lutPoints, lutTangents, lutNormals, config } = stream;
+      const dummy = new THREE.Object3D();
+
+      for (let i = 0; i < instancesData.length; i++) {
+        const item = instancesData[i];
+        item.t = (item.t + dt * config.speed) % 1.0;
+
+        // Fast LUT Index Lookup (0 CPU spline interpolation overhead!)
+        const idx = Math.floor(item.t * (lutSize - 1));
+        const pt = lutPoints[idx];
+        const tangent = lutTangents[idx];
+        const normal = lutNormals[idx];
+
+        // Offset cube along lane (left or right) inside ribbon track
+        const cubeX = pt.x + normal.x * item.laneOffset;
+        const cubeY = pt.y + normal.y * item.laneOffset;
+        const cubeZ = -2.0;
+
+        dummy.position.set(cubeX, cubeY, cubeZ);
+        const angle = Math.atan2(tangent.y, tangent.x);
+        dummy.rotation.set(0, 0, angle + Math.PI / 2);
+        dummy.scale.setScalar(item.scale * config.cubeScale);
+        dummy.updateMatrix();
+
+        instancedMesh.setMatrixAt(i, dummy.matrix);
+      }
+
+      instancedMesh.instanceMatrix.needsUpdate = true;
+    });
 
     // 1. Update Hero Ribbon positioning
     if (this._sectionEl) {
