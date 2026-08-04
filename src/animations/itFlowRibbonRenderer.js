@@ -443,21 +443,23 @@ export class ItFlowRibbonRenderer {
         float baseTrenchAO = clamp((vWorldPos.z + 13.0) / 13.0, 0.5, 1.0);
         diffuseColor.rgb *= baseTrenchAO;
 
-        // Dynamic Scroll Light Ribbon Trail with Organic Ease-In and Ease-Out
+        // Highly Sensitive Physical Retracting Light Ribbon Trail
         float speedMagnitude = abs(uScrollSpeed);
-        // Ease-In Base Glow: baseline ambient glow (0.18) even at slow speed, ramping smoothly to 1.0
-        float speedGlowEase = mix(0.18, 1.0, smoothstep(0.0, 0.8, speedMagnitude));
         
-        // Longer trail persistence (stretches up to 0.38 of path length)
-        float trailLength = 0.10 + clamp(speedMagnitude * 0.045, 0.0, 0.38);
+        // High sensitivity response curve (remains vivid at micro-scrolls)
+        float speedGlowEase = mix(0.25, 1.0, smoothstep(0.0, 0.4, speedMagnitude));
+        
+        // Dynamic Retracting Length: Stretches up to 0.48 of path length as speed increases
+        float trailLength = 0.05 + clamp(speedMagnitude * 0.08, 0.0, 0.48);
         float deltaPos = uScrollProgress - vPathProgress;
         
         // Direction-aware trailing distance
         float trailDist = uScrollSpeed >= 0.0 ? deltaPos : -deltaPos;
 
-        if (trailDist > 0.0 && trailDist < trailLength) {
+        if (trailDist > 0.0 && trailDist < trailLength && speedMagnitude > 0.005) {
           float normalizedDist = trailDist / trailLength;
-          float trailMask = smoothstep(1.0, 0.0, normalizedDist) * smoothstep(0.0, 0.10, normalizedDist);
+          // Smooth spring elastic taper at the tail end
+          float trailMask = smoothstep(1.0, 0.0, normalizedDist) * smoothstep(0.0, 0.08, normalizedDist);
 
           // Tri-Color Glowing Trail Gradient (#99f0ff -> #3d64ff -> #8766ff)
           vec3 colPaleCyan = vec3(0.600, 0.941, 1.000);   // #99f0ff
@@ -468,8 +470,8 @@ export class ItFlowRibbonRenderer {
           trailColor = mix(trailColor, colViolet, smoothstep(0.5, 1.0, normalizedDist));
 
           float finalTrailGlow = trailMask * speedGlowEase * uTrailIntensity;
-          diffuseColor.rgb = mix(diffuseColor.rgb, trailColor, clamp(finalTrailGlow, 0.0, 0.95));
-          diffuseColor.rgb += trailColor * finalTrailGlow * 0.45;
+          diffuseColor.rgb = mix(diffuseColor.rgb, trailColor, clamp(finalTrailGlow, 0.0, 0.98));
+          diffuseColor.rgb += trailColor * finalTrailGlow * 0.55;
         }
         `
       );
@@ -713,11 +715,11 @@ export class ItFlowRibbonRenderer {
     const prevProgress = this._progress || 0;
     this._progress = Math.max(0, Math.min(1, progress));
     
-    // Calculate raw target scroll velocity (delta progress)
-    const targetVelocity = (this._progress - prevProgress) * 100.0;
+    // High sensitivity raw target scroll velocity
+    const targetVelocity = (this._progress - prevProgress) * 220.0;
     
-    // Smooth lerp (0.08) for directional ease: when changing scroll direction, velocity eases through zero smoothly
-    this._currentVelocity = (this._currentVelocity || 0) + (targetVelocity - (this._currentVelocity || 0)) * 0.08;
+    // Spring Lerp (0.16) for responsive sensitivity and directional ease
+    this._currentVelocity = (this._currentVelocity || 0) + (targetVelocity - (this._currentVelocity || 0)) * 0.16;
 
     // Sync shader uniforms
     if (this._gradientUniforms) {
@@ -981,8 +983,8 @@ export class ItFlowRibbonRenderer {
     const organicWave = Math.sin(t * 0.7) * 0.4;
     const counterSpin = -t * speed * counterMult + organicWave;
 
-    // Smooth liquid decay of scroll velocity when scrolling stops (0.972 for longer persistence)
-    this._currentVelocity = (this._currentVelocity || 0) * 0.972;
+    // Elastic retraction decay: contracts the light tail back into the orb when scrolling stops
+    this._currentVelocity = (this._currentVelocity || 0) * 0.915;
     if (Math.abs(this._currentVelocity) < 0.001) this._currentVelocity = 0;
 
     if (this._gradientUniforms) {
