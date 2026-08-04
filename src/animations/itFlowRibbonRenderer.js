@@ -145,10 +145,11 @@ export class ItFlowRibbonRenderer {
 
     // SVG path bounding box center in original 0..740 coordinates:
     // Min X: 33 (start), Max X: 667 (right turn). Midpoint: (33 + 667) / 2 = 350
-    const svgCenterX = 350;
+    // Subtract 20px leftward offset to align whole path slightly more to the left
+    const svgCenterX = 350 + 20;
 
-    // Apply scale: scaleX is padded slightly (1.20x) to expand turn loops horizontally within viewport
-    const scaleXMultiplier = 1.20;
+    // Apply scale: 10% wider than 1.20x -> 1.32x horizontal multiplier
+    const scaleXMultiplier = 1.32;
     const scaleX = (cardsW / SVG_VIEWBOX_W) * scaleXMultiplier;
     const scaleY = cardsH / SVG_VIEWBOX_H;
 
@@ -406,13 +407,14 @@ export class ItFlowRibbonRenderer {
   setScrollProgress(progress) {
     this._progress = Math.max(0, Math.min(1, progress));
     
+    // Groove track is always 100% drawn/visible (no self-drawing stroke animation)
     if (this._ribbonGeometry) {
-      const drawIndices = Math.floor(this._progress * this._totalIndexCount);
-      this._ribbonGeometry.setDrawRange(0, drawIndices);
+      this._ribbonGeometry.setDrawRange(0, this._totalIndexCount);
     }
 
+    // Ball playhead rolls smoothly inside trench cradle along scroll progress
     if (this._sphereMesh && this._lutPoints.length > 0) {
-      if (this._progress > 0.01) {
+      if (this._progress >= 0) {
         const lutIdx = Math.min(
           Math.floor(this._progress * (this._lutPoints.length - 1)),
           this._lutPoints.length - 1
