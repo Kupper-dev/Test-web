@@ -447,7 +447,9 @@ export class ItFlowRibbonRenderer {
       uGlowColor: { value: new THREE.Color('#88ccff') },       // Outer Soft Halo
       uGrainIntensity: { value: 0.25 },
       uGlowPower: { value: 2.2 },
-      uGlowIntensity: { value: 1.5 }
+      uGlowIntensity: { value: 1.5 },
+      uOrbScale: { value: 1.875 },                             // 1.875 * 10 = 18.75px radius
+      uZOffset: { value: -2.0 }                                // Z Cradle Depth inside Trench
     };
 
     this._sphereMaterial = new THREE.ShaderMaterial({
@@ -461,11 +463,14 @@ export class ItFlowRibbonRenderer {
         varying vec2 vUv;
         varying vec3 vViewPosition;
 
+        uniform float uOrbScale;
+
         void main() {
           vUv = uv;
+          vec3 scaledPos = position * uOrbScale;
           vNormal = normalize(normalMatrix * normal);
-          vPosition = position;
-          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          vPosition = scaledPos;
+          vec4 mvPosition = modelViewMatrix * vec4(scaledPos, 1.0);
           vViewPosition = -mvPosition.xyz;
           gl_Position = projectionMatrix * mvPosition;
         }
@@ -494,7 +499,7 @@ export class ItFlowRibbonRenderer {
           vec3 norm = normalize(vNormal);
 
           // Diagonal 3D Noise Grain Gradient
-          float gradPos = clamp((vPosition.x + vPosition.y + vPosition.z) / 20.0 + 0.5, 0.0, 1.0);
+          float gradPos = clamp((vPosition.x + vPosition.y + vPosition.z) / 30.0 + 0.5, 0.0, 1.0);
           vec3 coreColor = mix(uCoreColorDark, uCoreColorLight, gradPos);
 
           // Add fine organic grain
@@ -542,7 +547,8 @@ export class ItFlowRibbonRenderer {
           this._lutPoints.length - 1
         );
         const pt = this._lutPoints[lutIdx];
-        this._sphereMesh.position.set(pt.x, pt.y, -2.0);
+        const zOff = (this._orbUniforms && this._orbUniforms.uZOffset) ? this._orbUniforms.uZOffset.value : -2.0;
+        this._sphereMesh.position.set(pt.x, pt.y, zOff);
         this._sphereMesh.visible = true;
       } else {
         this._sphereMesh.visible = false;
@@ -651,6 +657,8 @@ export class ItFlowRibbonRenderer {
     orbFolder.addColor(orbConfig, 'glowColor').name('Outer Halo Color').onChange((v) => {
       if (this._orbUniforms) this._orbUniforms.uGlowColor.value.set(v);
     });
+    orbFolder.add(this._orbUniforms.uOrbScale, 'value', 0.5, 4.0, 0.05).name('Orb Size (Scale)');
+    orbFolder.add(this._orbUniforms.uZOffset, 'value', -20.0, 10.0, 0.5).name('Trench Z Depth Offset');
     orbFolder.add(this._orbUniforms.uGrainIntensity, 'value', 0.0, 1.0, 0.02).name('Orb Grain Intensity');
     orbFolder.add(this._orbUniforms.uGlowPower, 'value', 0.5, 6.0, 0.1).name('Glow Falloff Power');
     orbFolder.add(this._orbUniforms.uGlowIntensity, 'value', 0.0, 4.0, 0.1).name('Glow Brightness');
