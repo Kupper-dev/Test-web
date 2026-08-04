@@ -81,17 +81,17 @@ export class ItFlowRibbonRenderer {
       colorEnd: '#ade4ff',    // Soft Cyan Blue (End)
       fresnelColor: '#787878',// Neutral Rim Highlight
       
-      roughness: 0.1,         // Roughness 0.1
-      metalness: 0.55,        // Metalness 0.55
+      roughness: 0.85,        // Soft Matte Stone Finish (Matches reference image)
+      metalness: 0.05,        // Low metalness to prevent harsh specular streaks on curves
       texturePreset: 'Granite Noise',
-      bumpScale: 0.12,
+      bumpScale: 0.18,
       noiseRepeatX: 10.0,
       noiseRepeatY: 2.6,
 
       // Lighting Control Knobs & Shadow Tint Controls
-      ambientLightIntensity: 0.4,
-      keyLightIntensity: 6.0,
-      fillLightIntensity: 5.5,
+      ambientLightIntensity: 0.5,
+      keyLightIntensity: 5.0,
+      fillLightIntensity: 4.5,
       fillLightColor: '#ffffff' // Neutral White Fill Light (Removes unwanted red/blue shadow tint)
     };
 
@@ -197,7 +197,6 @@ export class ItFlowRibbonRenderer {
       ));
     }
 
-    // Sample points trimmed to user start/end bounds so ends start/end behind cards
     const rawPoints = [];
     const step = (this.config.pathTrimEnd - this.config.pathTrimStart) / PATH_SAMPLES;
     for (let i = 0; i <= PATH_SAMPLES; i++) {
@@ -209,63 +208,51 @@ export class ItFlowRibbonRenderer {
 
   _buildLUT() {
     const lutSize = 1000;
-    this._lutPoints = new Array(lutSize);
-
+    this._lutPoints = [];
     for (let i = 0; i < lutSize; i++) {
-      const tRel = i / (lutSize - 1);
-      const t = this.config.pathTrimStart + tRel * (this.config.pathTrimEnd - this.config.pathTrimStart);
-      this._lutPoints[i] = this._curvePath.getPointAt(t);
+      const t = i / (lutSize - 1);
+      this._lutPoints.push(this._curvePath.getPointAt(
+        this.config.pathTrimStart + t * (this.config.pathTrimEnd - this.config.pathTrimStart)
+      ));
     }
   }
 
+  _buildCrossSection() {
+    const w = this.geomParams.grooveWidth;
+    const d = this.geomParams.grooveDepth;
+    const wt = this.geomParams.wallThickness;
+    const r = Math.min(this.config.trenchInnerRadius, d - 1, w / 2 - 1);
+    const N = 12;
+
+    const profile = [];
+    profile.push({ x: -(w / 2 + wt), y: 0, nu: -1, nv: 0 });
+    profile.push({ x: -w / 2, y: 0, nu: -1, nv: 0 });
+
+    for (let i = 0; i <= N; i++) {
+      const angle = (Math.PI / 2) * (i / N);
+      const px = -w / 2 + r - r * Math.cos(angle);
+      const py = -d + r - r * Math.sin(angle);
+      profile.push({ x: px, y: py, nu: -Math.cos(angle), nv: -Math.sin(angle) });
+    }
+
+    for (let i = 0; i <= N; i++) {
+      const angle = (Math.PI / 2) * (i / N);
+      const px = w / 2 - r + r * Math.sin(angle);
+      const py = -d + r - r * Math.cos(angle);
+      profile.push({ x: px, y: py, nu: Math.sin(angle), nv: -Math.sin(angle) });
+    }
+
+    profile.push({ x: w / 2, y: 0, nu: 1, nv: 0 });
+    profile.push({ x: w / 2 + wt, y: 0, nu: 1, nv: 0 });
+
+    return profile;
+  }
+
   _buildRibbonGeometry() {
-    const w = this.config.grooveWidth / 2;
-    const depth = this.config.grooveDepth;
-    const wall = this.config.wallThickness;
-    const r = Math.min(this.config.trenchInnerRadius, depth);
-    const numCornerSteps = 8;
-    const crossSection = [];
-
-    // Outer top flange left (flush with surface Z=0)
-    crossSection.push({ x: -w - wall, y: 0, nu: -0.707, nv: 0.707 });
-    // Sharp carved lip left
-    crossSection.push({ x: -w, y: 0, nu: -0.707, nv: 0.707 });
-
-    // Vertical wall left
-    crossSection.push({ x: -w, y: -depth + r, nu: -1, nv: 0 });
-
-    // Curved bottom left fillet
-    for (let i = 0; i <= numCornerSteps; i++) {
-      const angle = Math.PI + (i / numCornerSteps) * (Math.PI / 2);
-      crossSection.push({
-        x: -w + r + Math.cos(angle) * r,
-        y: -depth + r + Math.sin(angle) * r,
-        nu: Math.cos(angle),
-        nv: Math.sin(angle)
-      });
-    }
-
-    // Curved bottom right fillet
-    for (let i = 0; i <= numCornerSteps; i++) {
-      const angle = (1.5 * Math.PI) + (i / numCornerSteps) * (Math.PI / 2);
-      crossSection.push({
-        x: w - r + Math.cos(angle) * r,
-        y: -depth + r + Math.sin(angle) * r,
-        nu: Math.cos(angle),
-        nv: Math.sin(angle)
-      });
-    }
-
-    // Vertical wall right
-    crossSection.push({ x: w, y: -depth + r, nu: 1, nv: 0 });
-
-    // Sharp carved lip right
-    crossSection.push({ x: w, y: 0, nu: 0.707, nv: 0.707 });
-    // Outer top flange right
-    crossSection.push({ x: w + wall, y: 0, nu: 0.707, nv: 0.707 });
-
+    const crossSection = this._buildCrossSection();
     const verticesPerPoint = crossSection.length;
     const numPoints = this._points.length;
+
     const positions = new Float32Array(numPoints * verticesPerPoint * 3);
     const normals = new Float32Array(numPoints * verticesPerPoint * 3);
     const uvs = new Float32Array(numPoints * verticesPerPoint * 2);
@@ -382,10 +369,10 @@ export class ItFlowRibbonRenderer {
       uFresnelColor: { value: new THREE.Color(this.config.fresnelColor) }
     };
 
-    this._ribbonMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0xffffff,
+    this._ribbonMaterial = new THREE.MeshStandardMaterial({
       roughness: this.config.roughness,
       metalness: this.config.metalness,
+      bumpScale: this.config.bumpScale,
       transparent: true,
       opacity: 1.0,
       side: THREE.DoubleSide,
@@ -398,16 +385,19 @@ export class ItFlowRibbonRenderer {
       shader.vertexShader = `
         attribute float aPathProgress;
         varying float vPathProgress;
+        varying vec3 vWorldPos;
       ` + shader.vertexShader;
 
       shader.vertexShader = shader.vertexShader.replace(
         '#include <begin_vertex>',
         `#include <begin_vertex>
-         vPathProgress = aPathProgress;`
+         vPathProgress = aPathProgress;
+         vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;`
       );
 
       shader.fragmentShader = `
         varying float vPathProgress;
+        varying vec3 vWorldPos;
         uniform vec3 uColorStart;
         uniform vec3 uColorEnd;
         uniform vec3 uFresnelColor;
@@ -422,16 +412,17 @@ export class ItFlowRibbonRenderer {
 
         diffuseColor.rgb = gradColor;
 
+        // Un-stretched World-Space Granite Noise Sampling
         #ifdef USE_MAP
-          vec4 texColor = texture2D(map, vMapUv);
-          float grainFactor = (texColor.r - 0.5) * 0.55;
+          vec2 worldUv = vWorldPos.xy * 0.008;
+          vec4 texColor = texture2D(map, worldUv);
+          float grainFactor = (texColor.r - 0.5) * 0.4;
           diffuseColor.rgb = clamp(diffuseColor.rgb + vec3(grainFactor), 0.0, 1.0);
         #endif
 
-        vec3 norm = normalize(vNormal);
-        float fresnel = max(0.0, dot(norm, vec3(0.0, 0.0, 1.0)));
-        fresnel = pow(1.0 - fresnel, 2.0);
-        diffuseColor.rgb += uFresnelColor * fresnel * 0.3;
+        // Soft Inner Trench Depth Ambient Shadowing (AO)
+        float trenchDepthAO = clamp((vWorldPos.z + 13.0) / 13.0, 0.5, 1.0);
+        diffuseColor.rgb *= trenchDepthAO;
         `
       );
     };
