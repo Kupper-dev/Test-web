@@ -4,6 +4,7 @@
  * Built exclusively for `.it-flow-section` to avoid touching KupperRibbonRenderer or Hero Ribbon.
  */
 
+import GUI from 'lil-gui';
 import * as THREE from 'three';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 
@@ -64,17 +65,33 @@ export class ItFlowRibbonRenderer {
     `;
     document.body.insertBefore(this._canvas, document.body.firstChild);
 
-    // ─── Path Trimming & Alignment Controls ─────────────────────────────────────
-    // Trim path start/end so ends hide cleanly under cards (range 0.0 to 1.0)
-    this.PATH_TRIM_START = 0.08; // 8% trim from start (moves start further rightward behind card)
-    this.PATH_TRIM_END = 0.96;   // 4% trim from end (ends path earlier before card edge)
-    this.SCALE_X_MULTIPLIER = 1.52; // 1.32 * 1.15 (+15% wider horizontally)
-    this.SVG_CENTER_X = 390;        // Path horizontal center offset (higher = moves path LEFT)
+    // Config parameters with lil-gui safety strings
+    this.config = {
+      pathTrimStart: 0.12,  // 12% trim (hides start point further right under card)
+      pathTrimEnd: 0.96,    // 4% trim
+      scaleXMultiplier: 1.52, // +15% horizontal width
+      svgCenterX: 390,      // Leftward alignment offset
+
+      grooveWidth: 26.0,
+      grooveDepth: 12.0,
+      wallThickness: 2.5,
+      trenchInnerRadius: 8.0,
+
+      colorStart: '#5900ff', // Deep Purple
+      colorEnd: '#00d4ff',   // Bright Cyan
+      fresnelColor: '#ade9ff',
+      
+      roughness: 0.0,
+      metalness: 0.6,
+      bumpScale: 0.05,
+      noiseRepeatX: 15.7,
+      noiseRepeatY: 2.1
+    };
 
     this.geomParams = {
-      grooveWidth: 24.0,
-      grooveDepth: 10.0,
-      wallThickness: 3.0
+      grooveWidth: this.config.grooveWidth,
+      grooveDepth: this.config.grooveDepth,
+      wallThickness: this.config.wallThickness
     };
 
     this._scene = new THREE.Scene();
@@ -121,6 +138,8 @@ export class ItFlowRibbonRenderer {
     this._buildSphere();
     this._createMesh();
 
+    this._setupGUI();
+
     this._onResize = this.resize.bind(this);
     window.addEventListener('resize', this._onResize);
 
@@ -150,11 +169,11 @@ export class ItFlowRibbonRenderer {
       cardsH = rect.height > 0 ? rect.height : 2000;
     }
 
-    const scaleX = (cardsW / SVG_VIEWBOX_W) * this.SCALE_X_MULTIPLIER;
+    const scaleX = (cardsW / SVG_VIEWBOX_W) * this.config.scaleXMultiplier;
     const scaleY = cardsH / SVG_VIEWBOX_H;
 
     return new THREE.Vector3(
-      (svgX - this.SVG_CENTER_X) * scaleX,
+      (svgX - this.config.svgCenterX) * scaleX,
       (SVG_VIEWBOX_H / 2 - svgY) * scaleY,
       0
     );
@@ -173,9 +192,9 @@ export class ItFlowRibbonRenderer {
 
     // Sample points trimmed to user start/end bounds so ends start/end behind cards
     const rawPoints = [];
-    const step = (this.PATH_TRIM_END - this.PATH_TRIM_START) / PATH_SAMPLES;
+    const step = (this.config.pathTrimEnd - this.config.pathTrimStart) / PATH_SAMPLES;
     for (let i = 0; i <= PATH_SAMPLES; i++) {
-      const t = this.PATH_TRIM_START + i * step;
+      const t = this.config.pathTrimStart + i * step;
       rawPoints.push(this._curvePath.getPointAt(t));
     }
     this._points = rawPoints;
@@ -187,41 +206,56 @@ export class ItFlowRibbonRenderer {
 
     for (let i = 0; i < lutSize; i++) {
       const tRel = i / (lutSize - 1);
-      const t = this.PATH_TRIM_START + tRel * (this.PATH_TRIM_END - this.PATH_TRIM_START);
+      const t = this.config.pathTrimStart + tRel * (this.config.pathTrimEnd - this.config.pathTrimStart);
       this._lutPoints[i] = this._curvePath.getPointAt(t);
     }
   }
 
   _buildRibbonGeometry() {
-    const w = this.geomParams.grooveWidth / 2;
-    const depth = this.geomParams.grooveDepth;
-    const numCornerSteps = 6;
+    const w = this.config.grooveWidth / 2;
+    const depth = this.config.grooveDepth;
+    const wall = this.config.wallThickness;
+    const r = Math.min(this.config.trenchInnerRadius, depth);
+    const numCornerSteps = 8;
     const crossSection = [];
 
-    crossSection.push({ x: -w - this.geomParams.wallThickness, y: 0, nu: -1, nv: 0 });
-    crossSection.push({ x: -w, y: 0, nu: -1, nv: 0 });
+    // Outer top flange left (flush with surface Z=0)
+    crossSection.push({ x: -w - wall, y: 0, nu: -0.707, nv: 0.707 });
+    // Sharp carved lip left
+    crossSection.push({ x: -w, y: 0, nu: -0.707, nv: 0.707 });
 
+    // Vertical wall left
+    crossSection.push({ x: -w, y: -depth + r, nu: -1, nv: 0 });
+
+    // Curved bottom left fillet
     for (let i = 0; i <= numCornerSteps; i++) {
       const angle = Math.PI + (i / numCornerSteps) * (Math.PI / 2);
       crossSection.push({
-        x: -w + depth + Math.cos(angle) * depth,
-        y: Math.sin(angle) * depth,
+        x: -w + r + Math.cos(angle) * r,
+        y: -depth + r + Math.sin(angle) * r,
         nu: Math.cos(angle),
         nv: Math.sin(angle)
       });
     }
 
+    // Curved bottom right fillet
     for (let i = 0; i <= numCornerSteps; i++) {
       const angle = (1.5 * Math.PI) + (i / numCornerSteps) * (Math.PI / 2);
       crossSection.push({
-        x: w - depth + Math.cos(angle) * depth,
-        y: Math.sin(angle) * depth,
+        x: w - r + Math.cos(angle) * r,
+        y: -depth + r + Math.sin(angle) * r,
         nu: Math.cos(angle),
         nv: Math.sin(angle)
       });
     }
 
-    crossSection.push({ x: w + this.geomParams.wallThickness, y: 0, nu: 1, nv: 0 });
+    // Vertical wall right
+    crossSection.push({ x: w, y: -depth + r, nu: 1, nv: 0 });
+
+    // Sharp carved lip right
+    crossSection.push({ x: w, y: 0, nu: 0.707, nv: 0.707 });
+    // Outer top flange right
+    crossSection.push({ x: w + wall, y: 0, nu: 0.707, nv: 0.707 });
 
     const verticesPerPoint = crossSection.length;
     const numPoints = this._points.length;
@@ -447,6 +481,68 @@ export class ItFlowRibbonRenderer {
     this._renderer.setSize(w, h);
   }
 
+  _setupGUI() {
+    this._gui = new GUI({ title: 'IT Flow Carved Groove Controls' });
+
+    // 1. Path Alignment & Trimming Folder
+    const alignFolder = this._gui.addFolder('Alignment & Trimming');
+    alignFolder.add(this.config, 'pathTrimStart', 0.0, 0.3, 0.01).name('Start Trim').onChange(() => this._rebuildAll());
+    alignFolder.add(this.config, 'pathTrimEnd', 0.7, 1.0, 0.01).name('End Trim').onChange(() => this._rebuildAll());
+    alignFolder.add(this.config, 'scaleXMultiplier', 1.0, 2.5, 0.02).name('Width Scale (X)').onChange(() => this._rebuildAll());
+    alignFolder.add(this.config, 'svgCenterX', 250, 500, 1).name('Center X (Left/Right)').onChange(() => this._rebuildAll());
+
+    // 2. 3D Carved Groove Geometry Folder
+    const geomFolder = this._gui.addFolder('Groove Geometry');
+    geomFolder.add(this.config, 'grooveWidth', 10, 60, 0.5).name('Groove Width').onChange(() => this._rebuildAll());
+    geomFolder.add(this.config, 'grooveDepth', 4, 30, 0.5).name('Groove Depth').onChange(() => this._rebuildAll());
+    geomFolder.add(this.config, 'wallThickness', 0.5, 10, 0.5).name('Lip Thickness').onChange(() => this._rebuildAll());
+    geomFolder.add(this.config, 'trenchInnerRadius', 1, 20, 0.5).name('Inner Fillet Radius').onChange(() => this._rebuildAll());
+
+    // 3. Gradient & Shading Folder
+    const colorFolder = this._gui.addFolder('Gradient & Shading');
+    colorFolder.addColor(this.config, 'colorStart').name('Start Color (Purple)').onChange((v) => {
+      this._gradientUniforms.uColorStart.value.set(v);
+    });
+    colorFolder.addColor(this.config, 'colorEnd').name('End Color (Cyan)').onChange((v) => {
+      this._gradientUniforms.uColorEnd.value.set(v);
+    });
+    colorFolder.addColor(this.config, 'fresnelColor').name('Rim Highlight Color').onChange((v) => {
+      this._gradientUniforms.uFresnelColor.value.set(v);
+    });
+    colorFolder.add(this.config, 'roughness', 0.0, 1.0, 0.05).name('Roughness').onChange((v) => {
+      if (this._ribbonMaterial) this._ribbonMaterial.roughness = v;
+    });
+    colorFolder.add(this.config, 'metalness', 0.0, 1.0, 0.05).name('Metalness').onChange((v) => {
+      if (this._ribbonMaterial) this._ribbonMaterial.metalness = v;
+    });
+
+    // 4. Noise Texture Folder
+    const noiseFolder = this._gui.addFolder('Noise Grain Texture');
+    noiseFolder.add(this.config, 'bumpScale', 0.0, 0.3, 0.01).name('Noise Bump Scale').onChange((v) => {
+      if (this._textures.noise) this._textures.noise.bumpScale = v;
+    });
+    noiseFolder.add(this.config, 'noiseRepeatX', 1.0, 50.0, 0.5).name('Tiling X').onChange((v) => {
+      if (this._textures.noise) {
+        this._textures.noise.repeat.x = v;
+        this._textures.noise.needsUpdate = true;
+      }
+    });
+    noiseFolder.add(this.config, 'noiseRepeatY', 0.5, 10.0, 0.1).name('Tiling Y').onChange((v) => {
+      if (this._textures.noise) {
+        this._textures.noise.repeat.y = v;
+        this._textures.noise.needsUpdate = true;
+      }
+    });
+  }
+
+  _rebuildAll() {
+    this._buildCurvePath();
+    this._buildLUT();
+    if (this._ribbonGeometry) this._ribbonGeometry.dispose();
+    this._buildRibbonGeometry();
+    if (this._ribbonMesh) this._ribbonMesh.geometry = this._ribbonGeometry;
+  }
+
   _tick() {
     if (!this._renderer) return;
 
@@ -476,6 +572,10 @@ export class ItFlowRibbonRenderer {
       cancelAnimationFrame(this._animationFrameId);
     }
     window.removeEventListener('resize', this._onResize);
+    if (this._gui) {
+      this._gui.destroy();
+      this._gui = null;
+    }
     if (this._canvas && this._canvas.parentNode) {
       this._canvas.parentNode.removeChild(this._canvas);
     }
