@@ -445,19 +445,19 @@ export class ItFlowRibbonRenderer {
 
         // Dynamic Scroll Light Ribbon Trail with Organic Ease-In and Ease-Out
         float speedMagnitude = abs(uScrollSpeed);
-        // Ease-In Base Glow: baseline ambient glow (0.15) even at slow speed, ramping smoothly to 1.0
-        float speedGlowEase = mix(0.15, 1.0, smoothstep(0.0, 1.2, speedMagnitude));
+        // Ease-In Base Glow: baseline ambient glow (0.18) even at slow speed, ramping smoothly to 1.0
+        float speedGlowEase = mix(0.18, 1.0, smoothstep(0.0, 0.8, speedMagnitude));
         
-        float trailLength = 0.06 + clamp(speedMagnitude * 0.025, 0.0, 0.22);
+        // Longer trail persistence (stretches up to 0.38 of path length)
+        float trailLength = 0.10 + clamp(speedMagnitude * 0.045, 0.0, 0.38);
         float deltaPos = uScrollProgress - vPathProgress;
         
         // Direction-aware trailing distance
         float trailDist = uScrollSpeed >= 0.0 ? deltaPos : -deltaPos;
 
         if (trailDist > 0.0 && trailDist < trailLength) {
-          // Smooth Hermite smoothstep ease-out for trail head and tail fading
           float normalizedDist = trailDist / trailLength;
-          float trailMask = smoothstep(1.0, 0.0, normalizedDist) * smoothstep(0.0, 0.15, normalizedDist);
+          float trailMask = smoothstep(1.0, 0.0, normalizedDist) * smoothstep(0.0, 0.10, normalizedDist);
 
           // Tri-Color Glowing Trail Gradient (#99f0ff -> #3d64ff -> #8766ff)
           vec3 colPaleCyan = vec3(0.600, 0.941, 1.000);   // #99f0ff
@@ -713,9 +713,11 @@ export class ItFlowRibbonRenderer {
     const prevProgress = this._progress || 0;
     this._progress = Math.max(0, Math.min(1, progress));
     
-    // Calculate live scroll velocity (delta progress)
-    const velocity = (this._progress - prevProgress) * 100.0;
-    this._currentVelocity = (this._currentVelocity || 0) * 0.4 + velocity * 0.6;
+    // Calculate raw target scroll velocity (delta progress)
+    const targetVelocity = (this._progress - prevProgress) * 100.0;
+    
+    // Smooth lerp (0.08) for directional ease: when changing scroll direction, velocity eases through zero smoothly
+    this._currentVelocity = (this._currentVelocity || 0) + (targetVelocity - (this._currentVelocity || 0)) * 0.08;
 
     // Sync shader uniforms
     if (this._gradientUniforms) {
@@ -979,8 +981,8 @@ export class ItFlowRibbonRenderer {
     const organicWave = Math.sin(t * 0.7) * 0.4;
     const counterSpin = -t * speed * counterMult + organicWave;
 
-    // Smooth liquid decay of scroll velocity when scrolling stops
-    this._currentVelocity = (this._currentVelocity || 0) * 0.945;
+    // Smooth liquid decay of scroll velocity when scrolling stops (0.972 for longer persistence)
+    this._currentVelocity = (this._currentVelocity || 0) * 0.972;
     if (Math.abs(this._currentVelocity) < 0.001) this._currentVelocity = 0;
 
     if (this._gradientUniforms) {
