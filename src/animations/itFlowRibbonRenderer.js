@@ -77,21 +77,22 @@ export class ItFlowRibbonRenderer {
       wallThickness: 3.0,     // Lip Thickness 3.0
       trenchInnerRadius: 17.5,// Inner Fillet Radius 17.5
 
-      colorStart: '#4d6aff',  // Start Color (Purple / Electric Blue)
-      colorEnd: '#009dff',    // End Color (Cyan)
-      fresnelColor: '#47ceff',// Rim Highlight Color
+      colorStart: '#bdc8ff',  // Soft Periwinkle Blue (Start)
+      colorEnd: '#ade4ff',    // Soft Cyan Blue (End)
+      fresnelColor: '#787878',// Neutral Rim Highlight
       
       roughness: 0.1,         // Roughness 0.1
       metalness: 0.55,        // Metalness 0.55
-      texturePreset: 'Granite Noise', // Preset: Granite Noise, Light Noise, Marble Grain, Brushed Steel, Frosted Glass
-      bumpScale: 0.12,        // Noise Bump Scale 0.12
-      noiseRepeatX: 10.0,     // Tiling X 10.0
-      noiseRepeatY: 2.6,      // Tiling Y 2.6
+      texturePreset: 'Granite Noise',
+      bumpScale: 0.12,
+      noiseRepeatX: 10.0,
+      noiseRepeatY: 2.6,
 
-      // Lighting Control Knobs
-      ambientLightIntensity: 0.4, // Ambient Light 0.4
-      keyLightIntensity: 6.0,     // Key Light 6.0
-      fillLightIntensity: 5.5     // Fill Light 5.5
+      // Lighting Control Knobs & Shadow Tint Controls
+      ambientLightIntensity: 0.4,
+      keyLightIntensity: 6.0,
+      fillLightIntensity: 5.5,
+      fillLightColor: '#ffffff' // Neutral White Fill Light (Removes unwanted red/blue shadow tint)
     };
 
     this.geomParams = {
@@ -159,7 +160,7 @@ export class ItFlowRibbonRenderer {
     this._keyLight = new THREE.DirectionalLight(0xffffff, this.config.keyLightIntensity);
     this._keyLight.position.set(400, 500, 800);
     this._scene.add(this._keyLight);
-    this._fillLight = new THREE.DirectionalLight(0x00b3ff, this.config.fillLightIntensity);
+    this._fillLight = new THREE.DirectionalLight(this.config.fillLightColor, this.config.fillLightIntensity);
     this._fillLight.position.set(-300, -200, 400);
     this._scene.add(this._fillLight);
   }
@@ -640,6 +641,9 @@ export class ItFlowRibbonRenderer {
     lightFolder.add(this.config, 'fillLightIntensity', 0.0, 15.0, 0.5).name('Fill Light').onChange((v) => {
       if (this._fillLight) this._fillLight.intensity = v;
     });
+    lightFolder.addColor(this.config, 'fillLightColor').name('Fill Light Tint (Shadows)').onChange((v) => {
+      if (this._fillLight) this._fillLight.color.set(v);
+    });
 
     // 6. Glowing Orb Controls Folder
     const orbFolder = this._gui.addFolder('Glowing Grain Orb');
@@ -657,6 +661,16 @@ export class ItFlowRibbonRenderer {
     orbFolder.addColor(orbConfig, 'glowColor').name('Outer Halo Color').onChange((v) => {
       if (this._orbUniforms) this._orbUniforms.uGlowColor.value.set(v);
     });
+
+    // Apply values matching screenshot defaults
+    if (this._orbUniforms) {
+      this._orbUniforms.uOrbScale.value = 2.3;
+      this._orbUniforms.uZOffset.value = 3.0;
+      this._orbUniforms.uGrainIntensity.value = 0.16;
+      this._orbUniforms.uGlowPower.value = 2.1;
+      this._orbUniforms.uGlowIntensity.value = 1.4;
+    }
+
     orbFolder.add(this._orbUniforms.uOrbScale, 'value', 0.5, 4.0, 0.05).name('Orb Size (Scale)');
     orbFolder.add(this._orbUniforms.uZOffset, 'value', -20.0, 10.0, 0.5).name('Trench Z Depth Offset');
     orbFolder.add(this._orbUniforms.uGrainIntensity, 'value', 0.0, 1.0, 0.02).name('Orb Grain Intensity');
