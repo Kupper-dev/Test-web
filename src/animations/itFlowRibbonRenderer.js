@@ -520,6 +520,58 @@ export class ItFlowRibbonRenderer {
     this._sphereMesh.visible = false;
     this._group.add(this._sphereMesh);
 
+    // Dedicated Outer Atmosphere Glow Disk/Halo (Additive blending for maximum visibility on light backgrounds)
+    const haloGeometry = new THREE.SphereGeometry(radius * 1.6, 32, 32);
+    this._haloMaterial = new THREE.ShaderMaterial({
+      uniforms: this._orbUniforms,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.BackSide,
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        varying vec3 vViewPosition;
+
+        void main() {
+          vPosition = position;
+          vNormal = normalize(normalMatrix * normal);
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          vViewPosition = -mvPosition.xyz;
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        varying vec3 vViewPosition;
+
+        uniform float uSpinAngle;
+        uniform vec3 uGlowColor;
+        uniform float uGlowPower;
+        uniform float uGlowIntensity;
+
+        void main() {
+          vec3 viewDir = normalize(vViewPosition);
+          vec3 norm = normalize(vNormal);
+
+          // 80% Siren Beam Angle Mask (288° active beam)
+          float posAngle = atan(vPosition.y, vPosition.x);
+          float angleDiff = mod(posAngle - uSpinAngle + 3.14159265, 6.2831853) - 3.14159265;
+          float sirenFactor = smoothstep(1.5, 0.5, abs(angleDiff));
+
+          float fresnel = max(0.0, dot(norm, viewDir));
+          float haloAlpha = pow(fresnel, uGlowPower) * uGlowIntensity * 1.8 * (0.2 + 0.8 * sirenFactor);
+
+          gl_FragColor = vec4(uGlowColor * haloAlpha, haloAlpha);
+        }
+      `
+    });
+
+    this._haloMesh = new THREE.Mesh(haloGeometry, this._haloMaterial);
+    this._haloMesh.visible = false;
+    this._sphereMesh.add(this._haloMesh);
+
     // Dynamic Point Light attached to Orb (Illuminates carved trench walls as it spins)
     this._orbLight = new THREE.PointLight(0x3399ff, 8.0, 150, 1.5);
     this._sphereMesh.add(this._orbLight);
@@ -552,8 +604,10 @@ export class ItFlowRibbonRenderer {
         const zOff = (this._orbUniforms && this._orbUniforms.uZOffset) ? this._orbUniforms.uZOffset.value : -2.0;
         this._sphereMesh.position.set(pt.x, pt.y, zOff);
         this._sphereMesh.visible = true;
+        if (this._haloMesh) this._haloMesh.visible = true;
       } else {
         this._sphereMesh.visible = false;
+        if (this._haloMesh) this._haloMesh.visible = false;
       }
     }
   }
