@@ -435,14 +435,27 @@ export class ItFlowRibbonRenderer {
           diffuseColor.rgb = clamp(diffuseColor.rgb, 0.0, 1.0);
         #endif
 
-        // Dynamic Trench AO Cancellation under the glowing orb
+        // Perfect Synchronized Orb Light & AO Cancellation directly under orb
         float distToOrb = length(vWorldPos.xy - uOrbPosition.xy);
-        float orbLightProximity = smoothstep(55.0, 10.0, distToOrb);
+        float orbLightProximity = smoothstep(65.0, 5.0, distToOrb);
 
-        // Soft Inner Trench Depth Ambient Shadowing (Lifts to 1.0 around the orb)
+        // Cancel trench depth shadow under orb
         float baseTrenchAO = clamp((vWorldPos.z + 13.0) / 13.0, 0.5, 1.0);
         float activeTrenchAO = mix(baseTrenchAO, 1.0, orbLightProximity);
         diffuseColor.rgb *= activeTrenchAO;
+
+        // Smooth Orb Color Gradient Pool (#99f0ff -> #3d64ff -> #8766ff)
+        vec3 colPaleCyan = vec3(0.600, 0.941, 1.000);   // #99f0ff
+        vec3 colElectricBlue = vec3(0.239, 0.392, 1.000); // #3d64ff
+        vec3 colViolet = vec3(0.529, 0.400, 1.000);       // #8766ff
+
+        // Interpolate gradient across orb light pool
+        float gradT = clamp((vWorldPos.x - uOrbPosition.x) / 45.0 + 0.5, 0.0, 1.0);
+        vec3 orbGlowGrad = mix(colPaleCyan, colElectricBlue, smoothstep(0.0, 0.5, gradT));
+        orbGlowGrad = mix(orbGlowGrad, colViolet, smoothstep(0.5, 1.0, gradT));
+
+        // Blend vibrant orb color light pool into the carved stone surface
+        diffuseColor.rgb = mix(diffuseColor.rgb, clamp(diffuseColor.rgb + orbGlowGrad * 0.45, 0.0, 1.0), orbLightProximity * 0.85);
         `
       );
     };
@@ -702,10 +715,16 @@ export class ItFlowRibbonRenderer {
         this._sphereMesh.visible = true;
         if (this._haloMesh) this._haloMesh.visible = true;
         if (this._glowSprite) this._glowSprite.visible = true;
+        if (this._gradientUniforms && this._gradientUniforms.uOrbPosition) {
+          this._gradientUniforms.uOrbPosition.value.copy(this._sphereMesh.position);
+        }
       } else {
         this._sphereMesh.visible = false;
         if (this._haloMesh) this._haloMesh.visible = false;
         if (this._glowSprite) this._glowSprite.visible = false;
+        if (this._gradientUniforms && this._gradientUniforms.uOrbPosition) {
+          this._gradientUniforms.uOrbPosition.value.set(0, 0, -1000);
+        }
       }
     }
   }
