@@ -83,6 +83,7 @@ export class ItFlowRibbonRenderer {
       
       roughness: 0.1,         // Roughness 0.1
       metalness: 0.55,        // Metalness 0.55
+      texturePreset: 'Granite Noise', // Preset: Granite Noise, Light Noise, Marble Grain, Brushed Steel, Frosted Glass
       bumpScale: 0.12,        // Noise Bump Scale 0.12
       noiseRepeatX: 10.0,     // Tiling X 10.0
       noiseRepeatY: 2.6,      // Tiling Y 2.6
@@ -153,12 +154,12 @@ export class ItFlowRibbonRenderer {
   }
 
   _setupLights() {
-    this._ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+    this._ambientLight = new THREE.AmbientLight(0xffffff, this.config.ambientLightIntensity);
     this._scene.add(this._ambientLight);
-    this._keyLight = new THREE.DirectionalLight(0xffffff, 7.0);
+    this._keyLight = new THREE.DirectionalLight(0xffffff, this.config.keyLightIntensity);
     this._keyLight.position.set(400, 500, 800);
     this._scene.add(this._keyLight);
-    this._fillLight = new THREE.DirectionalLight(0x00b3ff, 6.3);
+    this._fillLight = new THREE.DirectionalLight(0x00b3ff, this.config.fillLightIntensity);
     this._fillLight.position.set(-300, -200, 400);
     this._scene.add(this._fillLight);
   }
@@ -342,32 +343,48 @@ export class ItFlowRibbonRenderer {
       }
     });
 
+    const presetFiles = {
+      'Granite Noise': '/textures/noise.webp',
+      'Light Noise': '/textures/noise-light.webp',
+      'Marble Grain': '/textures/marble.webp',
+      'Brushed Steel': '/textures/steel-normal.webp',
+      'Frosted Glass': '/textures/frosted-normal.webp'
+    };
+
     const loader = new THREE.TextureLoader();
-    loader.load('/textures/noise.webp', (tex) => {
-      tex.wrapS = THREE.RepeatWrapping;
-      tex.wrapT = THREE.RepeatWrapping;
-      tex.repeat.set(15.7, 2.1);
-      this._textures.noise = tex;
-      if (this._ribbonMaterial) {
-        this._ribbonMaterial.map = tex;
-        this._ribbonMaterial.bumpMap = tex;
-        this._ribbonMaterial.bumpScale = 0.05;
-        this._ribbonMaterial.needsUpdate = true;
-      }
+    Object.entries(presetFiles).forEach(([name, path]) => {
+      loader.load(path, (tex) => {
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(this.config.noiseRepeatX, this.config.noiseRepeatY);
+        this._textures[name] = tex;
+        if (name === this.config.texturePreset) {
+          this._applyTexture(tex);
+        }
+      });
     });
+  }
+
+  _applyTexture(tex) {
+    if (!this._ribbonMaterial || !tex) return;
+    tex.repeat.set(this.config.noiseRepeatX, this.config.noiseRepeatY);
+    this._ribbonMaterial.map = tex;
+    this._ribbonMaterial.bumpMap = tex;
+    this._ribbonMaterial.bumpScale = this.config.bumpScale;
+    this._ribbonMaterial.needsUpdate = true;
   }
 
   _buildMaterial() {
     this._gradientUniforms = {
-      uColorStart: { value: new THREE.Color('#5900ff') },
-      uColorEnd: { value: new THREE.Color('#00d4ff') },
-      uFresnelColor: { value: new THREE.Color('#ade9ff') }
+      uColorStart: { value: new THREE.Color(this.config.colorStart) },
+      uColorEnd: { value: new THREE.Color(this.config.colorEnd) },
+      uFresnelColor: { value: new THREE.Color(this.config.fresnelColor) }
     };
 
     this._ribbonMaterial = new THREE.MeshPhysicalMaterial({
       color: 0xffffff,
-      roughness: 0.0,
-      metalness: 0.6,
+      roughness: this.config.roughness,
+      metalness: this.config.metalness,
       transparent: true,
       opacity: 1.0,
       side: THREE.DoubleSide,
@@ -523,19 +540,29 @@ export class ItFlowRibbonRenderer {
 
     // 4. Noise Texture Folder
     const noiseFolder = this._gui.addFolder('Noise Grain Texture');
-    noiseFolder.add(this.config, 'bumpScale', 0.0, 0.3, 0.01).name('Noise Bump Scale').onChange((v) => {
-      if (this._textures.noise) this._textures.noise.bumpScale = v;
+    const presetOptions = ['Granite Noise', 'Light Noise', 'Marble Grain', 'Brushed Steel', 'Frosted Glass'];
+    noiseFolder.add(this.config, 'texturePreset', presetOptions).name('Texture Preset').onChange((presetName) => {
+      if (this._textures[presetName]) {
+        this._applyTexture(this._textures[presetName]);
+      }
+    });
+    noiseFolder.add(this.config, 'bumpScale', 0.0, 0.5, 0.01).name('Noise Bump Scale').onChange((v) => {
+      if (this._ribbonMaterial) {
+        this._ribbonMaterial.bumpScale = v;
+      }
     });
     noiseFolder.add(this.config, 'noiseRepeatX', 1.0, 50.0, 0.5).name('Tiling X').onChange((v) => {
-      if (this._textures.noise) {
-        this._textures.noise.repeat.x = v;
-        this._textures.noise.needsUpdate = true;
+      const activeTex = this._textures[this.config.texturePreset];
+      if (activeTex) {
+        activeTex.repeat.x = v;
+        activeTex.needsUpdate = true;
       }
     });
     noiseFolder.add(this.config, 'noiseRepeatY', 0.5, 10.0, 0.1).name('Tiling Y').onChange((v) => {
-      if (this._textures.noise) {
-        this._textures.noise.repeat.y = v;
-        this._textures.noise.needsUpdate = true;
+      const activeTex = this._textures[this.config.texturePreset];
+      if (activeTex) {
+        activeTex.repeat.y = v;
+        activeTex.needsUpdate = true;
       }
     });
 
