@@ -72,27 +72,27 @@ export class ItFlowRibbonRenderer {
       scaleXMultiplier: 1.24, // Width scale 1.24x
       svgCenterX: 393,        // Leftward alignment offset 393
 
-      grooveWidth: 37.5,      // Groove Width 37.5
+      grooveWidth: 48.5,      // Groove Width 48.5
       grooveDepth: 13.0,      // Groove Depth 13.0
       wallThickness: 3.0,     // Lip Thickness 3.0
       trenchInnerRadius: 17.5,// Inner Fillet Radius 17.5
 
-      colorStart: '#bdc8ff',  // Soft Periwinkle Blue (Start)
-      colorEnd: '#ade4ff',    // Soft Cyan Blue (End)
-      fresnelColor: '#787878',// Neutral Rim Highlight
+      colorStart: '#c6cde1',  // Soft Periwinkle Stone
+      colorEnd: '#f0f3ff',    // Pale Pastel Cyan Stone
+      fresnelColor: '#ffffff',// Crisp White Rim Highlight
       
-      roughness: 0.85,        // Soft Matte Stone Finish (Matches reference image)
-      metalness: 0.05,        // Low metalness to prevent harsh specular streaks on curves
+      roughness: 0.20,        // Sleek Smooth Finish (0.20)
+      metalness: 0.00,        // Non-metallic (0.0)
       texturePreset: 'Granite Noise',
-      bumpScale: 0.18,
+      bumpScale: 0.00,        // Smooth bump
       noiseScale: 0.008,      // World-space noise sampling scale
-      noiseGrainContrast: 1.2, // Contrast boost for light stone colors
+      noiseGrainContrast: 1.20,
 
       // Lighting Control Knobs & Shadow Tint Controls
-      ambientLightIntensity: 0.5,
-      keyLightIntensity: 5.0,
-      fillLightIntensity: 4.5,
-      fillLightColor: '#ffffff' // Neutral White Fill Light (Removes unwanted red/blue shadow tint)
+      ambientLightIntensity: 1.5,
+      keyLightIntensity: 3.5,
+      fillLightIntensity: 1.5,
+      fillLightColor: '#d6f3ff' // Pale Ice Blue Shadow Tint
     };
 
     this.geomParams = {
@@ -449,16 +449,16 @@ export class ItFlowRibbonRenderer {
       uTime: { value: 0.0 },
       uSpinAngle: { value: 0.0 },                              // Clockwise Primary Siren Angle
       uSpinAngleCounter: { value: 0.0 },                       // Counter-Clockwise Violet Siren Angle
-      uCoreColorDark: { value: new THREE.Color('#0022aa') },   // Deep Royal Blue
-      uCoreColorLight: { value: new THREE.Color('#3399ff') },  // Bright Electric Cyan Blue
-      uGlowColor: { value: new THREE.Color('#88ccff') },       // Primary Cyan Halo
-      uGlowColorSecondary: { value: new THREE.Color('#0033cc') }, // 20% Gap Secondary Royal Cobalt Blue
-      uGlowColorViolet: { value: new THREE.Color('#b066ff') },  // Counter-Rotating Soft Violet Beam
-      uGrainIntensity: { value: 0.25 },
-      uGlowPower: { value: 2.2 },
-      uGlowIntensity: { value: 1.5 },
-      uOrbScale: { value: 1.875 },
-      uZOffset: { value: -2.0 }
+      uCoreColorDark: { value: new THREE.Color('#0024b3') },   // Deep Royal Blue
+      uCoreColorLight: { value: new THREE.Color('#339cff') },  // Bright Electric Cyan Blue
+      uGlowColor: { value: new THREE.Color('#3d64ff') },       // Primary Cyan/Blue Glow
+      uGlowColorSecondary: { value: new THREE.Color('#99f0ff') }, // Gap Pale Cyan Light
+      uGlowColorViolet: { value: new THREE.Color('#8766ff') },  // Counter-Rotating Soft Violet Beam
+      uGrainIntensity: { value: 0.24 },
+      uGlowPower: { value: 1.5 },
+      uGlowIntensity: { value: 2.2 },
+      uOrbScale: { value: 1.9 },
+      uZOffset: { value: 3.0 }
     };
 
     this._sphereMaterial = new THREE.ShaderMaterial({
@@ -609,7 +609,7 @@ export class ItFlowRibbonRenderer {
         uGlowColorViolet: this._orbUniforms.uGlowColorViolet,
         uSpinAngle: this._orbUniforms.uSpinAngle,
         uSpinAngleCounter: this._orbUniforms.uSpinAngleCounter,
-        uSpriteOpacity: { value: 0.95 }
+        uSpriteOpacity: { value: 0.75 }
       },
       transparent: true,
       depthWrite: false,
@@ -656,6 +656,7 @@ export class ItFlowRibbonRenderer {
 
     const spriteGeo = new THREE.PlaneGeometry(120, 120);
     this._glowSprite = new THREE.Mesh(spriteGeo, this._glowSpriteMaterial);
+    this._glowSprite.scale.set(170 / 120, 170 / 120, 1.0);
     this._glowSprite.position.set(0, 0, -4.0); // Directly behind orb
     this._glowSprite.visible = false;
     this._sphereMesh.add(this._glowSprite);
@@ -846,16 +847,16 @@ export class ItFlowRibbonRenderer {
     // 6. Glowing Orb Controls Folder
     const orbFolder = this._gui.addFolder('Glowing Grain Orb');
     const orbConfig = {
-      darkColor: '#0022aa',
-      lightColor: '#3399ff',
-      glowColor: '#88ccff',
-      secondaryColor: '#0033cc',
-      violetColor: '#b066ff',
+      darkColor: '#0024b3',
+      lightColor: '#339cff',
+      glowColor: '#3d64ff',
+      secondaryColor: '#99f0ff',
+      violetColor: '#8766ff',
       spinSpeed: 2.5,
       counterSpeedMult: 1.414,
       trenchLightIntensity: 8.0,
-      glowSpriteSize: 120,
-      glowSpriteOpacity: 0.95
+      glowSpriteSize: 170,
+      glowSpriteOpacity: 0.75
     };
     orbFolder.addColor(orbConfig, 'darkColor').name('Core Dark Color').onChange((v) => {
       if (this._orbUniforms) this._orbUniforms.uCoreColorDark.value.set(v);
@@ -874,11 +875,11 @@ export class ItFlowRibbonRenderer {
     });
 
     if (this._orbUniforms) {
-      this._orbUniforms.uOrbScale.value = 2.3;
+      this._orbUniforms.uOrbScale.value = 1.9;
       this._orbUniforms.uZOffset.value = 3.0;
-      this._orbUniforms.uGrainIntensity.value = 0.16;
-      this._orbUniforms.uGlowPower.value = 2.1;
-      this._orbUniforms.uGlowIntensity.value = 1.4;
+      this._orbUniforms.uGrainIntensity.value = 0.24;
+      this._orbUniforms.uGlowPower.value = 1.5;
+      this._orbUniforms.uGlowIntensity.value = 2.2;
     }
 
     orbFolder.add(this._orbUniforms.uOrbScale, 'value', 0.5, 4.0, 0.05).name('Orb Size (Scale)');
