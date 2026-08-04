@@ -85,7 +85,12 @@ export class ItFlowRibbonRenderer {
       metalness: 0.5,         // Metalness 0.5
       bumpScale: 0.3,         // Noise Bump Scale 0.3
       noiseRepeatX: 31.5,     // Tiling X 31.5
-      noiseRepeatY: 2.4       // Tiling Y 2.4
+      noiseRepeatY: 2.4,      // Tiling Y 2.4
+
+      // Lighting Control Knobs
+      ambientLightIntensity: 0.9,
+      keyLightIntensity: 7.0,
+      fillLightIntensity: 6.3
     };
 
     this.geomParams = {
@@ -532,6 +537,18 @@ export class ItFlowRibbonRenderer {
         this._textures.noise.repeat.y = v;
         this._textures.noise.needsUpdate = true;
       }
+    });
+
+    // 5. Lighting Folder
+    const lightFolder = this._gui.addFolder('Scene Lighting');
+    lightFolder.add(this.config, 'ambientLightIntensity', 0.0, 3.0, 0.1).name('Ambient Light').onChange((v) => {
+      if (this._ambientLight) this._ambientLight.intensity = v;
+    });
+    lightFolder.add(this.config, 'keyLightIntensity', 0.0, 15.0, 0.5).name('Key Light').onChange((v) => {
+      if (this._keyLight) this._keyLight.intensity = v;
+    });
+    lightFolder.add(this.config, 'fillLightIntensity', 0.0, 15.0, 0.5).name('Fill Light').onChange((v) => {
+      if (this._fillLight) this._fillLight.intensity = v;
     });
   }
 
