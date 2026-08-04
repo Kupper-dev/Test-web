@@ -434,15 +434,18 @@ export class ItFlowRibbonRenderer {
 
     this._orbUniforms = {
       uTime: { value: 0.0 },
-      uSpinAngle: { value: 0.0 },                              // Spinning Siren Light Beam Angle
+      uSpinAngle: { value: 0.0 },                              // Clockwise Primary Siren Angle
+      uSpinAngleCounter: { value: 0.0 },                       // Counter-Clockwise Violet Siren Angle
       uCoreColorDark: { value: new THREE.Color('#0022aa') },   // Deep Royal Blue
       uCoreColorLight: { value: new THREE.Color('#3399ff') },  // Bright Electric Cyan Blue
-      uGlowColor: { value: new THREE.Color('#88ccff') },       // Outer Soft Halo
+      uGlowColor: { value: new THREE.Color('#88ccff') },       // Primary Cyan Halo
+      uGlowColorSecondary: { value: new THREE.Color('#0033cc') }, // 20% Gap Secondary Royal Cobalt Blue
+      uGlowColorViolet: { value: new THREE.Color('#b066ff') },  // Counter-Rotating Soft Violet Beam
       uGrainIntensity: { value: 0.25 },
       uGlowPower: { value: 2.2 },
       uGlowIntensity: { value: 1.5 },
-      uOrbScale: { value: 1.875 },                             // 1.875 * 10 = 18.75px radius
-      uZOffset: { value: -2.0 }                                // Z Cradle Depth inside Trench
+      uOrbScale: { value: 1.875 },
+      uZOffset: { value: -2.0 }
     };
 
     this._sphereMaterial = new THREE.ShaderMaterial({
@@ -476,9 +479,12 @@ export class ItFlowRibbonRenderer {
 
         uniform float uTime;
         uniform float uSpinAngle;
+        uniform float uSpinAngleCounter;
         uniform vec3 uCoreColorDark;
         uniform vec3 uCoreColorLight;
         uniform vec3 uGlowColor;
+        uniform vec3 uGlowColorSecondary;
+        uniform vec3 uGlowColorViolet;
         uniform float uGrainIntensity;
         uniform float uGlowPower;
         uniform float uGlowIntensity;
@@ -491,25 +497,28 @@ export class ItFlowRibbonRenderer {
           vec3 viewDir = normalize(vViewPosition);
           vec3 norm = normalize(vNormal);
 
-          // Diagonal 3D Noise Grain Gradient
           float gradPos = clamp((vPosition.x + vPosition.y + vPosition.z) / 30.0 + 0.5, 0.0, 1.0);
           vec3 coreColor = mix(uCoreColorDark, uCoreColorLight, gradPos);
 
           float grain = (rand(vUv * 50.0 + uTime * 0.05) - 0.5) * uGrainIntensity;
           coreColor = clamp(coreColor + vec3(grain), 0.0, 1.0);
 
-          // 80% Spinning Siren Light Beam Angle Mask (288° active beam, 72° dark gap)
+          // 1. Clockwise Beam: 80% Cyan + 20% Royal Cobalt Fill
           float posAngle = atan(vPosition.y, vPosition.x);
-          float angleDiff = mod(posAngle - uSpinAngle + 3.14159265, 6.2831853) - 3.14159265;
-          // 80% of 2PI is 2.5132 rad (+- 1.2566 rad from beam center)
-          float sirenFactor = smoothstep(1.5, 0.5, abs(angleDiff));
+          float angleDiffCW = mod(posAngle - uSpinAngle + 3.14159265, 6.2831853) - 3.14159265;
+          float sirenFactorCW = smoothstep(1.5, 0.5, abs(angleDiffCW));
+          vec3 cwBeamColor = mix(uGlowColorSecondary, uGlowColor, sirenFactorCW);
 
-          // Soft Atmospheric Rim Glow (Fresnel modulated by 80% siren beam)
+          // 2. Counter-Clockwise Beam: Soft Violet Beam
+          float angleDiffCCW = mod(posAngle - uSpinAngleCounter + 3.14159265, 6.2831853) - 3.14159265;
+          float sirenFactorCCW = smoothstep(1.2, 0.2, abs(angleDiffCCW)) * 0.65;
+          vec3 combinedGlowColor = mix(cwBeamColor, uGlowColorViolet, sirenFactorCCW);
+
           float fresnel = max(0.0, 1.0 - dot(norm, viewDir));
-          float halo = pow(fresnel, uGlowPower) * uGlowIntensity * (0.3 + 0.7 * sirenFactor);
+          float halo = pow(fresnel, uGlowPower) * uGlowIntensity;
 
-          vec3 finalColor = mix(coreColor, uGlowColor, clamp(halo, 0.0, 1.0));
-          finalColor += uGlowColor * halo * 0.6;
+          vec3 finalColor = mix(coreColor, combinedGlowColor, clamp(halo, 0.0, 1.0));
+          finalColor += combinedGlowColor * halo * 0.6;
 
           gl_FragColor = vec4(finalColor, 1.0);
         }
@@ -547,7 +556,10 @@ export class ItFlowRibbonRenderer {
         varying vec3 vViewPosition;
 
         uniform float uSpinAngle;
+        uniform float uSpinAngleCounter;
         uniform vec3 uGlowColor;
+        uniform vec3 uGlowColorSecondary;
+        uniform vec3 uGlowColorViolet;
         uniform float uGlowPower;
         uniform float uGlowIntensity;
 
@@ -555,15 +567,19 @@ export class ItFlowRibbonRenderer {
           vec3 viewDir = normalize(vViewPosition);
           vec3 norm = normalize(vNormal);
 
-          // 80% Siren Beam Angle Mask (288° active beam)
           float posAngle = atan(vPosition.y, vPosition.x);
-          float angleDiff = mod(posAngle - uSpinAngle + 3.14159265, 6.2831853) - 3.14159265;
-          float sirenFactor = smoothstep(1.5, 0.5, abs(angleDiff));
+          float angleDiffCW = mod(posAngle - uSpinAngle + 3.14159265, 6.2831853) - 3.14159265;
+          float sirenFactorCW = smoothstep(1.5, 0.5, abs(angleDiffCW));
+          vec3 cwColor = mix(uGlowColorSecondary, uGlowColor, sirenFactorCW);
+
+          float angleDiffCCW = mod(posAngle - uSpinAngleCounter + 3.14159265, 6.2831853) - 3.14159265;
+          float sirenFactorCCW = smoothstep(1.2, 0.2, abs(angleDiffCCW)) * 0.65;
+          vec3 haloColor = mix(cwColor, uGlowColorViolet, sirenFactorCCW);
 
           float fresnel = max(0.0, dot(norm, viewDir));
-          float haloAlpha = pow(fresnel, uGlowPower) * uGlowIntensity * 1.8 * (0.2 + 0.8 * sirenFactor);
+          float haloAlpha = pow(fresnel, uGlowPower) * uGlowIntensity * 1.8;
 
-          gl_FragColor = vec4(uGlowColor * haloAlpha, haloAlpha);
+          gl_FragColor = vec4(haloColor * haloAlpha, haloAlpha);
         }
       `
     });
@@ -572,16 +588,19 @@ export class ItFlowRibbonRenderer {
     this._haloMesh.visible = false;
     this._sphereMesh.add(this._haloMesh);
 
-    // Option 1: 2D Sprite Radial Glow Disc (Guaranteed 100% visibility on light background)
+    // Option 1: 2D Sprite Radial Glow Disc with Tri-Color Counter-Rotating Blending
     this._glowSpriteMaterial = new THREE.ShaderMaterial({
       uniforms: {
         uGlowColor: this._orbUniforms.uGlowColor,
+        uGlowColorSecondary: this._orbUniforms.uGlowColorSecondary,
+        uGlowColorViolet: this._orbUniforms.uGlowColorViolet,
         uSpinAngle: this._orbUniforms.uSpinAngle,
+        uSpinAngleCounter: this._orbUniforms.uSpinAngleCounter,
         uSpriteOpacity: { value: 0.95 }
       },
       transparent: true,
       depthWrite: false,
-      blending: THREE.NormalBlending, // NormalBlending ensures opacity against white/light backgrounds
+      blending: THREE.NormalBlending,
       vertexShader: `
         varying vec2 vUv;
         void main() {
@@ -592,7 +611,10 @@ export class ItFlowRibbonRenderer {
       fragmentShader: `
         varying vec2 vUv;
         uniform vec3 uGlowColor;
+        uniform vec3 uGlowColorSecondary;
+        uniform vec3 uGlowColorViolet;
         uniform float uSpinAngle;
+        uniform float uSpinAngleCounter;
         uniform float uSpriteOpacity;
 
         void main() {
@@ -600,16 +622,21 @@ export class ItFlowRibbonRenderer {
           float dist = length(center) * 2.0;
           if (dist > 1.0) discard;
 
-          // Radial falloff exponential curve
           float radialGlow = pow(1.0 - dist, 1.8);
 
-          // 80% Siren Angle Mask
+          // 1. Clockwise Beam: 80% Cyan + 20% Royal Blue fill
           float posAngle = atan(center.y, center.x);
-          float angleDiff = mod(posAngle - uSpinAngle + 3.14159265, 6.2831853) - 3.14159265;
-          float sirenFactor = smoothstep(1.5, 0.5, abs(angleDiff));
+          float angleDiffCW = mod(posAngle - uSpinAngle + 3.14159265, 6.2831853) - 3.14159265;
+          float sirenFactorCW = smoothstep(1.5, 0.5, abs(angleDiffCW));
+          vec3 baseDiscColor = mix(uGlowColorSecondary, uGlowColor, sirenFactorCW);
 
-          float finalAlpha = radialGlow * uSpriteOpacity * (0.35 + 0.65 * sirenFactor);
-          gl_FragColor = vec4(uGlowColor, finalAlpha);
+          // 2. Counter-Clockwise Beam: Soft Violet overlap
+          float angleDiffCCW = mod(posAngle - uSpinAngleCounter + 3.14159265, 6.2831853) - 3.14159265;
+          float sirenFactorCCW = smoothstep(1.2, 0.2, abs(angleDiffCCW)) * 0.6;
+          vec3 finalDiscColor = mix(baseDiscColor, uGlowColorViolet, sirenFactorCCW);
+
+          float finalAlpha = radialGlow * uSpriteOpacity;
+          gl_FragColor = vec4(finalDiscColor, finalAlpha);
         }
       `
     });
@@ -756,6 +783,8 @@ export class ItFlowRibbonRenderer {
       darkColor: '#0022aa',
       lightColor: '#3399ff',
       glowColor: '#88ccff',
+      secondaryColor: '#0033cc',
+      violetColor: '#b066ff',
       spinSpeed: 2.5,
       trenchLightIntensity: 8.0,
       glowSpriteSize: 120,
@@ -767,8 +796,14 @@ export class ItFlowRibbonRenderer {
     orbFolder.addColor(orbConfig, 'lightColor').name('Core Light Color').onChange((v) => {
       if (this._orbUniforms) this._orbUniforms.uCoreColorLight.value.set(v);
     });
-    orbFolder.addColor(orbConfig, 'glowColor').name('Outer Halo Color').onChange((v) => {
+    orbFolder.addColor(orbConfig, 'glowColor').name('Primary Cyan Glow').onChange((v) => {
       if (this._orbUniforms) this._orbUniforms.uGlowColor.value.set(v);
+    });
+    orbFolder.addColor(orbConfig, 'secondaryColor').name('20% Gap Royal Blue').onChange((v) => {
+      if (this._orbUniforms) this._orbUniforms.uGlowColorSecondary.value.set(v);
+    });
+    orbFolder.addColor(orbConfig, 'violetColor').name('Counter-Spin Violet').onChange((v) => {
+      if (this._orbUniforms) this._orbUniforms.uGlowColorViolet.value.set(v);
     });
 
     if (this._orbUniforms) {
@@ -817,6 +852,7 @@ export class ItFlowRibbonRenderer {
     if (this._orbUniforms) {
       this._orbUniforms.uTime.value = t;
       this._orbUniforms.uSpinAngle.value = currentSpin;
+      this._orbUniforms.uSpinAngleCounter.value = -currentSpin * 1.35;
     }
 
     // Move dynamic point light in an 80% arc sweep around orb center
