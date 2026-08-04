@@ -371,6 +371,7 @@ export class ItFlowRibbonRenderer {
       uNoiseScale: { value: this.config.noiseScale || 0.008 },
       uScrollProgress: { value: 0.0 },
       uScrollSpeed: { value: 0.0 },
+      uScrollDir: { value: 1.0 },
       uTrailIntensity: { value: 1.8 }
     };
 
@@ -410,6 +411,7 @@ export class ItFlowRibbonRenderer {
         uniform float uNoiseScale;
         uniform float uScrollProgress;
         uniform float uScrollSpeed;
+        uniform float uScrollDir;
         uniform float uTrailIntensity;
       ` + shader.fragmentShader;
 
@@ -443,15 +445,15 @@ export class ItFlowRibbonRenderer {
         float baseTrenchAO = clamp((vWorldPos.z + 13.0) / 13.0, 0.5, 1.0);
         diffuseColor.rgb *= baseTrenchAO;
 
-        // Physical Retracting Light Ribbon Trail (Always active permanent baseline tail + dynamic stretch)
+        // Physical Retracting Light Ribbon Trail with Latched Directional Stability
         float speedMagnitude = abs(uScrollSpeed);
         
         // Permanent baseline stretch (minimum length 0.08, expands up to 0.48 on scroll)
         float trailLength = 0.08 + clamp(speedMagnitude * 0.08, 0.0, 0.40);
         float deltaPos = uScrollProgress - vPathProgress;
         
-        // Direction-aware trailing distance
-        float trailDist = uScrollSpeed >= 0.0 ? deltaPos : -deltaPos;
+        // Latched direction-aware trailing distance
+        float trailDist = uScrollDir >= 0.0 ? deltaPos : -deltaPos;
 
         if (trailDist > 0.0 && trailDist < trailLength) {
           float normalizedDist = trailDist / trailLength;
@@ -715,16 +717,29 @@ export class ItFlowRibbonRenderer {
     const prevProgress = this._progress || 0;
     this._progress = Math.max(0, Math.min(1, progress));
     
-    // High sensitivity raw target scroll velocity
-    const targetVelocity = (this._progress - prevProgress) * 220.0;
+    // Calculate raw delta progress
+    const deltaProgress = this._progress - prevProgress;
     
-    // Spring Lerp (0.16) for responsive sensitivity and directional ease
+    // Sticky Direction Latching: Lock direction to last active scroll intent
+    // Prevents accidental direction flips when scrolling halts
+    if (Math.abs(deltaProgress) > 0.00015) {
+      this._lastScrollDir = deltaProgress >= 0 ? 1.0 : -1.0;
+    } else if (this._lastScrollDir === undefined) {
+      this._lastScrollDir = 1.0;
+    }
+
+    // High sensitivity raw target scroll velocity with latched direction sign
+    const targetVelocity = deltaProgress * 220.0;
+    
+    // Smooth lerp (0.16) for responsive sensitivity and directional ease
     this._currentVelocity = (this._currentVelocity || 0) + (targetVelocity - (this._currentVelocity || 0)) * 0.16;
 
     // Sync shader uniforms
     if (this._gradientUniforms) {
       this._gradientUniforms.uScrollProgress.value = this._progress;
       this._gradientUniforms.uScrollSpeed.value = this._currentVelocity;
+      this._gradientUniforms.uScrollDir = this._gradientUniforms.uScrollDir || { value: 1.0 };
+      this._gradientUniforms.uScrollDir.value = this._lastScrollDir;
     }
 
     // Groove track is always 100% drawn/visible (no self-drawing stroke animation)
