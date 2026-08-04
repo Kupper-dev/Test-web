@@ -85,9 +85,8 @@ export class ItFlowRibbonRenderer {
       metalness: 0.05,        // Low metalness to prevent harsh specular streaks on curves
       texturePreset: 'Granite Noise',
       bumpScale: 0.18,
-      noiseRepeatX: 10.0,
-      noiseRepeatY: 2.6,
-      noiseGrainContrast: 0.85, // Contrast boost for light stone colors
+      noiseScale: 0.008,      // World-space noise sampling scale
+      noiseGrainContrast: 1.2, // Contrast boost for light stone colors
 
       // Lighting Control Knobs & Shadow Tint Controls
       ambientLightIntensity: 0.5,
@@ -368,7 +367,8 @@ export class ItFlowRibbonRenderer {
       uColorStart: { value: new THREE.Color(this.config.colorStart) },
       uColorEnd: { value: new THREE.Color(this.config.colorEnd) },
       uFresnelColor: { value: new THREE.Color(this.config.fresnelColor) },
-      uNoiseGrainContrast: { value: this.config.noiseGrainContrast || 0.85 }
+      uNoiseGrainContrast: { value: this.config.noiseGrainContrast || 0.85 },
+      uNoiseScale: { value: this.config.noiseScale || 0.008 }
     };
 
     this._ribbonMaterial = new THREE.MeshStandardMaterial({
@@ -404,6 +404,7 @@ export class ItFlowRibbonRenderer {
         uniform vec3 uColorEnd;
         uniform vec3 uFresnelColor;
         uniform float uNoiseGrainContrast;
+        uniform float uNoiseScale;
       ` + shader.fragmentShader;
 
       shader.fragmentShader = shader.fragmentShader.replace(
@@ -415,18 +416,15 @@ export class ItFlowRibbonRenderer {
 
         diffuseColor.rgb = gradColor;
 
-        // Adaptive High-Contrast Granite Noise Sampling for Light Colors
+        // World-Space Granite Noise Sampling with Dynamic Scale
         #ifdef USE_MAP
-          vec2 worldUv = vWorldPos.xy * 0.008;
+          vec2 worldUv = vWorldPos.xy * uNoiseScale;
           vec4 texColor = texture2D(map, worldUv);
           
-          // Calculate surface luminance (perceived brightness)
           float lum = dot(gradColor, vec3(0.299, 0.587, 0.114));
-          // Darken the noise contrast boost on light colors so grain remains crisp and visible
           float grainBoost = (1.4 - lum * 0.5) * uNoiseGrainContrast;
           float grainFactor = (texColor.r - 0.5) * grainBoost;
 
-          // Overlay & Soft Light Blending for vibrant stone texture
           diffuseColor.rgb = mix(
             diffuseColor.rgb + vec3(grainFactor),
             diffuseColor.rgb * (1.0 + vec3(grainFactor * 1.5)),
@@ -810,7 +808,7 @@ export class ItFlowRibbonRenderer {
       if (this._ribbonMaterial) this._ribbonMaterial.metalness = v;
     });
 
-    // 4. Noise Texture Folder
+    // 4. Noise Grain Texture Folder
     const noiseFolder = this._gui.addFolder('Noise Grain Texture');
     const presetOptions = ['Granite Noise', 'Light Noise', 'Marble Grain', 'Brushed Steel', 'Frosted Glass'];
     noiseFolder.add(this.config, 'texturePreset', presetOptions).name('Texture Preset').onChange((presetName) => {
@@ -818,26 +816,15 @@ export class ItFlowRibbonRenderer {
         this._applyTexture(this._textures[presetName]);
       }
     });
-    noiseFolder.add(this.config, 'noiseGrainContrast', 0.0, 2.5, 0.05).name('Noise Grain Contrast').onChange((v) => {
+    noiseFolder.add(this.config, 'noiseGrainContrast', 0.0, 3.0, 0.05).name('Noise Grain Contrast').onChange((v) => {
       if (this._gradientUniforms) this._gradientUniforms.uNoiseGrainContrast.value = v;
     });
-    noiseFolder.add(this.config, 'bumpScale', 0.0, 0.5, 0.01).name('Noise Bump Scale').onChange((v) => {
+    noiseFolder.add(this.config, 'noiseScale', 0.001, 0.04, 0.001).name('Noise Grain Frequency (Scale)').onChange((v) => {
+      if (this._gradientUniforms) this._gradientUniforms.uNoiseScale.value = v;
+    });
+    noiseFolder.add(this.config, 'bumpScale', 0.0, 0.5, 0.01).name('3D Surface Bump Depth').onChange((v) => {
       if (this._ribbonMaterial) {
         this._ribbonMaterial.bumpScale = v;
-      }
-    });
-    noiseFolder.add(this.config, 'noiseRepeatX', 1.0, 50.0, 0.5).name('Tiling X').onChange((v) => {
-      const activeTex = this._textures[this.config.texturePreset];
-      if (activeTex) {
-        activeTex.repeat.x = v;
-        activeTex.needsUpdate = true;
-      }
-    });
-    noiseFolder.add(this.config, 'noiseRepeatY', 0.5, 10.0, 0.1).name('Tiling Y').onChange((v) => {
-      const activeTex = this._textures[this.config.texturePreset];
-      if (activeTex) {
-        activeTex.repeat.y = v;
-        activeTex.needsUpdate = true;
       }
     });
 
