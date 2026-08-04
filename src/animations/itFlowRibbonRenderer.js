@@ -64,6 +64,13 @@ export class ItFlowRibbonRenderer {
     `;
     document.body.insertBefore(this._canvas, document.body.firstChild);
 
+    // ─── Path Trimming & Alignment Controls ─────────────────────────────────────
+    // Trim path start/end so ends hide cleanly under cards (range 0.0 to 1.0)
+    this.PATH_TRIM_START = 0.04; // 4% trim from start (moves start rightward behind card)
+    this.PATH_TRIM_END = 0.96;   // 4% trim from end (ends path earlier before card edge)
+    this.SCALE_X_MULTIPLIER = 1.52; // 1.32 * 1.15 (+15% wider horizontally)
+    this.SVG_CENTER_X = 390;        // Path horizontal center offset (higher = moves path LEFT)
+
     this.geomParams = {
       grooveWidth: 24.0,
       grooveDepth: 10.0,
@@ -143,18 +150,11 @@ export class ItFlowRibbonRenderer {
       cardsH = rect.height > 0 ? rect.height : 2000;
     }
 
-    // SVG path bounding box center in original 0..740 coordinates:
-    // Min X: 33 (start), Max X: 667 (right turn). Midpoint: (33 + 667) / 2 = 350
-    // Subtract 20px leftward offset to align whole path slightly more to the left
-    const svgCenterX = 350 + 20;
-
-    // Apply scale: 10% wider than 1.20x -> 1.32x horizontal multiplier
-    const scaleXMultiplier = 1.32;
-    const scaleX = (cardsW / SVG_VIEWBOX_W) * scaleXMultiplier;
+    const scaleX = (cardsW / SVG_VIEWBOX_W) * this.SCALE_X_MULTIPLIER;
     const scaleY = cardsH / SVG_VIEWBOX_H;
 
     return new THREE.Vector3(
-      (svgX - svgCenterX) * scaleX,
+      (svgX - this.SVG_CENTER_X) * scaleX,
       (SVG_VIEWBOX_H / 2 - svgY) * scaleY,
       0
     );
@@ -170,7 +170,15 @@ export class ItFlowRibbonRenderer {
         this._mapSvgPoint(seg.p1[0], seg.p1[1])
       ));
     }
-    this._points = this._curvePath.getPoints(PATH_SAMPLES);
+
+    // Sample points trimmed to user start/end bounds so ends start/end behind cards
+    const rawPoints = [];
+    const step = (this.PATH_TRIM_END - this.PATH_TRIM_START) / PATH_SAMPLES;
+    for (let i = 0; i <= PATH_SAMPLES; i++) {
+      const t = this.PATH_TRIM_START + i * step;
+      rawPoints.push(this._curvePath.getPointAt(t));
+    }
+    this._points = rawPoints;
   }
 
   _buildLUT() {
@@ -178,7 +186,8 @@ export class ItFlowRibbonRenderer {
     this._lutPoints = new Array(lutSize);
 
     for (let i = 0; i < lutSize; i++) {
-      const t = i / (lutSize - 1);
+      const tRel = i / (lutSize - 1);
+      const t = this.PATH_TRIM_START + tRel * (this.PATH_TRIM_END - this.PATH_TRIM_START);
       this._lutPoints[i] = this._curvePath.getPointAt(t);
     }
   }
