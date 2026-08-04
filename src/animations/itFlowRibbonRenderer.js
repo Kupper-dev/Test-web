@@ -443,23 +443,20 @@ export class ItFlowRibbonRenderer {
         float baseTrenchAO = clamp((vWorldPos.z + 13.0) / 13.0, 0.5, 1.0);
         diffuseColor.rgb *= baseTrenchAO;
 
-        // Highly Sensitive Physical Retracting Light Ribbon Trail
+        // Physical Retracting Light Ribbon Trail (Always active permanent baseline tail + dynamic stretch)
         float speedMagnitude = abs(uScrollSpeed);
         
-        // High sensitivity response curve (remains vivid at micro-scrolls)
-        float speedGlowEase = mix(0.25, 1.0, smoothstep(0.0, 0.4, speedMagnitude));
-        
-        // Dynamic Retracting Length: Stretches up to 0.48 of path length as speed increases
-        float trailLength = 0.05 + clamp(speedMagnitude * 0.08, 0.0, 0.48);
+        // Permanent baseline stretch (minimum length 0.08, expands up to 0.48 on scroll)
+        float trailLength = 0.08 + clamp(speedMagnitude * 0.08, 0.0, 0.40);
         float deltaPos = uScrollProgress - vPathProgress;
         
         // Direction-aware trailing distance
         float trailDist = uScrollSpeed >= 0.0 ? deltaPos : -deltaPos;
 
-        if (trailDist > 0.0 && trailDist < trailLength && speedMagnitude > 0.005) {
+        if (trailDist > 0.0 && trailDist < trailLength) {
           float normalizedDist = trailDist / trailLength;
           // Smooth spring elastic taper at the tail end
-          float trailMask = smoothstep(1.0, 0.0, normalizedDist) * smoothstep(0.0, 0.08, normalizedDist);
+          float trailMask = smoothstep(1.0, 0.0, normalizedDist) * smoothstep(0.0, 0.06, normalizedDist);
 
           // Tri-Color Glowing Trail Gradient (#99f0ff -> #3d64ff -> #8766ff)
           vec3 colPaleCyan = vec3(0.600, 0.941, 1.000);   // #99f0ff
@@ -469,7 +466,10 @@ export class ItFlowRibbonRenderer {
           vec3 trailColor = mix(colPaleCyan, colElectricBlue, smoothstep(0.0, 0.5, normalizedDist));
           trailColor = mix(trailColor, colViolet, smoothstep(0.5, 1.0, normalizedDist));
 
-          float finalTrailGlow = trailMask * speedGlowEase * uTrailIntensity;
+          // Constant glow intensity that amplifies with speed
+          float trailGlowFactor = mix(0.45, 1.0, smoothstep(0.0, 0.4, speedMagnitude));
+          float finalTrailGlow = trailMask * trailGlowFactor * uTrailIntensity;
+          
           diffuseColor.rgb = mix(diffuseColor.rgb, trailColor, clamp(finalTrailGlow, 0.0, 0.98));
           diffuseColor.rgb += trailColor * finalTrailGlow * 0.55;
         }
