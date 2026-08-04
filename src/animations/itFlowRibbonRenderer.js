@@ -87,6 +87,7 @@ export class ItFlowRibbonRenderer {
       bumpScale: 0.18,
       noiseRepeatX: 10.0,
       noiseRepeatY: 2.6,
+      noiseGrainContrast: 0.85, // Contrast boost for light stone colors
 
       // Lighting Control Knobs & Shadow Tint Controls
       ambientLightIntensity: 0.5,
@@ -412,12 +413,24 @@ export class ItFlowRibbonRenderer {
 
         diffuseColor.rgb = gradColor;
 
-        // Un-stretched World-Space Granite Noise Sampling
+        // Adaptive High-Contrast Granite Noise Sampling for Light Colors
         #ifdef USE_MAP
           vec2 worldUv = vWorldPos.xy * 0.008;
           vec4 texColor = texture2D(map, worldUv);
-          float grainFactor = (texColor.r - 0.5) * 0.4;
-          diffuseColor.rgb = clamp(diffuseColor.rgb + vec3(grainFactor), 0.0, 1.0);
+          
+          // Calculate surface luminance (perceived brightness)
+          float lum = dot(gradColor, vec3(0.299, 0.587, 0.114));
+          // Darken the noise contrast boost on light colors so grain remains crisp and visible
+          float grainBoost = (1.2 - lum * 0.4) * (this.config.noiseGrainContrast || 0.85);
+          float grainFactor = (texColor.r - 0.5) * grainBoost;
+
+          // Overlay & Soft Light Blending for vibrant stone texture
+          diffuseColor.rgb = mix(
+            diffuseColor.rgb + vec3(grainFactor),
+            diffuseColor.rgb * (1.0 + vec3(grainFactor * 1.5)),
+            step(0.5, lum)
+          );
+          diffuseColor.rgb = clamp(diffuseColor.rgb, 0.0, 1.0);
         #endif
 
         // Soft Inner Trench Depth Ambient Shadowing (AO)
@@ -802,6 +815,9 @@ export class ItFlowRibbonRenderer {
       if (this._textures[presetName]) {
         this._applyTexture(this._textures[presetName]);
       }
+    });
+    noiseFolder.add(this.config, 'noiseGrainContrast', 0.0, 2.5, 0.05).name('Noise Grain Contrast').onChange(() => {
+      if (this._ribbonMaterial) this._ribbonMaterial.needsUpdate = true;
     });
     noiseFolder.add(this.config, 'bumpScale', 0.0, 0.5, 0.01).name('Noise Bump Scale').onChange((v) => {
       if (this._ribbonMaterial) {
