@@ -406,17 +406,15 @@ export class ItFlowRibbonRenderer {
         '#include <color_fragment>',
         `
         #include <color_fragment>
-        float uPos = clamp(vPathProgress, 0.0, 1.0);
-        vec3 gradColor = mix(uColorStart, uColorEnd, smoothstep(0.0, 1.0, uPos));
-
-        diffuseColor.rgb = gradColor;
+        vec3 stoneBaseColor = vec3(0.776, 0.804, 0.882); // Solid #c6cde1 stone color
+        diffuseColor.rgb = stoneBaseColor;
 
         // World-Space Granite Noise Sampling
         #ifdef USE_MAP
           vec2 worldUv = vWorldPos.xy * uNoiseScale;
           vec4 texColor = texture2D(map, worldUv);
           
-          float lum = dot(gradColor, vec3(0.299, 0.587, 0.114));
+          float lum = dot(stoneBaseColor, vec3(0.299, 0.587, 0.114));
           float grainBoost = (1.4 - lum * 0.5) * uNoiseGrainContrast;
           float grainFactor = (texColor.r - 0.5) * grainBoost;
 
@@ -847,78 +845,18 @@ export class ItFlowRibbonRenderer {
     geomFolder.add(this.config, 'wallThickness', 0.5, 10, 0.5).name('Lip Thickness').onChange(() => this._rebuildAll());
     geomFolder.add(this.config, 'trenchInnerRadius', 1, 20, 0.5).name('Inner Fillet Radius').onChange(() => this._rebuildAll());
 
-    // 3. Gradient & Shading Folder
-    const colorFolder = this._gui.addFolder('Gradient & Shading');
-    colorFolder.addColor(this.config, 'colorStart').name('Start Color (Purple)').onChange((v) => {
-      this._gradientUniforms.uColorStart.value.set(v);
-    });
-    colorFolder.addColor(this.config, 'colorEnd').name('End Color (Cyan)').onChange((v) => {
-      this._gradientUniforms.uColorEnd.value.set(v);
-    });
-    colorFolder.addColor(this.config, 'fresnelColor').name('Rim Highlight Color').onChange((v) => {
-      this._gradientUniforms.uFresnelColor.value.set(v);
-    });
-    colorFolder.add(this.config, 'roughness', 0.0, 1.0, 0.05).name('Roughness').onChange((v) => {
-      if (this._ribbonMaterial) this._ribbonMaterial.roughness = v;
-    });
-    colorFolder.add(this.config, 'metalness', 0.0, 1.0, 0.05).name('Metalness').onChange((v) => {
-      if (this._ribbonMaterial) this._ribbonMaterial.metalness = v;
-    });
-
-    // 4. Noise Grain Texture Folder
-    const noiseFolder = this._gui.addFolder('Noise Grain Texture');
-    const presetOptions = ['Granite Noise', 'Light Noise', 'Marble Grain', 'Brushed Steel', 'Frosted Glass'];
-    noiseFolder.add(this.config, 'texturePreset', presetOptions).name('Texture Preset').onChange((presetName) => {
-      if (this._textures[presetName]) {
-        this._applyTexture(this._textures[presetName]);
-      }
-    });
-    noiseFolder.add(this.config, 'noiseGrainContrast', 0.0, 3.0, 0.05).name('Noise Grain Contrast').onChange((v) => {
-      if (this._gradientUniforms) this._gradientUniforms.uNoiseGrainContrast.value = v;
-    });
-    noiseFolder.add(this.config, 'noiseScale', 0.001, 0.04, 0.001).name('Noise Grain Frequency (Scale)').onChange((v) => {
-      if (this._gradientUniforms) this._gradientUniforms.uNoiseScale.value = v;
-    });
-    noiseFolder.add(this.config, 'bumpScale', 0.0, 0.5, 0.01).name('3D Surface Bump Depth').onChange((v) => {
-      if (this._ribbonMaterial) {
-        this._ribbonMaterial.bumpScale = v;
-      }
-    });
-
-    // 7. Performance & Feature Testing Toggles
+    // 3. Performance & Feature Testing Toggles
     const perfFolder = this._gui.addFolder('⚡ Performance & Feature Toggles');
     const perfConfig = {
-      enablePointLight: true,
-      enableHaloMesh: false,
       enableSpriteGlow: true,
-      enableSpeedTrail: true,
-      enableGraniteNoise: true,
-      enableHDRReflection: true
+      enableSpeedTrail: true
     };
 
-    perfFolder.add(perfConfig, 'enablePointLight').name('3D Point Light (Trench Glow)').onChange((enabled) => {
-      if (this._orbLight) this._orbLight.visible = enabled;
-    });
-    perfFolder.add(perfConfig, 'enableHaloMesh').name('3D Outer Atmosphere Halo').onChange((enabled) => {
-      if (this._haloMesh) this._haloMesh.visible = enabled;
-    });
     perfFolder.add(perfConfig, 'enableSpriteGlow').name('2D Radial Disc Outer Glow').onChange((enabled) => {
       if (this._glowSprite) this._glowSprite.visible = enabled;
     });
     perfFolder.add(perfConfig, 'enableSpeedTrail').name('Scroll Speed Light Ribbon').onChange((enabled) => {
       if (this._gradientUniforms) this._gradientUniforms.uTrailIntensity.value = enabled ? 1.8 : 0.0;
-    });
-    perfFolder.add(perfConfig, 'enableGraniteNoise').name('Stone Granite Grain Texture').onChange((enabled) => {
-      if (this._ribbonMaterial) {
-        this._ribbonMaterial.map = enabled ? this._textures['Granite Noise'] : null;
-        this._ribbonMaterial.needsUpdate = true;
-      }
-    });
-    perfFolder.add(perfConfig, 'enableHDRReflection').name('Warehouse HDR Reflections').onChange((enabled) => {
-      if (this._sphereMaterial) {
-        this._sphereMaterial.envMap = enabled ? this._hdrEnvMap : null;
-        this._sphereMaterial.needsUpdate = true;
-      }
     });
   }
 
