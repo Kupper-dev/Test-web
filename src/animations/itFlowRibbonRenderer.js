@@ -367,7 +367,8 @@ export class ItFlowRibbonRenderer {
     this._gradientUniforms = {
       uColorStart: { value: new THREE.Color(this.config.colorStart) },
       uColorEnd: { value: new THREE.Color(this.config.colorEnd) },
-      uFresnelColor: { value: new THREE.Color(this.config.fresnelColor) }
+      uFresnelColor: { value: new THREE.Color(this.config.fresnelColor) },
+      uNoiseGrainContrast: { value: this.config.noiseGrainContrast || 0.85 }
     };
 
     this._ribbonMaterial = new THREE.MeshStandardMaterial({
@@ -402,6 +403,7 @@ export class ItFlowRibbonRenderer {
         uniform vec3 uColorStart;
         uniform vec3 uColorEnd;
         uniform vec3 uFresnelColor;
+        uniform float uNoiseGrainContrast;
       ` + shader.fragmentShader;
 
       shader.fragmentShader = shader.fragmentShader.replace(
@@ -421,7 +423,7 @@ export class ItFlowRibbonRenderer {
           // Calculate surface luminance (perceived brightness)
           float lum = dot(gradColor, vec3(0.299, 0.587, 0.114));
           // Darken the noise contrast boost on light colors so grain remains crisp and visible
-          float grainBoost = (1.2 - lum * 0.4) * (this.config.noiseGrainContrast || 0.85);
+          float grainBoost = (1.4 - lum * 0.5) * uNoiseGrainContrast;
           float grainFactor = (texColor.r - 0.5) * grainBoost;
 
           // Overlay & Soft Light Blending for vibrant stone texture
@@ -816,8 +818,8 @@ export class ItFlowRibbonRenderer {
         this._applyTexture(this._textures[presetName]);
       }
     });
-    noiseFolder.add(this.config, 'noiseGrainContrast', 0.0, 2.5, 0.05).name('Noise Grain Contrast').onChange(() => {
-      if (this._ribbonMaterial) this._ribbonMaterial.needsUpdate = true;
+    noiseFolder.add(this.config, 'noiseGrainContrast', 0.0, 2.5, 0.05).name('Noise Grain Contrast').onChange((v) => {
+      if (this._gradientUniforms) this._gradientUniforms.uNoiseGrainContrast.value = v;
     });
     noiseFolder.add(this.config, 'bumpScale', 0.0, 0.5, 0.01).name('Noise Bump Scale').onChange((v) => {
       if (this._ribbonMaterial) {
