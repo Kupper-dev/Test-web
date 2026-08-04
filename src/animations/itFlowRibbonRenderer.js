@@ -368,7 +368,8 @@ export class ItFlowRibbonRenderer {
       uColorEnd: { value: new THREE.Color(this.config.colorEnd) },
       uFresnelColor: { value: new THREE.Color(this.config.fresnelColor) },
       uNoiseGrainContrast: { value: this.config.noiseGrainContrast || 0.85 },
-      uNoiseScale: { value: this.config.noiseScale || 0.008 }
+      uNoiseScale: { value: this.config.noiseScale || 0.008 },
+      uOrbPosition: { value: new THREE.Vector3(0, 0, -1000) } // Active orb world position
     };
 
     this._ribbonMaterial = new THREE.MeshStandardMaterial({
@@ -405,6 +406,7 @@ export class ItFlowRibbonRenderer {
         uniform vec3 uFresnelColor;
         uniform float uNoiseGrainContrast;
         uniform float uNoiseScale;
+        uniform vec3 uOrbPosition;
       ` + shader.fragmentShader;
 
       shader.fragmentShader = shader.fragmentShader.replace(
@@ -433,9 +435,14 @@ export class ItFlowRibbonRenderer {
           diffuseColor.rgb = clamp(diffuseColor.rgb, 0.0, 1.0);
         #endif
 
-        // Soft Inner Trench Depth Ambient Shadowing (AO)
-        float trenchDepthAO = clamp((vWorldPos.z + 13.0) / 13.0, 0.5, 1.0);
-        diffuseColor.rgb *= trenchDepthAO;
+        // Dynamic Trench AO Cancellation under the glowing orb
+        float distToOrb = length(vWorldPos.xy - uOrbPosition.xy);
+        float orbLightProximity = smoothstep(55.0, 10.0, distToOrb);
+
+        // Soft Inner Trench Depth Ambient Shadowing (Lifts to 1.0 around the orb)
+        float baseTrenchAO = clamp((vWorldPos.z + 13.0) / 13.0, 0.5, 1.0);
+        float activeTrenchAO = mix(baseTrenchAO, 1.0, orbLightProximity);
+        diffuseColor.rgb *= activeTrenchAO;
         `
       );
     };
@@ -932,6 +939,14 @@ export class ItFlowRibbonRenderer {
       this._orbUniforms.uTime.value = t;
       this._orbUniforms.uSpinAngle.value = currentSpin;
       this._orbUniforms.uSpinAngleCounter.value = counterSpin;
+    }
+
+    if (this._sphereMesh && this._gradientUniforms && this._gradientUniforms.uOrbPosition) {
+      if (this._sphereMesh.visible) {
+        this._gradientUniforms.uOrbPosition.value.copy(this._sphereMesh.position);
+      } else {
+        this._gradientUniforms.uOrbPosition.value.set(0, 0, -1000);
+      }
     }
 
     // Move dynamic point light in an 80% arc sweep around orb center
