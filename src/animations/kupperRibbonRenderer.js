@@ -320,6 +320,7 @@ export class KupperRibbonRenderer {
 
     // 1. Environment Map (Warehouse HDR)
     rgbeLoader.load('/env/warehouse.hdr', (envMap) => {
+      if (!this._scene) return;
       envMap.mapping = THREE.EquirectangularReflectionMapping;
       this._hdrEnvMap = envMap;
       this._scene.environment = envMap;
@@ -483,6 +484,7 @@ export class KupperRibbonRenderer {
    * Handle window resize — recompute camera, renderer, and rebuild geometry
    */
   resize() {
+    if (!this._renderer || !this._camera) return;
     const w = window.innerWidth;
     const h = window.innerHeight;
 

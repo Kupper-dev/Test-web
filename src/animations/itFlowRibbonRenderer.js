@@ -403,8 +403,25 @@ export class ItFlowRibbonRenderer {
   }
 
   _tick() {
-    this._animationFrameId = requestAnimationFrame(this._tick);
+    if (!this._renderer) return;
+
+    if (this._sectionEl && this._group) {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const rect = this._sectionEl.getBoundingClientRect();
+
+      const sectionWebGLX = rect.left - w / 2;
+      const sectionWebGLY = h / 2 - rect.top;
+
+      this._group.position.set(
+        sectionWebGLX + w * 0.08,
+        sectionWebGLY - h * 0.05,
+        -5.0
+      );
+    }
+
     this._renderer.render(this._scene, this._camera);
+    this._animationFrameId = requestAnimationFrame(this._tick);
   }
 
   destroy() {
