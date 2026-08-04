@@ -65,27 +65,27 @@ export class ItFlowRibbonRenderer {
     `;
     document.body.insertBefore(this._canvas, document.body.firstChild);
 
-    // Config parameters with lil-gui safety strings
+    // Config parameters with lil-gui safety strings (Updated from user calibration)
     this.config = {
-      pathTrimStart: 0.12,  // 12% trim (hides start point further right under card)
-      pathTrimEnd: 0.96,    // 4% trim
-      scaleXMultiplier: 1.52, // +15% horizontal width
-      svgCenterX: 390,      // Leftward alignment offset
+      pathTrimStart: 0.12,    // 12% trim
+      pathTrimEnd: 0.96,      // 4% trim
+      scaleXMultiplier: 1.24, // Width scale 1.24x
+      svgCenterX: 393,        // Leftward alignment offset 393
 
-      grooveWidth: 26.0,
-      grooveDepth: 12.0,
-      wallThickness: 2.5,
-      trenchInnerRadius: 8.0,
+      grooveWidth: 37.5,      // Groove Width 37.5
+      grooveDepth: 13.0,      // Groove Depth 13.0
+      wallThickness: 3.0,     // Lip Thickness 3.0
+      trenchInnerRadius: 17.5,// Inner Fillet Radius 17.5
 
-      colorStart: '#5900ff', // Deep Purple
-      colorEnd: '#00d4ff',   // Bright Cyan
-      fresnelColor: '#ade9ff',
+      colorStart: '#4452cf',  // Calibrated Start Color
+      colorEnd: '#009dff',    // Calibrated End Color
+      fresnelColor: '#47ceff',// Calibrated Rim Highlight Color
       
-      roughness: 0.0,
-      metalness: 0.6,
-      bumpScale: 0.05,
-      noiseRepeatX: 15.7,
-      noiseRepeatY: 2.1
+      roughness: 0.4,         // Roughness 0.4
+      metalness: 0.5,         // Metalness 0.5
+      bumpScale: 0.3,         // Noise Bump Scale 0.3
+      noiseRepeatX: 31.5,     // Tiling X 31.5
+      noiseRepeatY: 2.4       // Tiling Y 2.4
     };
 
     this.geomParams = {
