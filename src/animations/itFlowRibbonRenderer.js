@@ -65,7 +65,7 @@ export class ItFlowRibbonRenderer {
     `;
     document.body.insertBefore(this._canvas, document.body.firstChild);
 
-    // Config parameters with lil-gui safety strings (Updated from user calibration)
+    // Config parameters with lil-gui safety strings (Updated from user screenshot)
     this.config = {
       pathTrimStart: 0.12,    // 12% trim
       pathTrimEnd: 0.96,      // 4% trim
@@ -77,20 +77,20 @@ export class ItFlowRibbonRenderer {
       wallThickness: 3.0,     // Lip Thickness 3.0
       trenchInnerRadius: 17.5,// Inner Fillet Radius 17.5
 
-      colorStart: '#4452cf',  // Calibrated Start Color
-      colorEnd: '#009dff',    // Calibrated End Color
-      fresnelColor: '#47ceff',// Calibrated Rim Highlight Color
+      colorStart: '#4d6aff',  // Start Color (Purple / Electric Blue)
+      colorEnd: '#009dff',    // End Color (Cyan)
+      fresnelColor: '#47ceff',// Rim Highlight Color
       
-      roughness: 0.4,         // Roughness 0.4
-      metalness: 0.5,         // Metalness 0.5
-      bumpScale: 0.3,         // Noise Bump Scale 0.3
-      noiseRepeatX: 31.5,     // Tiling X 31.5
-      noiseRepeatY: 2.4,      // Tiling Y 2.4
+      roughness: 0.1,         // Roughness 0.1
+      metalness: 0.55,        // Metalness 0.55
+      bumpScale: 0.12,        // Noise Bump Scale 0.12
+      noiseRepeatX: 10.0,     // Tiling X 10.0
+      noiseRepeatY: 2.6,      // Tiling Y 2.6
 
       // Lighting Control Knobs
-      ambientLightIntensity: 0.9,
-      keyLightIntensity: 7.0,
-      fillLightIntensity: 6.3
+      ambientLightIntensity: 0.4, // Ambient Light 0.4
+      keyLightIntensity: 6.0,     // Key Light 6.0
+      fillLightIntensity: 5.5     // Fill Light 5.5
     };
 
     this.geomParams = {
