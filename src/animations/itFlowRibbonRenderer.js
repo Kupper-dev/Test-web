@@ -494,7 +494,7 @@ export class ItFlowRibbonRenderer {
       uGrainIntensity: { value: 0.24 },
       uGlowPower: { value: 1.5 },
       uGlowIntensity: { value: 2.2 },
-      uOrbScale: { value: 1.9 },
+      uOrbScale: { value: 2.3 },
       uZOffset: { value: 3.0 }
     };
 
@@ -646,7 +646,7 @@ export class ItFlowRibbonRenderer {
         uGlowColorViolet: this._orbUniforms.uGlowColorViolet,
         uSpinAngle: this._orbUniforms.uSpinAngle,
         uSpinAngleCounter: this._orbUniforms.uSpinAngleCounter,
-        uSpriteOpacity: { value: 0.75 }
+        uSpriteOpacity: { value: 0.55 }
       },
       transparent: true,
       depthWrite: false,
@@ -693,13 +693,13 @@ export class ItFlowRibbonRenderer {
 
     const spriteGeo = new THREE.PlaneGeometry(120, 120);
     this._glowSprite = new THREE.Mesh(spriteGeo, this._glowSpriteMaterial);
-    this._glowSprite.scale.set(170 / 120, 170 / 120, 1.0);
+    this._glowSprite.scale.set(140 / 120, 140 / 120, 1.0);
     this._glowSprite.position.set(0, 0, -4.0); // Directly behind orb
     this._glowSprite.visible = false;
     this._sphereMesh.add(this._glowSprite);
 
     // Dynamic Point Light attached to Orb
-    this._orbLight = new THREE.PointLight(0x3399ff, 8.0, 150, 1.5);
+    this._orbLight = new THREE.PointLight(0x3399ff, 15.5, 150, 1.5);
     this._sphereMesh.add(this._orbLight);
   }
 
@@ -908,9 +908,9 @@ export class ItFlowRibbonRenderer {
       violetColor: '#8766ff',
       spinSpeed: 2.5,
       counterSpeedMult: 1.414,
-      trenchLightIntensity: 8.0,
-      glowSpriteSize: 170,
-      glowSpriteOpacity: 0.75
+      trenchLightIntensity: 15.5,
+      glowSpriteSize: 140,
+      glowSpriteOpacity: 0.55
     };
     orbFolder.addColor(orbConfig, 'darkColor').name('Core Dark Color').onChange((v) => {
       if (this._orbUniforms) this._orbUniforms.uCoreColorDark.value.set(v);
@@ -929,7 +929,7 @@ export class ItFlowRibbonRenderer {
     });
 
     if (this._orbUniforms) {
-      this._orbUniforms.uOrbScale.value = 1.9;
+      this._orbUniforms.uOrbScale.value = 2.3;
       this._orbUniforms.uZOffset.value = 3.0;
       this._orbUniforms.uGrainIntensity.value = 0.24;
       this._orbUniforms.uGlowPower.value = 1.5;
