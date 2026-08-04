@@ -520,7 +520,7 @@ export class ItFlowRibbonRenderer {
     this._sphereMesh.visible = false;
     this._group.add(this._sphereMesh);
 
-    // Dedicated Outer Atmosphere Glow Disk/Halo (Additive blending for maximum visibility on light backgrounds)
+    // Dedicated Outer Atmosphere Glow Disk/Halo (Additive blending)
     const haloGeometry = new THREE.SphereGeometry(radius * 1.6, 32, 32);
     this._haloMaterial = new THREE.ShaderMaterial({
       uniforms: this._orbUniforms,
@@ -572,7 +572,55 @@ export class ItFlowRibbonRenderer {
     this._haloMesh.visible = false;
     this._sphereMesh.add(this._haloMesh);
 
-    // Dynamic Point Light attached to Orb (Illuminates carved trench walls as it spins)
+    // Option 1: 2D Sprite Radial Glow Disc (Guaranteed 100% visibility on light background)
+    this._glowSpriteMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        uGlowColor: this._orbUniforms.uGlowColor,
+        uSpinAngle: this._orbUniforms.uSpinAngle,
+        uSpriteOpacity: { value: 0.95 }
+      },
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.NormalBlending, // NormalBlending ensures opacity against white/light backgrounds
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        varying vec2 vUv;
+        uniform vec3 uGlowColor;
+        uniform float uSpinAngle;
+        uniform float uSpriteOpacity;
+
+        void main() {
+          vec2 center = vUv - vec2(0.5);
+          float dist = length(center) * 2.0;
+          if (dist > 1.0) discard;
+
+          // Radial falloff exponential curve
+          float radialGlow = pow(1.0 - dist, 1.8);
+
+          // 80% Siren Angle Mask
+          float posAngle = atan(center.y, center.x);
+          float angleDiff = mod(posAngle - uSpinAngle + 3.14159265, 6.2831853) - 3.14159265;
+          float sirenFactor = smoothstep(1.5, 0.5, abs(angleDiff));
+
+          float finalAlpha = radialGlow * uSpriteOpacity * (0.35 + 0.65 * sirenFactor);
+          gl_FragColor = vec4(uGlowColor, finalAlpha);
+        }
+      `
+    });
+
+    const spriteGeo = new THREE.PlaneGeometry(120, 120);
+    this._glowSprite = new THREE.Mesh(spriteGeo, this._glowSpriteMaterial);
+    this._glowSprite.position.set(0, 0, -4.0); // Directly behind orb
+    this._glowSprite.visible = false;
+    this._sphereMesh.add(this._glowSprite);
+
+    // Dynamic Point Light attached to Orb
     this._orbLight = new THREE.PointLight(0x3399ff, 8.0, 150, 1.5);
     this._sphereMesh.add(this._orbLight);
   }
@@ -605,9 +653,11 @@ export class ItFlowRibbonRenderer {
         this._sphereMesh.position.set(pt.x, pt.y, zOff);
         this._sphereMesh.visible = true;
         if (this._haloMesh) this._haloMesh.visible = true;
+        if (this._glowSprite) this._glowSprite.visible = true;
       } else {
         this._sphereMesh.visible = false;
         if (this._haloMesh) this._haloMesh.visible = false;
+        if (this._glowSprite) this._glowSprite.visible = false;
       }
     }
   }
@@ -707,7 +757,9 @@ export class ItFlowRibbonRenderer {
       lightColor: '#3399ff',
       glowColor: '#88ccff',
       spinSpeed: 2.5,
-      trenchLightIntensity: 8.0
+      trenchLightIntensity: 8.0,
+      glowSpriteSize: 120,
+      glowSpriteOpacity: 0.95
     };
     orbFolder.addColor(orbConfig, 'darkColor').name('Core Dark Color').onChange((v) => {
       if (this._orbUniforms) this._orbUniforms.uCoreColorDark.value.set(v);
@@ -729,6 +781,12 @@ export class ItFlowRibbonRenderer {
 
     orbFolder.add(this._orbUniforms.uOrbScale, 'value', 0.5, 4.0, 0.05).name('Orb Size (Scale)');
     orbFolder.add(this._orbUniforms.uZOffset, 'value', -20.0, 10.0, 0.5).name('Trench Z Depth Offset');
+    orbFolder.add(orbConfig, 'glowSpriteSize', 40, 300, 5).name('Outer Glow Size (2D Disc)').onChange((v) => {
+      if (this._glowSprite) this._glowSprite.scale.set(v / 120, v / 120, 1.0);
+    });
+    orbFolder.add(orbConfig, 'glowSpriteOpacity', 0.0, 1.0, 0.05).name('Outer Glow Visibility (Opacity)').onChange((v) => {
+      if (this._glowSpriteMaterial) this._glowSpriteMaterial.uniforms.uSpriteOpacity.value = v;
+    });
     orbFolder.add(orbConfig, 'spinSpeed', 0.0, 10.0, 0.2).name('Siren Spin Speed').onChange((v) => {
       this._spinSpeed = v;
     });
