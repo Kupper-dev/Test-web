@@ -437,7 +437,7 @@ export class ItFlowRibbonRenderer {
   }
 
   _buildSphere() {
-    const radius = 10.0;
+    const radius = 18.75; // Matches grooveWidth (37.5 / 2 = 18.75)
     const geometry = new THREE.SphereGeometry(radius, 48, 48);
 
     this._orbUniforms = {
@@ -446,14 +446,15 @@ export class ItFlowRibbonRenderer {
       uCoreColorLight: { value: new THREE.Color('#3399ff') },  // Bright Electric Cyan Blue
       uGlowColor: { value: new THREE.Color('#88ccff') },       // Outer Soft Halo
       uGrainIntensity: { value: 0.25 },
-      uGlowPower: { value: 2.2 },
-      uGlowIntensity: { value: 1.5 }
+      uGlowPower: { value: 1.8 },
+      uGlowIntensity: { value: 2.0 }
     };
 
     this._sphereMaterial = new THREE.ShaderMaterial({
       uniforms: this._orbUniforms,
       transparent: true,
-      depthWrite: true,
+      blending: THREE.AdditiveBlending, // Soft additive halo blending with trench material
+      depthWrite: false,
       side: THREE.DoubleSide,
       vertexShader: `
         varying vec3 vNormal;
@@ -494,11 +495,11 @@ export class ItFlowRibbonRenderer {
           vec3 norm = normalize(vNormal);
 
           // Diagonal 3D Noise Grain Gradient
-          float gradPos = clamp((vPosition.x + vPosition.y + vPosition.z) / 20.0 + 0.5, 0.0, 1.0);
+          float gradPos = clamp((vPosition.x + vPosition.y + vPosition.z) / 30.0 + 0.5, 0.0, 1.0);
           vec3 coreColor = mix(uCoreColorDark, uCoreColorLight, gradPos);
 
           // Add fine organic grain
-          float grain = (rand(vUv * 50.0 + uTime * 0.05) - 0.5) * uGrainIntensity;
+          float grain = (rand(vUv * 60.0 + uTime * 0.05) - 0.5) * uGrainIntensity;
           coreColor = clamp(coreColor + vec3(grain), 0.0, 1.0);
 
           // Soft Atmospheric Rim Glow (Fresnel)
@@ -506,9 +507,9 @@ export class ItFlowRibbonRenderer {
           float halo = pow(fresnel, uGlowPower) * uGlowIntensity;
 
           vec3 finalColor = mix(coreColor, uGlowColor, clamp(halo, 0.0, 1.0));
-          finalColor += uGlowColor * halo * 0.6;
+          finalColor += uGlowColor * halo * 0.8;
 
-          gl_FragColor = vec4(finalColor, 1.0);
+          gl_FragColor = vec4(finalColor, 0.95);
         }
       `
     });
@@ -667,8 +668,15 @@ export class ItFlowRibbonRenderer {
   _tick(time) {
     if (!this._renderer) return;
 
+    const t = (time || performance.now()) * 0.001;
     if (this._orbUniforms) {
-      this._orbUniforms.uTime.value = (time || performance.now()) * 0.001;
+      this._orbUniforms.uTime.value = t;
+    }
+
+    // Rotate glowing orb on its own Z & Y axis continuously as it rolls
+    if (this._sphereMesh) {
+      this._sphereMesh.rotation.z = t * 0.8;
+      this._sphereMesh.rotation.y = t * 0.5;
     }
 
     const cardsEl = this._cardsEl || (this._sectionEl ? this._sectionEl.querySelector('.it-flow-cards') : null);

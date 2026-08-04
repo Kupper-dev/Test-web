@@ -21,7 +21,10 @@ export function ItFlowSection() {
 
       const rect = container.getBoundingClientRect();
       const vh = window.innerHeight;
-      let progress = (vh - rect.top) / (vh + rect.height);
+      
+      // Calculate scroll progress so orb locks to vertical center of viewport (vh / 2)
+      const viewportCenter = vh / 2;
+      let progress = (viewportCenter - rect.top) / rect.height;
       progress = Math.max(0, Math.min(1, progress));
 
       if (rendererInstance) {
