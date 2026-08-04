@@ -7,26 +7,46 @@
 import * as THREE from 'three';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 
+// Exact Bezier curve segments extracted from itSignalPath2 SVG d-attribute:
+// d="m 33,85h 444c 96,0 190,107 190,201v 224c 0,116 -98,188 -190,187l -192,-2c -92,0 -166,75 -166,168v 278c 0,94 74,169 166,169h 194c 92,0 188,94 188,188v 228c 0,94 -104,191 -214,191H 105"
 const SVG_SEGMENTS = [
-  { p0: [33, 85], cp1: [477, 85], cp2: [667, 192], p1: [667, 286] },
-  { p0: [667, 286], cp1: [667, 510], cp2: [569, 582], p1: [477, 581] },
-  { p0: [477, 581], cp1: [285, 579], cp2: [119, 654], p1: [119, 747] },
-  { p0: [119, 747], cp1: [119, 1025], cp2: [193, 1194], p1: [285, 1194] },
-  { p0: [285, 1194], cp1: [479, 1194], cp2: [667, 1288], p1: [667, 1382] },
-  { p0: [667, 1382], cp1: [667, 1610], cp2: [563, 1707], p1: [453, 1707] },
-  { p0: [453, 1707], cp1: [239, 1707], cp2: [105, 1707], p1: [105, 1707] }
+  // 1. m 33,85 h 444
+  { p0: [33, 85], cp1: [181, 85], cp2: [329, 85], p1: [477, 85] },
+  // 2. c 96,0 190,107 190,201
+  { p0: [477, 85], cp1: [573, 85], cp2: [667, 192], p1: [667, 286] },
+  // 3. v 224
+  { p0: [667, 286], cp1: [667, 360], cp2: [667, 435], p1: [667, 510] },
+  // 4. c 0,116 -98,188 -190,187
+  { p0: [667, 510], cp1: [667, 626], cp2: [569, 698], p1: [477, 697] },
+  // 5. l -192,-2
+  { p0: [477, 697], cp1: [413, 696.33], cp2: [349, 695.67], p1: [285, 695] },
+  // 6. c -92,0 -166,75 -166,168
+  { p0: [285, 695], cp1: [193, 695], cp2: [119, 770], p1: [119, 863] },
+  // 7. v 278
+  { p0: [119, 863], cp1: [119, 955.67], cp2: [119, 1048.33], p1: [119, 1141] },
+  // 8. c 0,94 74,169 166,169
+  { p0: [119, 1141], cp1: [119, 1235], cp2: [193, 1310], p1: [285, 1310] },
+  // 9. h 194
+  { p0: [285, 1310], cp1: [349.67, 1310], cp2: [414.33, 1310], p1: [479, 1310] },
+  // 10. c 92,0 188,94 188,188
+  { p0: [479, 1310], cp1: [571, 1310], cp2: [667, 1404], p1: [667, 1498] },
+  // 11. v 228
+  { p0: [667, 1498], cp1: [667, 1574], cp2: [667, 1650], p1: [667, 1726] },
+  // 12. c 0,94 -104,191 -214,191
+  { p0: [667, 1726], cp1: [667, 1820], cp2: [563, 1917], p1: [453, 1917] },
+  // 13. H 105
+  { p0: [453, 1917], cp1: [337, 1917], cp2: [221, 1917], p1: [105, 1917] }
 ];
 
-const SVG_MAT_SCALE = 0.575343;
-const SVG_TX = -1.37604;
-const SVG_TY = 282.597;
-const SVG_VIEWBOX_W = 1920;
+const SVG_VIEWBOX_W = 740;
+const SVG_VIEWBOX_H = 2000;
 const PATH_SAMPLES = 600;
 const FOV = 45;
 
 export class ItFlowRibbonRenderer {
   constructor(sectionEl) {
     this._sectionEl = sectionEl;
+    this._cardsEl = sectionEl ? sectionEl.querySelector('.it-flow-cards') : null;
     this._progress = 0;
     this._animationFrameId = null;
 
@@ -113,14 +133,22 @@ export class ItFlowRibbonRenderer {
   }
 
   _mapSvgPoint(svgX, svgY) {
-    const w = window.innerWidth;
-    const xTransformed = svgX * SVG_MAT_SCALE + SVG_TX;
-    const yTransformed = svgY * SVG_MAT_SCALE + SVG_TY;
-    const scale = w / SVG_VIEWBOX_W;
+    const cardsEl = this._cardsEl || (this._sectionEl ? this._sectionEl.querySelector('.it-flow-cards') : null);
+    let cardsW = 740;
+    let cardsH = 2000;
+
+    if (cardsEl) {
+      const rect = cardsEl.getBoundingClientRect();
+      cardsW = Math.max(rect.width, 740);
+      cardsH = rect.height > 0 ? rect.height : 2000;
+    }
+
+    const scaleX = cardsW / SVG_VIEWBOX_W;
+    const scaleY = cardsH / SVG_VIEWBOX_H;
 
     return new THREE.Vector3(
-      xTransformed * scale,
-      -yTransformed * scale,
+      (svgX - SVG_VIEWBOX_W / 2) * scaleX,
+      (SVG_VIEWBOX_H / 2 - svgY) * scaleY,
       0
     );
   }
@@ -405,17 +433,19 @@ export class ItFlowRibbonRenderer {
   _tick() {
     if (!this._renderer) return;
 
-    if (this._sectionEl && this._group) {
+    const cardsEl = this._cardsEl || (this._sectionEl ? this._sectionEl.querySelector('.it-flow-cards') : null);
+    if (cardsEl && this._group) {
       const w = window.innerWidth;
       const h = window.innerHeight;
-      const rect = this._sectionEl.getBoundingClientRect();
+      const rect = cardsEl.getBoundingClientRect();
 
-      const sectionWebGLX = rect.left - w / 2;
-      const sectionWebGLY = h / 2 - rect.top;
+      // Position center of WebGL group directly at center top of .it-flow-cards
+      const cardsCenterX = rect.left + rect.width / 2 - w / 2;
+      const cardsCenterY = h / 2 - (rect.top + rect.height / 2);
 
       this._group.position.set(
-        sectionWebGLX + w * 0.08,
-        sectionWebGLY - h * 0.05,
+        cardsCenterX,
+        cardsCenterY,
         -5.0
       );
     }
