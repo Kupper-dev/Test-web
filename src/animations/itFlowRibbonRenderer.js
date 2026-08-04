@@ -369,7 +369,9 @@ export class ItFlowRibbonRenderer {
       uFresnelColor: { value: new THREE.Color(this.config.fresnelColor) },
       uNoiseGrainContrast: { value: this.config.noiseGrainContrast || 0.85 },
       uNoiseScale: { value: this.config.noiseScale || 0.008 },
-      uOrbPosition: { value: new THREE.Vector3(0, 0, -1000) } // Active orb world position
+      uScrollProgress: { value: 0.0 },
+      uScrollSpeed: { value: 0.0 },
+      uTrailIntensity: { value: 1.8 }
     };
 
     this._ribbonMaterial = new THREE.MeshStandardMaterial({
@@ -406,7 +408,9 @@ export class ItFlowRibbonRenderer {
         uniform vec3 uFresnelColor;
         uniform float uNoiseGrainContrast;
         uniform float uNoiseScale;
-        uniform vec3 uOrbPosition;
+        uniform float uScrollProgress;
+        uniform float uScrollSpeed;
+        uniform float uTrailIntensity;
       ` + shader.fragmentShader;
 
       shader.fragmentShader = shader.fragmentShader.replace(
@@ -418,7 +422,7 @@ export class ItFlowRibbonRenderer {
 
         diffuseColor.rgb = gradColor;
 
-        // World-Space Granite Noise Sampling with Dynamic Scale
+        // World-Space Granite Noise Sampling
         #ifdef USE_MAP
           vec2 worldUv = vWorldPos.xy * uNoiseScale;
           vec4 texColor = texture2D(map, worldUv);
@@ -435,27 +439,35 @@ export class ItFlowRibbonRenderer {
           diffuseColor.rgb = clamp(diffuseColor.rgb, 0.0, 1.0);
         #endif
 
-        // Perfect Synchronized Orb Light & AO Cancellation directly under orb
-        float distToOrb = length(vWorldPos.xy - uOrbPosition.xy);
-        float orbLightProximity = smoothstep(65.0, 5.0, distToOrb);
-
-        // Cancel trench depth shadow under orb
+        // Soft Trench Depth Ambient Shadowing
         float baseTrenchAO = clamp((vWorldPos.z + 13.0) / 13.0, 0.5, 1.0);
-        float activeTrenchAO = mix(baseTrenchAO, 1.0, orbLightProximity);
-        diffuseColor.rgb *= activeTrenchAO;
+        diffuseColor.rgb *= baseTrenchAO;
 
-        // Smooth Orb Color Gradient Pool (#99f0ff -> #3d64ff -> #8766ff)
-        vec3 colPaleCyan = vec3(0.600, 0.941, 1.000);   // #99f0ff
-        vec3 colElectricBlue = vec3(0.239, 0.392, 1.000); // #3d64ff
-        vec3 colViolet = vec3(0.529, 0.400, 1.000);       // #8766ff
+        // Option A: Dynamic Lenis Scroll Velocity Light Ribbon Trail
+        // Calculates distance along curve behind current scroll playhead
+        float trailLength = 0.08 + clamp(abs(uScrollSpeed) * 0.02, 0.0, 0.18);
+        float deltaPos = uScrollProgress - vPathProgress;
+        
+        // Direction-aware trailing distance
+        float trailDist = uScrollSpeed >= 0.0 ? deltaPos : -deltaPos;
 
-        // Interpolate gradient across orb light pool
-        float gradT = clamp((vWorldPos.x - uOrbPosition.x) / 45.0 + 0.5, 0.0, 1.0);
-        vec3 orbGlowGrad = mix(colPaleCyan, colElectricBlue, smoothstep(0.0, 0.5, gradT));
-        orbGlowGrad = mix(orbGlowGrad, colViolet, smoothstep(0.5, 1.0, gradT));
+        if (trailDist > 0.0 && trailDist < trailLength && abs(uScrollSpeed) > 0.02) {
+          float trailMask = pow(1.0 - (trailDist / trailLength), 1.6);
+          float activeSpeedGlow = clamp(abs(uScrollSpeed) * 0.6, 0.2, 1.0);
 
-        // Blend vibrant orb color light pool into the carved stone surface
-        diffuseColor.rgb = mix(diffuseColor.rgb, clamp(diffuseColor.rgb + orbGlowGrad * 0.45, 0.0, 1.0), orbLightProximity * 0.85);
+          // Tri-Color Glowing Trail Gradient (#99f0ff -> #3d64ff -> #8766ff)
+          vec3 colPaleCyan = vec3(0.600, 0.941, 1.000);   // #99f0ff
+          vec3 colElectricBlue = vec3(0.239, 0.392, 1.000); // #3d64ff
+          vec3 colViolet = vec3(0.529, 0.400, 1.000);       // #8766ff
+
+          float tColor = trailDist / trailLength;
+          vec3 trailColor = mix(colPaleCyan, colElectricBlue, smoothstep(0.0, 0.5, tColor));
+          trailColor = mix(trailColor, colViolet, smoothstep(0.5, 1.0, tColor));
+
+          float finalTrailGlow = trailMask * activeSpeedGlow * uTrailIntensity;
+          diffuseColor.rgb = mix(diffuseColor.rgb, trailColor, clamp(finalTrailGlow, 0.0, 0.95));
+          diffuseColor.rgb += trailColor * finalTrailGlow * 0.4;
+        }
         `
       );
     };
@@ -695,8 +707,19 @@ export class ItFlowRibbonRenderer {
   }
 
   setScrollProgress(progress) {
+    const prevProgress = this._progress || 0;
     this._progress = Math.max(0, Math.min(1, progress));
     
+    // Calculate live scroll velocity (delta progress)
+    const velocity = (this._progress - prevProgress) * 100.0;
+    this._currentVelocity = (this._currentVelocity || 0) * 0.4 + velocity * 0.6;
+
+    // Sync shader uniforms
+    if (this._gradientUniforms) {
+      this._gradientUniforms.uScrollProgress.value = this._progress;
+      this._gradientUniforms.uScrollSpeed.value = this._currentVelocity;
+    }
+
     // Groove track is always 100% drawn/visible (no self-drawing stroke animation)
     if (this._ribbonGeometry) {
       this._ribbonGeometry.setDrawRange(0, this._totalIndexCount);
@@ -715,18 +738,16 @@ export class ItFlowRibbonRenderer {
         this._sphereMesh.visible = true;
         if (this._haloMesh) this._haloMesh.visible = true;
         if (this._glowSprite) this._glowSprite.visible = true;
-        if (this._gradientUniforms && this._gradientUniforms.uOrbPosition) {
-          this._gradientUniforms.uOrbPosition.value.copy(this._sphereMesh.position);
-        }
       } else {
         this._sphereMesh.visible = false;
         if (this._haloMesh) this._haloMesh.visible = false;
         if (this._glowSprite) this._glowSprite.visible = false;
-        if (this._gradientUniforms && this._gradientUniforms.uOrbPosition) {
-          this._gradientUniforms.uOrbPosition.value.set(0, 0, -1000);
-        }
       }
     }
+  }
+
+  setScrollVelocity(velocity) {
+    this._currentVelocity = velocity;
   }
 
   resize() {
@@ -925,6 +946,7 @@ export class ItFlowRibbonRenderer {
     orbFolder.add(orbConfig, 'trenchLightIntensity', 0.0, 25.0, 0.5).name('Trench Light Intensity').onChange((v) => {
       if (this._orbLight) this._orbLight.intensity = v;
     });
+    orbFolder.add(this._gradientUniforms.uTrailIntensity, 'value', 0.0, 5.0, 0.1).name('Speed Trail Glow Intensity');
     orbFolder.add(this._orbUniforms.uGrainIntensity, 'value', 0.0, 1.0, 0.02).name('Orb Grain Intensity');
     orbFolder.add(this._orbUniforms.uGlowPower, 'value', 0.5, 6.0, 0.1).name('Glow Falloff Power');
     orbFolder.add(this._orbUniforms.uGlowIntensity, 'value', 0.0, 4.0, 0.1).name('Glow Brightness');
@@ -954,18 +976,18 @@ export class ItFlowRibbonRenderer {
     const organicWave = Math.sin(t * 0.7) * 0.4;
     const counterSpin = -t * speed * counterMult + organicWave;
 
+    // Smooth decay of scroll velocity when scrolling stops
+    this._currentVelocity = (this._currentVelocity || 0) * 0.88;
+    if (Math.abs(this._currentVelocity) < 0.001) this._currentVelocity = 0;
+
+    if (this._gradientUniforms) {
+      this._gradientUniforms.uScrollSpeed.value = this._currentVelocity;
+    }
+
     if (this._orbUniforms) {
       this._orbUniforms.uTime.value = t;
       this._orbUniforms.uSpinAngle.value = currentSpin;
       this._orbUniforms.uSpinAngleCounter.value = counterSpin;
-    }
-
-    if (this._sphereMesh && this._gradientUniforms && this._gradientUniforms.uOrbPosition) {
-      if (this._sphereMesh.visible) {
-        this._gradientUniforms.uOrbPosition.value.copy(this._sphereMesh.position);
-      } else {
-        this._gradientUniforms.uOrbPosition.value.set(0, 0, -1000);
-      }
     }
 
     // Move dynamic point light in an 80% arc sweep around orb center
