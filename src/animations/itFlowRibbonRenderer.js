@@ -66,7 +66,7 @@ export class ItFlowRibbonRenderer {
 
     // ─── Path Trimming & Alignment Controls ─────────────────────────────────────
     // Trim path start/end so ends hide cleanly under cards (range 0.0 to 1.0)
-    this.PATH_TRIM_START = 0.04; // 4% trim from start (moves start rightward behind card)
+    this.PATH_TRIM_START = 0.08; // 8% trim from start (moves start further rightward behind card)
     this.PATH_TRIM_END = 0.96;   // 4% trim from end (ends path earlier before card edge)
     this.SCALE_X_MULTIPLIER = 1.52; // 1.32 * 1.15 (+15% wider horizontally)
     this.SVG_CENTER_X = 390;        // Path horizontal center offset (higher = moves path LEFT)

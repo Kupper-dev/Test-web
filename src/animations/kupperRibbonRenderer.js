@@ -323,12 +323,8 @@ export class KupperRibbonRenderer {
       if (!this._scene) return;
       envMap.mapping = THREE.EquirectangularReflectionMapping;
       this._hdrEnvMap = envMap;
-      this._scene.environment = envMap;
-      if (this._ribbonMaterial) {
-        this._ribbonMaterial.envMap = envMap;
-        this._ribbonMaterial.envMapIntensity = 1.0;
-        this._ribbonMaterial.needsUpdate = true;
-      }
+      // Guardrail: DO NOT set this._scene.environment or this._ribbonMaterial.envMap
+      // to protect Hero Ribbon from HDRI specular glare hot-spots.
     });
 
     // 2. Texture Maps
