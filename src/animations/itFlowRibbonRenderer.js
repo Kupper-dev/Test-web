@@ -331,25 +331,12 @@ export class ItFlowRibbonRenderer {
       }
     });
 
-    const presetFiles = {
-      'Granite Noise': '/textures/noise.webp',
-      'Light Noise': '/textures/noise-light.webp',
-      'Marble Grain': '/textures/marble.webp',
-      'Brushed Steel': '/textures/steel-normal.webp',
-      'Frosted Glass': '/textures/frosted-normal.webp'
-    };
-
     const loader = new THREE.TextureLoader();
-    Object.entries(presetFiles).forEach(([name, path]) => {
-      loader.load(path, (tex) => {
-        tex.wrapS = THREE.RepeatWrapping;
-        tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(this.config.noiseRepeatX, this.config.noiseRepeatY);
-        this._textures[name] = tex;
-        if (name === this.config.texturePreset) {
-          this._applyTexture(tex);
-        }
-      });
+    loader.load('/textures/noise.webp', (tex) => {
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      this._textures['Granite Noise'] = tex;
+      this._applyTexture(tex);
     });
   }
 
@@ -898,82 +885,41 @@ export class ItFlowRibbonRenderer {
       }
     });
 
-    // 5. Lighting Folder
-    const lightFolder = this._gui.addFolder('Scene Lighting');
-    lightFolder.add(this.config, 'ambientLightIntensity', 0.0, 3.0, 0.1).name('Ambient Light').onChange((v) => {
-      if (this._ambientLight) this._ambientLight.intensity = v;
-    });
-    lightFolder.add(this.config, 'keyLightIntensity', 0.0, 15.0, 0.5).name('Key Light').onChange((v) => {
-      if (this._keyLight) this._keyLight.intensity = v;
-    });
-    lightFolder.add(this.config, 'fillLightIntensity', 0.0, 15.0, 0.5).name('Fill Light').onChange((v) => {
-      if (this._fillLight) this._fillLight.intensity = v;
-    });
-    lightFolder.addColor(this.config, 'fillLightColor').name('Fill Light Tint (Shadows)').onChange((v) => {
-      if (this._fillLight) this._fillLight.color.set(v);
-    });
-
-    // 6. Glowing Orb Controls Folder
-    const orbFolder = this._gui.addFolder('Glowing Grain Orb');
-    const orbConfig = {
-      darkColor: '#0024b3',
-      lightColor: '#339cff',
-      glowColor: '#3d64ff',
-      secondaryColor: '#99f0ff',
-      violetColor: '#8766ff',
-      spinSpeed: 2.5,
-      counterSpeedMult: 1.414,
-      trenchLightIntensity: 15.5,
-      glowSpriteSize: 140,
-      glowSpriteOpacity: 0.55
+    // 7. Performance & Feature Testing Toggles
+    const perfFolder = this._gui.addFolder('⚡ Performance & Feature Toggles');
+    const perfConfig = {
+      enablePointLight: true,
+      enableHaloMesh: false,
+      enableSpriteGlow: true,
+      enableSpeedTrail: true,
+      enableGraniteNoise: true,
+      enableHDRReflection: true
     };
-    orbFolder.addColor(orbConfig, 'darkColor').name('Core Dark Color').onChange((v) => {
-      if (this._orbUniforms) this._orbUniforms.uCoreColorDark.value.set(v);
-    });
-    orbFolder.addColor(orbConfig, 'lightColor').name('Core Light Color').onChange((v) => {
-      if (this._orbUniforms) this._orbUniforms.uCoreColorLight.value.set(v);
-    });
-    orbFolder.addColor(orbConfig, 'glowColor').name('Primary Cyan Glow').onChange((v) => {
-      if (this._orbUniforms) this._orbUniforms.uGlowColor.value.set(v);
-    });
-    orbFolder.addColor(orbConfig, 'secondaryColor').name('20% Gap Royal Blue').onChange((v) => {
-      if (this._orbUniforms) this._orbUniforms.uGlowColorSecondary.value.set(v);
-    });
-    orbFolder.addColor(orbConfig, 'violetColor').name('Counter-Spin Violet').onChange((v) => {
-      if (this._orbUniforms) this._orbUniforms.uGlowColorViolet.value.set(v);
-    });
 
-    if (this._orbUniforms) {
-      this._orbUniforms.uOrbScale.value = 2.3;
-      this._orbUniforms.uZOffset.value = 3.0;
-      this._orbUniforms.uGrainIntensity.value = 0.24;
-      this._orbUniforms.uGlowPower.value = 1.5;
-      this._orbUniforms.uGlowIntensity.value = 2.2;
-    }
-
-    orbFolder.add(this._orbUniforms.uOrbScale, 'value', 0.5, 4.0, 0.05).name('Orb Size (Scale)');
-    orbFolder.add(this._orbUniforms.uZOffset, 'value', -20.0, 10.0, 0.5).name('Trench Z Depth Offset');
-    orbFolder.add(orbConfig, 'glowSpriteSize', 40, 300, 5).name('Outer Glow Size (2D Disc)').onChange((v) => {
-      if (this._glowSprite) this._glowSprite.scale.set(v / 120, v / 120, 1.0);
+    perfFolder.add(perfConfig, 'enablePointLight').name('3D Point Light (Trench Glow)').onChange((enabled) => {
+      if (this._orbLight) this._orbLight.visible = enabled;
     });
-    orbFolder.add(orbConfig, 'glowSpriteOpacity', 0.0, 1.0, 0.05).name('Outer Glow Visibility (Opacity)').onChange((v) => {
-      if (this._glowSpriteMaterial) this._glowSpriteMaterial.uniforms.uSpriteOpacity.value = v;
+    perfFolder.add(perfConfig, 'enableHaloMesh').name('3D Outer Atmosphere Halo').onChange((enabled) => {
+      if (this._haloMesh) this._haloMesh.visible = enabled;
     });
-    orbFolder.add(orbConfig, 'spinSpeed', 0.0, 10.0, 0.2).name('Primary Siren Speed').onChange((v) => {
-      this._spinSpeed = v;
+    perfFolder.add(perfConfig, 'enableSpriteGlow').name('2D Radial Disc Outer Glow').onChange((enabled) => {
+      if (this._glowSprite) this._glowSprite.visible = enabled;
     });
-    orbFolder.add(orbConfig, 'counterSpeedMult', 0.2, 5.0, 0.1).name('Counter-Spin Speed Ratio').onChange((v) => {
-      this._counterSpeedMult = v;
+    perfFolder.add(perfConfig, 'enableSpeedTrail').name('Scroll Speed Light Ribbon').onChange((enabled) => {
+      if (this._gradientUniforms) this._gradientUniforms.uTrailIntensity.value = enabled ? 1.8 : 0.0;
     });
-    orbFolder.add(orbConfig, 'trenchLightIntensity', 0.0, 25.0, 0.5).name('Trench Light Intensity').onChange((v) => {
-      if (this._orbLight) this._orbLight.intensity = v;
+    perfFolder.add(perfConfig, 'enableGraniteNoise').name('Stone Granite Grain Texture').onChange((enabled) => {
+      if (this._ribbonMaterial) {
+        this._ribbonMaterial.map = enabled ? this._textures['Granite Noise'] : null;
+        this._ribbonMaterial.needsUpdate = true;
+      }
     });
-    orbFolder.add(this._gradientUniforms.uTrailIntensity, 'value', 0.0, 5.0, 0.1).name('Speed Trail Glow Intensity');
-    orbFolder.add(this._orbUniforms.uGrainIntensity, 'value', 0.0, 1.0, 0.02).name('Orb Grain Intensity');
-    orbFolder.add(this._orbUniforms.uGlowPower, 'value', 0.5, 6.0, 0.1).name('Glow Falloff Power');
-    orbFolder.add(this._orbUniforms.uGlowIntensity, 'value', 0.0, 4.0, 0.1).name('Glow Brightness');
-    this._spinSpeed = orbConfig.spinSpeed;
-    this._counterSpeedMult = orbConfig.counterSpeedMult;
+    perfFolder.add(perfConfig, 'enableHDRReflection').name('Warehouse HDR Reflections').onChange((enabled) => {
+      if (this._sphereMaterial) {
+        this._sphereMaterial.envMap = enabled ? this._hdrEnvMap : null;
+        this._sphereMaterial.needsUpdate = true;
+      }
+    });
   }
 
   _rebuildAll() {
