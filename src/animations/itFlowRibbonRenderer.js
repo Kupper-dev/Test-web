@@ -443,30 +443,33 @@ export class ItFlowRibbonRenderer {
         float baseTrenchAO = clamp((vWorldPos.z + 13.0) / 13.0, 0.5, 1.0);
         diffuseColor.rgb *= baseTrenchAO;
 
-        // Option A: Dynamic Lenis Scroll Velocity Light Ribbon Trail
-        // Calculates distance along curve behind current scroll playhead
-        float trailLength = 0.08 + clamp(abs(uScrollSpeed) * 0.02, 0.0, 0.18);
+        // Dynamic Scroll Light Ribbon Trail with Organic Ease-In and Ease-Out
+        float speedMagnitude = abs(uScrollSpeed);
+        // Ease-In Base Glow: baseline ambient glow (0.15) even at slow speed, ramping smoothly to 1.0
+        float speedGlowEase = mix(0.15, 1.0, smoothstep(0.0, 1.2, speedMagnitude));
+        
+        float trailLength = 0.06 + clamp(speedMagnitude * 0.025, 0.0, 0.22);
         float deltaPos = uScrollProgress - vPathProgress;
         
         // Direction-aware trailing distance
         float trailDist = uScrollSpeed >= 0.0 ? deltaPos : -deltaPos;
 
-        if (trailDist > 0.0 && trailDist < trailLength && abs(uScrollSpeed) > 0.02) {
-          float trailMask = pow(1.0 - (trailDist / trailLength), 1.6);
-          float activeSpeedGlow = clamp(abs(uScrollSpeed) * 0.6, 0.2, 1.0);
+        if (trailDist > 0.0 && trailDist < trailLength) {
+          // Smooth Hermite smoothstep ease-out for trail head and tail fading
+          float normalizedDist = trailDist / trailLength;
+          float trailMask = smoothstep(1.0, 0.0, normalizedDist) * smoothstep(0.0, 0.15, normalizedDist);
 
           // Tri-Color Glowing Trail Gradient (#99f0ff -> #3d64ff -> #8766ff)
           vec3 colPaleCyan = vec3(0.600, 0.941, 1.000);   // #99f0ff
           vec3 colElectricBlue = vec3(0.239, 0.392, 1.000); // #3d64ff
           vec3 colViolet = vec3(0.529, 0.400, 1.000);       // #8766ff
 
-          float tColor = trailDist / trailLength;
-          vec3 trailColor = mix(colPaleCyan, colElectricBlue, smoothstep(0.0, 0.5, tColor));
-          trailColor = mix(trailColor, colViolet, smoothstep(0.5, 1.0, tColor));
+          vec3 trailColor = mix(colPaleCyan, colElectricBlue, smoothstep(0.0, 0.5, normalizedDist));
+          trailColor = mix(trailColor, colViolet, smoothstep(0.5, 1.0, normalizedDist));
 
-          float finalTrailGlow = trailMask * activeSpeedGlow * uTrailIntensity;
+          float finalTrailGlow = trailMask * speedGlowEase * uTrailIntensity;
           diffuseColor.rgb = mix(diffuseColor.rgb, trailColor, clamp(finalTrailGlow, 0.0, 0.95));
-          diffuseColor.rgb += trailColor * finalTrailGlow * 0.4;
+          diffuseColor.rgb += trailColor * finalTrailGlow * 0.45;
         }
         `
       );
@@ -976,8 +979,8 @@ export class ItFlowRibbonRenderer {
     const organicWave = Math.sin(t * 0.7) * 0.4;
     const counterSpin = -t * speed * counterMult + organicWave;
 
-    // Smooth decay of scroll velocity when scrolling stops
-    this._currentVelocity = (this._currentVelocity || 0) * 0.88;
+    // Smooth liquid decay of scroll velocity when scrolling stops
+    this._currentVelocity = (this._currentVelocity || 0) * 0.945;
     if (Math.abs(this._currentVelocity) < 0.001) this._currentVelocity = 0;
 
     if (this._gradientUniforms) {
