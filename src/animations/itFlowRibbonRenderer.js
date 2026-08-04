@@ -702,6 +702,67 @@ export class ItFlowRibbonRenderer {
   _setupGUI() {
     this._gui = new GUI({ title: 'IT Flow Carved Groove Controls' });
 
+    // Quick Preset Copy Helper Button
+    const presetExporter = {
+      copyPresetValues: () => {
+        const fullPreset = {
+          // 1. Path Alignment & Geometry
+          pathTrimStart: this.config.pathTrimStart,
+          pathTrimEnd: this.config.pathTrimEnd,
+          scaleXMultiplier: this.config.scaleXMultiplier,
+          svgCenterX: this.config.svgCenterX,
+          grooveWidth: this.config.grooveWidth,
+          grooveDepth: this.config.grooveDepth,
+          wallThickness: this.config.wallThickness,
+          trenchInnerRadius: this.config.trenchInnerRadius,
+
+          // 2. Shading & Texture
+          colorStart: this.config.colorStart,
+          colorEnd: this.config.colorEnd,
+          fresnelColor: this.config.fresnelColor,
+          roughness: this.config.roughness,
+          metalness: this.config.metalness,
+          texturePreset: this.config.texturePreset,
+          bumpScale: this.config.bumpScale,
+
+          // 3. Lighting
+          ambientLightIntensity: this.config.ambientLightIntensity,
+          keyLightIntensity: this.config.keyLightIntensity,
+          fillLightIntensity: this.config.fillLightIntensity,
+          fillLightColor: this.config.fillLightColor,
+
+          // 4. Glowing Orb Settings
+          orbScale: this._orbUniforms ? this._orbUniforms.uOrbScale.value : 2.3,
+          trenchZOffset: this._orbUniforms ? this._orbUniforms.uZOffset.value : 3.0,
+          orbGrainIntensity: this._orbUniforms ? this._orbUniforms.uGrainIntensity.value : 0.16,
+          glowFalloffPower: this._orbUniforms ? this._orbUniforms.uGlowPower.value : 2.1,
+          glowBrightness: this._orbUniforms ? this._orbUniforms.uGlowIntensity.value : 1.4,
+          glowSpriteSize: this._glowSprite ? this._glowSprite.scale.x * 120 : 120,
+          glowSpriteOpacity: this._glowSpriteMaterial ? this._glowSpriteMaterial.uniforms.uSpriteOpacity.value : 0.95,
+          spinSpeed: this._spinSpeed !== undefined ? this._spinSpeed : 2.5,
+          counterSpeedMult: this._counterSpeedMult !== undefined ? this._counterSpeedMult : 1.414,
+          trenchLightIntensity: this._orbLight ? this._orbLight.intensity : 8.0,
+
+          // 5. Colors
+          coreDarkColor: '#' + this._orbUniforms.uCoreColorDark.value.getHexString(),
+          coreLightColor: '#' + this._orbUniforms.uCoreColorLight.value.getHexString(),
+          primaryCyanGlow: '#' + this._orbUniforms.uGlowColor.value.getHexString(),
+          gapRoyalBlue: '#' + this._orbUniforms.uGlowColorSecondary.value.getHexString(),
+          counterSpinViolet: '#' + this._orbUniforms.uGlowColorViolet.value.getHexString()
+        };
+
+        const jsonStr = JSON.stringify(fullPreset, null, 2);
+        navigator.clipboard.writeText(jsonStr).then(() => {
+          alert('All GUI control values copied to clipboard!\n\nYou can paste them directly into chat.');
+        }).catch(err => {
+          console.log('Control Values JSON:', jsonStr);
+          alert('Values logged to console (clipboard copy blocked by browser).');
+        });
+      }
+    };
+
+    this._gui.add(presetExporter, 'copyPresetValues').name('📋 Copy All Preset Values');
+
     // 1. Path Alignment & Trimming Folder
     const alignFolder = this._gui.addFolder('Alignment & Trimming');
     alignFolder.add(this.config, 'pathTrimStart', 0.0, 0.3, 0.01).name('Start Trim').onChange(() => this._rebuildAll());
