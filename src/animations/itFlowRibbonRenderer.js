@@ -434,6 +434,7 @@ export class ItFlowRibbonRenderer {
 
     this._orbUniforms = {
       uTime: { value: 0.0 },
+      uSpinAngle: { value: 0.0 },                              // Spinning Siren Light Beam Angle
       uCoreColorDark: { value: new THREE.Color('#0022aa') },   // Deep Royal Blue
       uCoreColorLight: { value: new THREE.Color('#3399ff') },  // Bright Electric Cyan Blue
       uGlowColor: { value: new THREE.Color('#88ccff') },       // Outer Soft Halo
@@ -474,6 +475,7 @@ export class ItFlowRibbonRenderer {
         varying vec3 vViewPosition;
 
         uniform float uTime;
+        uniform float uSpinAngle;
         uniform vec3 uCoreColorDark;
         uniform vec3 uCoreColorLight;
         uniform vec3 uGlowColor;
@@ -481,7 +483,6 @@ export class ItFlowRibbonRenderer {
         uniform float uGlowPower;
         uniform float uGlowIntensity;
 
-        // Procedural Pseudo-Random Grain
         float rand(vec2 co) {
           return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
         }
@@ -494,13 +495,18 @@ export class ItFlowRibbonRenderer {
           float gradPos = clamp((vPosition.x + vPosition.y + vPosition.z) / 30.0 + 0.5, 0.0, 1.0);
           vec3 coreColor = mix(uCoreColorDark, uCoreColorLight, gradPos);
 
-          // Add fine organic grain
           float grain = (rand(vUv * 50.0 + uTime * 0.05) - 0.5) * uGrainIntensity;
           coreColor = clamp(coreColor + vec3(grain), 0.0, 1.0);
 
-          // Soft Atmospheric Rim Glow (Fresnel)
+          // 80% Spinning Siren Light Beam Angle Mask (288° active beam, 72° dark gap)
+          float posAngle = atan(vPosition.y, vPosition.x);
+          float angleDiff = mod(posAngle - uSpinAngle + 3.14159265, 6.2831853) - 3.14159265;
+          // 80% of 2PI is 2.5132 rad (+- 1.2566 rad from beam center)
+          float sirenFactor = smoothstep(1.5, 0.5, abs(angleDiff));
+
+          // Soft Atmospheric Rim Glow (Fresnel modulated by 80% siren beam)
           float fresnel = max(0.0, 1.0 - dot(norm, viewDir));
-          float halo = pow(fresnel, uGlowPower) * uGlowIntensity;
+          float halo = pow(fresnel, uGlowPower) * uGlowIntensity * (0.3 + 0.7 * sirenFactor);
 
           vec3 finalColor = mix(coreColor, uGlowColor, clamp(halo, 0.0, 1.0));
           finalColor += uGlowColor * halo * 0.6;
@@ -513,6 +519,10 @@ export class ItFlowRibbonRenderer {
     this._sphereMesh = new THREE.Mesh(geometry, this._sphereMaterial);
     this._sphereMesh.visible = false;
     this._group.add(this._sphereMesh);
+
+    // Dynamic Point Light attached to Orb (Illuminates carved trench walls as it spins)
+    this._orbLight = new THREE.PointLight(0x3399ff, 8.0, 150, 1.5);
+    this._sphereMesh.add(this._orbLight);
   }
 
   _createMesh() {
@@ -641,7 +651,9 @@ export class ItFlowRibbonRenderer {
     const orbConfig = {
       darkColor: '#0022aa',
       lightColor: '#3399ff',
-      glowColor: '#88ccff'
+      glowColor: '#88ccff',
+      spinSpeed: 2.5,
+      trenchLightIntensity: 8.0
     };
     orbFolder.addColor(orbConfig, 'darkColor').name('Core Dark Color').onChange((v) => {
       if (this._orbUniforms) this._orbUniforms.uCoreColorDark.value.set(v);
@@ -653,7 +665,6 @@ export class ItFlowRibbonRenderer {
       if (this._orbUniforms) this._orbUniforms.uGlowColor.value.set(v);
     });
 
-    // Apply values matching screenshot defaults
     if (this._orbUniforms) {
       this._orbUniforms.uOrbScale.value = 2.3;
       this._orbUniforms.uZOffset.value = 3.0;
@@ -664,9 +675,16 @@ export class ItFlowRibbonRenderer {
 
     orbFolder.add(this._orbUniforms.uOrbScale, 'value', 0.5, 4.0, 0.05).name('Orb Size (Scale)');
     orbFolder.add(this._orbUniforms.uZOffset, 'value', -20.0, 10.0, 0.5).name('Trench Z Depth Offset');
+    orbFolder.add(orbConfig, 'spinSpeed', 0.0, 10.0, 0.2).name('Siren Spin Speed').onChange((v) => {
+      this._spinSpeed = v;
+    });
+    orbFolder.add(orbConfig, 'trenchLightIntensity', 0.0, 25.0, 0.5).name('Trench Light Intensity').onChange((v) => {
+      if (this._orbLight) this._orbLight.intensity = v;
+    });
     orbFolder.add(this._orbUniforms.uGrainIntensity, 'value', 0.0, 1.0, 0.02).name('Orb Grain Intensity');
     orbFolder.add(this._orbUniforms.uGlowPower, 'value', 0.5, 6.0, 0.1).name('Glow Falloff Power');
     orbFolder.add(this._orbUniforms.uGlowIntensity, 'value', 0.0, 4.0, 0.1).name('Glow Brightness');
+    this._spinSpeed = orbConfig.spinSpeed;
   }
 
   _rebuildAll() {
@@ -680,8 +698,23 @@ export class ItFlowRibbonRenderer {
   _tick(time) {
     if (!this._renderer) return;
 
+    const t = (time || performance.now()) * 0.001;
+    const speed = this._spinSpeed !== undefined ? this._spinSpeed : 2.5;
+    const currentSpin = t * speed;
+
     if (this._orbUniforms) {
-      this._orbUniforms.uTime.value = (time || performance.now()) * 0.001;
+      this._orbUniforms.uTime.value = t;
+      this._orbUniforms.uSpinAngle.value = currentSpin;
+    }
+
+    // Move dynamic point light in an 80% arc sweep around orb center
+    if (this._orbLight) {
+      const radius = 30.0;
+      this._orbLight.position.set(
+        Math.cos(currentSpin) * radius,
+        Math.sin(currentSpin) * radius,
+        5.0
+      );
     }
 
     const cardsEl = this._cardsEl || (this._sectionEl ? this._sectionEl.querySelector('.it-flow-cards') : null);
