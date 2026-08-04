@@ -786,6 +786,7 @@ export class ItFlowRibbonRenderer {
       secondaryColor: '#0033cc',
       violetColor: '#b066ff',
       spinSpeed: 2.5,
+      counterSpeedMult: 1.414,
       trenchLightIntensity: 8.0,
       glowSpriteSize: 120,
       glowSpriteOpacity: 0.95
@@ -822,8 +823,11 @@ export class ItFlowRibbonRenderer {
     orbFolder.add(orbConfig, 'glowSpriteOpacity', 0.0, 1.0, 0.05).name('Outer Glow Visibility (Opacity)').onChange((v) => {
       if (this._glowSpriteMaterial) this._glowSpriteMaterial.uniforms.uSpriteOpacity.value = v;
     });
-    orbFolder.add(orbConfig, 'spinSpeed', 0.0, 10.0, 0.2).name('Siren Spin Speed').onChange((v) => {
+    orbFolder.add(orbConfig, 'spinSpeed', 0.0, 10.0, 0.2).name('Primary Siren Speed').onChange((v) => {
       this._spinSpeed = v;
+    });
+    orbFolder.add(orbConfig, 'counterSpeedMult', 0.2, 5.0, 0.1).name('Counter-Spin Speed Ratio').onChange((v) => {
+      this._counterSpeedMult = v;
     });
     orbFolder.add(orbConfig, 'trenchLightIntensity', 0.0, 25.0, 0.5).name('Trench Light Intensity').onChange((v) => {
       if (this._orbLight) this._orbLight.intensity = v;
@@ -832,6 +836,7 @@ export class ItFlowRibbonRenderer {
     orbFolder.add(this._orbUniforms.uGlowPower, 'value', 0.5, 6.0, 0.1).name('Glow Falloff Power');
     orbFolder.add(this._orbUniforms.uGlowIntensity, 'value', 0.0, 4.0, 0.1).name('Glow Brightness');
     this._spinSpeed = orbConfig.spinSpeed;
+    this._counterSpeedMult = orbConfig.counterSpeedMult;
   }
 
   _rebuildAll() {
@@ -847,12 +852,19 @@ export class ItFlowRibbonRenderer {
 
     const t = (time || performance.now()) * 0.001;
     const speed = this._spinSpeed !== undefined ? this._spinSpeed : 2.5;
+    const counterMult = this._counterSpeedMult !== undefined ? this._counterSpeedMult : 1.414;
+    
+    // Clockwise main siren spin
     const currentSpin = t * speed;
+    
+    // Organic, non-repetitive counter-spin: irrational multiplier (sqrt 2) + subtle wave pulse
+    const organicWave = Math.sin(t * 0.7) * 0.4;
+    const counterSpin = -t * speed * counterMult + organicWave;
 
     if (this._orbUniforms) {
       this._orbUniforms.uTime.value = t;
       this._orbUniforms.uSpinAngle.value = currentSpin;
-      this._orbUniforms.uSpinAngleCounter.value = -currentSpin * 1.35;
+      this._orbUniforms.uSpinAngleCounter.value = counterSpin;
     }
 
     // Move dynamic point light in an 80% arc sweep around orb center
