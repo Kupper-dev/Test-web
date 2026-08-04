@@ -143,11 +143,17 @@ export class ItFlowRibbonRenderer {
       cardsH = rect.height > 0 ? rect.height : 2000;
     }
 
-    const scaleX = cardsW / SVG_VIEWBOX_W;
+    // SVG path bounding box center in original 0..740 coordinates:
+    // Min X: 33 (start), Max X: 667 (right turn). Midpoint: (33 + 667) / 2 = 350
+    const svgCenterX = 350;
+
+    // Apply scale: scaleX is padded slightly (1.20x) to expand turn loops horizontally within viewport
+    const scaleXMultiplier = 1.20;
+    const scaleX = (cardsW / SVG_VIEWBOX_W) * scaleXMultiplier;
     const scaleY = cardsH / SVG_VIEWBOX_H;
 
     return new THREE.Vector3(
-      (svgX - SVG_VIEWBOX_W / 2) * scaleX,
+      (svgX - svgCenterX) * scaleX,
       (SVG_VIEWBOX_H / 2 - svgY) * scaleY,
       0
     );
