@@ -845,18 +845,51 @@ export class ItFlowRibbonRenderer {
     geomFolder.add(this.config, 'wallThickness', 0.5, 10, 0.5).name('Lip Thickness').onChange(() => this._rebuildAll());
     geomFolder.add(this.config, 'trenchInnerRadius', 1, 20, 0.5).name('Inner Fillet Radius').onChange(() => this._rebuildAll());
 
-    // 3. Performance & Feature Testing Toggles
-    const perfFolder = this._gui.addFolder('⚡ Performance & Feature Toggles');
-    const perfConfig = {
-      enableSpriteGlow: true,
-      enableSpeedTrail: true
+    // 3. Complete Feature Audit & Performance Tweak Panel (Checkboxes)
+    const auditFolder = this._gui.addFolder('🧪 Feature Audit & Performance Panel');
+    const auditConfig = {
+      enableGraniteNoise: true,
+      enable3DPointLight: true,
+      enableHaloMesh: false,
+      enable2DDiscGlow: true,
+      enableScrollTrail: true,
+      enableOrbSirenShader: true,
+      enableHDRReflection: true
     };
 
-    perfFolder.add(perfConfig, 'enableSpriteGlow').name('2D Radial Disc Outer Glow').onChange((enabled) => {
+    auditFolder.add(auditConfig, 'enableGraniteNoise').name('1. Granite Stone Texture').onChange((enabled) => {
+      if (this._ribbonMaterial) {
+        this._ribbonMaterial.map = enabled ? this._textures['Granite Noise'] : null;
+        this._ribbonMaterial.bumpMap = enabled ? this._textures['Granite Noise'] : null;
+        this._ribbonMaterial.needsUpdate = true;
+      }
+    });
+
+    auditFolder.add(auditConfig, 'enable3DPointLight').name('2. 3D Point Light (Trench Glow)').onChange((enabled) => {
+      if (this._orbLight) this._orbLight.visible = enabled;
+    });
+
+    auditFolder.add(auditConfig, 'enableHaloMesh').name('3. 3D Outer Atmosphere Halo').onChange((enabled) => {
+      if (this._haloMesh) this._haloMesh.visible = enabled;
+    });
+
+    auditFolder.add(auditConfig, 'enable2DDiscGlow').name('4. 2D Radial Disc Outer Glow').onChange((enabled) => {
       if (this._glowSprite) this._glowSprite.visible = enabled;
     });
-    perfFolder.add(perfConfig, 'enableSpeedTrail').name('Scroll Speed Light Ribbon').onChange((enabled) => {
+
+    auditFolder.add(auditConfig, 'enableScrollTrail').name('5. Scroll Speed Light Ribbon').onChange((enabled) => {
       if (this._gradientUniforms) this._gradientUniforms.uTrailIntensity.value = enabled ? 1.8 : 0.0;
+    });
+
+    auditFolder.add(auditConfig, 'enableOrbSirenShader').name('6. Tri-Color Counter Siren Spin').onChange((enabled) => {
+      this._spinSpeed = enabled ? (this.config.spinSpeed || 2.5) : 0.0;
+    });
+
+    auditFolder.add(auditConfig, 'enableHDRReflection').name('7. Warehouse HDR Reflections').onChange((enabled) => {
+      if (this._sphereMaterial) {
+        this._sphereMaterial.envMap = enabled ? this._hdrEnvMap : null;
+        this._sphereMaterial.needsUpdate = true;
+      }
     });
   }
 
