@@ -6,9 +6,7 @@
  * and is scroll-driven via setScrollProgress().
  */
 
-import GUI from 'lil-gui';
 import * as THREE from 'three';
-import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 
 // ─── SVG Path Data ───────────────────────────────────────────────────────────
 const SVG_SEGMENTS = [
@@ -316,17 +314,6 @@ export class KupperRibbonRenderer {
       });
     };
 
-    const rgbeLoader = new RGBELoader();
-
-    // 1. Environment Map (Warehouse HDR)
-    rgbeLoader.load('/env/warehouse.hdr', (envMap) => {
-      if (!this._scene) return;
-      envMap.mapping = THREE.EquirectangularReflectionMapping;
-      this._hdrEnvMap = envMap;
-      // Guardrail: DO NOT set this._scene.environment or this._ribbonMaterial.envMap
-      // to protect Hero Ribbon from HDRI specular glare hot-spots.
-    });
-
     // 2. Texture Maps
     const loader = new THREE.TextureLoader();
     loader.load('/textures/noise.webp', (tex) => {
@@ -523,11 +510,6 @@ export class KupperRibbonRenderer {
     if (this._ribbonMaterial) {
       this._ribbonMaterial.dispose();
       this._ribbonMaterial = null;
-    }
-    
-    if (this._gui) {
-      this._gui.destroy();
-      this._gui = null;
     }
 
     if (this._renderer) {

@@ -4,7 +4,6 @@
  * Built exclusively for `.it-flow-section` to avoid touching KupperRibbonRenderer or Hero Ribbon.
  */
 
-import GUI from 'lil-gui';
 import * as THREE from 'three';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 
@@ -144,8 +143,6 @@ export class ItFlowRibbonRenderer {
     this._buildMaterial();
     this._buildSphere();
     this._createMesh();
-
-    this._setupGUI();
 
     this._onResize = this.resize.bind(this);
     window.addEventListener('resize', this._onResize);
@@ -767,132 +764,6 @@ export class ItFlowRibbonRenderer {
     this._renderer.setSize(w, h);
   }
 
-  _setupGUI() {
-    this._gui = new GUI({ title: 'IT Flow Carved Groove Controls' });
-
-    // Quick Preset Copy Helper Button
-    const presetExporter = {
-      copyPresetValues: () => {
-        const fullPreset = {
-          // 1. Path Alignment & Geometry
-          pathTrimStart: this.config.pathTrimStart,
-          pathTrimEnd: this.config.pathTrimEnd,
-          scaleXMultiplier: this.config.scaleXMultiplier,
-          svgCenterX: this.config.svgCenterX,
-          grooveWidth: this.config.grooveWidth,
-          grooveDepth: this.config.grooveDepth,
-          wallThickness: this.config.wallThickness,
-          trenchInnerRadius: this.config.trenchInnerRadius,
-
-          // 2. Shading & Texture
-          colorStart: this.config.colorStart,
-          colorEnd: this.config.colorEnd,
-          fresnelColor: this.config.fresnelColor,
-          roughness: this.config.roughness,
-          metalness: this.config.metalness,
-          texturePreset: this.config.texturePreset,
-          bumpScale: this.config.bumpScale,
-
-          // 3. Lighting
-          ambientLightIntensity: this.config.ambientLightIntensity,
-          keyLightIntensity: this.config.keyLightIntensity,
-          fillLightIntensity: this.config.fillLightIntensity,
-          fillLightColor: this.config.fillLightColor,
-
-          // 4. Glowing Orb Settings
-          orbScale: this._orbUniforms ? this._orbUniforms.uOrbScale.value : 2.3,
-          trenchZOffset: this._orbUniforms ? this._orbUniforms.uZOffset.value : 3.0,
-          orbGrainIntensity: this._orbUniforms ? this._orbUniforms.uGrainIntensity.value : 0.16,
-          glowFalloffPower: this._orbUniforms ? this._orbUniforms.uGlowPower.value : 2.1,
-          glowBrightness: this._orbUniforms ? this._orbUniforms.uGlowIntensity.value : 1.4,
-          glowSpriteSize: this._glowSprite ? this._glowSprite.scale.x * 120 : 120,
-          glowSpriteOpacity: this._glowSpriteMaterial ? this._glowSpriteMaterial.uniforms.uSpriteOpacity.value : 0.95,
-          spinSpeed: this._spinSpeed !== undefined ? this._spinSpeed : 2.5,
-          counterSpeedMult: this._counterSpeedMult !== undefined ? this._counterSpeedMult : 1.414,
-          trenchLightIntensity: this._orbLight ? this._orbLight.intensity : 8.0,
-
-          // 5. Colors
-          coreDarkColor: '#' + this._orbUniforms.uCoreColorDark.value.getHexString(),
-          coreLightColor: '#' + this._orbUniforms.uCoreColorLight.value.getHexString(),
-          primaryCyanGlow: '#' + this._orbUniforms.uGlowColor.value.getHexString(),
-          gapRoyalBlue: '#' + this._orbUniforms.uGlowColorSecondary.value.getHexString(),
-          counterSpinViolet: '#' + this._orbUniforms.uGlowColorViolet.value.getHexString()
-        };
-
-        const jsonStr = JSON.stringify(fullPreset, null, 2);
-        navigator.clipboard.writeText(jsonStr).then(() => {
-          alert('All GUI control values copied to clipboard!\n\nYou can paste them directly into chat.');
-        }).catch(err => {
-          console.log('Control Values JSON:', jsonStr);
-          alert('Values logged to console (clipboard copy blocked by browser).');
-        });
-      }
-    };
-
-    this._gui.add(presetExporter, 'copyPresetValues').name('📋 Copy All Preset Values');
-
-    // 1. Path Alignment & Trimming Folder
-    const alignFolder = this._gui.addFolder('Alignment & Trimming');
-    alignFolder.add(this.config, 'pathTrimStart', 0.0, 0.3, 0.01).name('Start Trim').onChange(() => this._rebuildAll());
-    alignFolder.add(this.config, 'pathTrimEnd', 0.7, 1.0, 0.01).name('End Trim').onChange(() => this._rebuildAll());
-    alignFolder.add(this.config, 'scaleXMultiplier', 1.0, 2.5, 0.02).name('Width Scale (X)').onChange(() => this._rebuildAll());
-    alignFolder.add(this.config, 'svgCenterX', 250, 500, 1).name('Center X (Left/Right)').onChange(() => this._rebuildAll());
-
-    // 2. 3D Carved Groove Geometry Folder
-    const geomFolder = this._gui.addFolder('Groove Geometry');
-    geomFolder.add(this.config, 'grooveWidth', 10, 60, 0.5).name('Groove Width').onChange(() => this._rebuildAll());
-    geomFolder.add(this.config, 'grooveDepth', 4, 30, 0.5).name('Groove Depth').onChange(() => this._rebuildAll());
-    geomFolder.add(this.config, 'wallThickness', 0.5, 10, 0.5).name('Lip Thickness').onChange(() => this._rebuildAll());
-    geomFolder.add(this.config, 'trenchInnerRadius', 1, 20, 0.5).name('Inner Fillet Radius').onChange(() => this._rebuildAll());
-
-    // 3. Complete Feature Audit & Performance Tweak Panel (Checkboxes)
-    const auditFolder = this._gui.addFolder('🧪 Feature Audit & Performance Panel');
-    const auditConfig = {
-      enableGraniteNoise: true,
-      enable3DPointLight: true,
-      enableHaloMesh: false,
-      enable2DDiscGlow: true,
-      enableScrollTrail: true,
-      enableOrbSirenShader: true,
-      enableHDRReflection: true
-    };
-
-    auditFolder.add(auditConfig, 'enableGraniteNoise').name('1. Granite Stone Texture').onChange((enabled) => {
-      if (this._ribbonMaterial) {
-        this._ribbonMaterial.map = enabled ? this._textures['Granite Noise'] : null;
-        this._ribbonMaterial.bumpMap = enabled ? this._textures['Granite Noise'] : null;
-        this._ribbonMaterial.needsUpdate = true;
-      }
-    });
-
-    auditFolder.add(auditConfig, 'enable3DPointLight').name('2. 3D Point Light (Trench Glow)').onChange((enabled) => {
-      if (this._orbLight) this._orbLight.visible = enabled;
-    });
-
-    auditFolder.add(auditConfig, 'enableHaloMesh').name('3. 3D Outer Atmosphere Halo').onChange((enabled) => {
-      if (this._haloMesh) this._haloMesh.visible = enabled;
-    });
-
-    auditFolder.add(auditConfig, 'enable2DDiscGlow').name('4. 2D Radial Disc Outer Glow').onChange((enabled) => {
-      if (this._glowSprite) this._glowSprite.visible = enabled;
-    });
-
-    auditFolder.add(auditConfig, 'enableScrollTrail').name('5. Scroll Speed Light Ribbon').onChange((enabled) => {
-      if (this._gradientUniforms) this._gradientUniforms.uTrailIntensity.value = enabled ? 1.8 : 0.0;
-    });
-
-    auditFolder.add(auditConfig, 'enableOrbSirenShader').name('6. Tri-Color Counter Siren Spin').onChange((enabled) => {
-      this._spinSpeed = enabled ? (this.config.spinSpeed || 2.5) : 0.0;
-    });
-
-    auditFolder.add(auditConfig, 'enableHDRReflection').name('7. Warehouse HDR Reflections').onChange((enabled) => {
-      if (this._sphereMaterial) {
-        this._sphereMaterial.envMap = enabled ? this._hdrEnvMap : null;
-        this._sphereMaterial.needsUpdate = true;
-      }
-    });
-  }
-
   _rebuildAll() {
     this._buildCurvePath();
     this._buildLUT();
@@ -965,10 +836,6 @@ export class ItFlowRibbonRenderer {
       cancelAnimationFrame(this._animationFrameId);
     }
     window.removeEventListener('resize', this._onResize);
-    if (this._gui) {
-      this._gui.destroy();
-      this._gui = null;
-    }
     if (this._canvas && this._canvas.parentNode) {
       this._canvas.parentNode.removeChild(this._canvas);
     }

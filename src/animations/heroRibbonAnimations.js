@@ -481,13 +481,24 @@ function tick() {
   if (ribbonRenderer) {
     ribbonRenderer.setScrollProgress(drawRatio);
 
-    // Ribbon visibility: hidden while in hero (section above viewport),
-    // fades in as #home-reel enters view
-    const fadeStart = h * 1.1;  // section top position where fade begins
-    const fadeEnd   = h * 0.85; // section top position where fully visible
-    const ribbonOpacity = Math.max(0, Math.min(1,
-      (fadeStart - currentY) / (fadeStart - fadeEnd)
-    ));
+    // Ribbon visibility: MUST be zero when section is outside the visible scroll range.
+    // Bug: the ratio (fadeStart - currentY) / range goes > 1 when currentY is a large negative
+    // number (section scrolled far above viewport on refresh), which incorrectly returns opacity 1.
+    // Fix: only show ribbon when section is approaching from below OR pinned. Hide in all other cases.
+    const fadeStart = h * 1.1;   // section top where fade begins (section entering from below)
+    const fadeEnd   = h * 0.85;  // section top where fully visible
+    // Section is in range when it is between [fadeEnd ... fadeStart] on the way in,
+    // or still pinned (currentY <= h * 0.25 and morphTl progress < 1).
+    const sectionBelowViewport = currentY > fadeStart;
+    const sectionScrolledPast  = currentY < -sectionRect.height; // hero fully above viewport (scrolled well past)
+    let ribbonOpacity;
+    if (sectionBelowViewport || sectionScrolledPast) {
+      ribbonOpacity = 0;
+    } else {
+      ribbonOpacity = Math.max(0, Math.min(1,
+        (fadeStart - currentY) / (fadeStart - fadeEnd)
+      ));
+    }
     ribbonRenderer.setOpacity(ribbonOpacity);
   }
 
@@ -496,7 +507,16 @@ function tick() {
     thumbEl = document.getElementById('home-reel-thumb') || document.querySelector('.home-reel-thumb');
   }
 
-  if (thumbEl && morphMesh) {
+  // Guard: hide morph mesh entirely when hero section is out of the active scroll range.
+  // Without this, getBoundingClientRect() values for off-screen elements feed into mesh
+  // position math and render the mesh at bizarre screen-space positions when page is
+  // refreshed mid-scroll on a different section.
+  const heroSectionActive = containerEl && currentY > -sectionRect.height && currentY < h * 1.5;
+  if (morphMesh) {
+    morphMesh.visible = heroSectionActive;
+  }
+
+  if (heroSectionActive && thumbEl && morphMesh) {
     const bgVideoEl = thumbEl.tagName === 'VIDEO' ? thumbEl : thumbEl.querySelector('video');
     if (bgVideoEl) {
       if (!thumbVideoTexture) {
@@ -547,7 +567,7 @@ function tick() {
     }
   }
 
-  if (thumbEl && videoContainerEl && morphMesh) {
+  if (heroSectionActive && thumbEl && videoContainerEl && morphMesh) {
     const thumbRect = thumbEl.getBoundingClientRect();
     const videoRect = videoContainerEl.getBoundingClientRect();
 
